@@ -1,0 +1,37 @@
+[tool.poetry]
+name = "todaib4thesis"
+version = "0.1.0"
+description = ""
+authors = ["Naoki Otani <o.naoki0302@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+numpy = "^2.1.2"
+matplotlib = "^3.9.2"
+POT = "^0.9.4"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.7.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+exclude = [
+    "venv",
+]
+
+line-length = 79
+indent-width = 4
+
+target-version = "py312"
+
+[tool.ruff.lint]
+fixable = ["ALL"]
+select = ["E", "F", "W", "B", "I"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
