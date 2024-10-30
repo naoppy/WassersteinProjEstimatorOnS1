@@ -23,5 +23,6 @@ A(kappa)
  = 1/N(sum_i cos(theta_i)) cos(mu_MLE) + 1/N(sum_i sin(theta_i)) sin(mu_MLE) 
 ```
 となる。kappaについては、上記の式を満たす `kappa` を数値的に求めるほかない。
+I_1/I_0 は単調増加な関数なので、二分探索を用いて計算するのがよいだろう。
 
 ### W-estimator
