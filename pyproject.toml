@@ -1,9 +1,7 @@
 [tool.poetry]
 name = "todaib4thesis"
 version = "0.1.0"
-description = ""
-authors = ["Naoki Otani <o.naoki0302@gmail.com>"]
-readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -19,11 +17,9 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.ruff]
-exclude = [
-    "venv",
-]
+exclude = [".venv"]
 
-line-length = 79
+line-length = 88
 indent-width = 4
 
 target-version = "py312"
