@@ -1,3 +1,6 @@
+import datetime
+from typing import Optional
+
 import matplotlib.pylab as plt
 import numpy as np
 import ot
@@ -15,6 +18,30 @@ def print_result(cost, log_dict, p: int):
     )
     if len(log_dict) != 1:
         print(log_dict)
+
+
+def confirm(empty_as: Optional[bool] = None) -> bool:
+    """ファイルの保存確認を表示して、入力を受け付ける。
+
+    Args:
+        empty_as (Optional[bool], optional): 入力無しのエンターをどう扱うか. Defaults to None.
+
+    Returns:
+        bool: 保存するかどうか
+    """
+
+    dic = {"y": True, "yes": True, "n": False, "no": False}
+    if empty_as is not None:
+        if empty_as:
+            dic[""] = True
+        else:
+            dic[""] = False
+    while True:
+        input_str = input("保存しますか? [Y]es/[N]o >> ").lower()
+        if input_str in dic:
+            return dic[input_str]
+        else:
+            print("Error! Input again.")
 
 
 def main():
@@ -43,6 +70,13 @@ def main():
 
     # print if you want to see the circular distribution
     plt.show()
+
+    save = confirm(empty_as=False)
+    if save:
+        now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
+        now_txt = now.strftime("%Y%m%d%H%M%S")
+        np.save(f"./data/{now_txt}_x1.npy", x1)
+        np.save(f"./data/{now_txt}_x2.npy", x2)
 
 
 if __name__ == "__main__":
