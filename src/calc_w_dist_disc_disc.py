@@ -51,7 +51,7 @@ def main():
     kappa1 = 20
     mu2 = 0
     kappa2 = kappa1
-    x1 = np.random.vonmises(mu1, kappa1, size=n) + np.pi
+    x1 = np.random.vonmises(mu1, kappa1, size=n) + np.pi  # 平均がpiずれるので注意
     x2 = np.random.vonmises(mu2, kappa2, size=n) + np.pi
     plt.figure()
     plt.plot(np.cos(t), np.sin(t), c="k")
