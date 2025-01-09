@@ -3,6 +3,8 @@
 このとき、連続分布からサンプリングした離散分布で、元の連続分布を近似します。
 """
 
+from datetime import datetime
+import time
 from typing import Any, Dict, Tuple
 import matplotlib.pylab as plt
 import numpy as np
@@ -51,22 +53,26 @@ def estimate_param(given_data) -> Tuple[float, float]:
         cost_func,
         ((-np.pi, np.pi), (0, 10)),
         full_output=True,
-        finish=optimize.fmin,
+        finish=optimize.fmin_powell,
         Ns=100,
     )[0]
 
 
 def main():
-    N = 1000
+    N = 500
     mu1 = 0.3
     kappa1 = 2
     sample = vonmises(loc=mu1, kappa=kappa1).rvs(N)
     vonmises_MLE.plot_vonmises(sample, mu1, kappa1, N)
+    time1 = time.perf_counter()
     T_data = vonmises_MLE.T(sample)
     mu_MLE, kappa_MLE = vonmises_MLE.MLE(T_data, N)
-    print(f"MLE result: mu={mu_MLE}, kappa={kappa_MLE}")
+    time2 = time.perf_counter()
+    print(f"MLE result: mu={mu_MLE}, kappa={kappa_MLE}, time={time2-time1}s")
+    time3 = time.perf_counter()
     mu_est, kappa_est = estimate_param(sample)
-    print(f"Estimation result: mu={mu_est}, kappa={kappa_est}")
+    time4 = time.perf_counter()
+    print(f"Estimation result: mu={mu_est}, kappa={kappa_est}, time={time4-time3}s")
 
 
 if __name__ == "__main__":

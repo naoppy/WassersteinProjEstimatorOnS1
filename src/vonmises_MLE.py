@@ -62,11 +62,11 @@ def plot_vonmises(sample, loc, kappa, N):
     left.set_xlim(-np.pi, np.pi)
     left.grid(True)
 
-    right.plot(x, vonmises_pdf, label="PDF")
+    right.plot(x, vonmises_pdf, label="p.d.f.")
     right.set_yticks(ticks)
-    right.hist(sample, density=True, bins=number_of_bins, label="Histogram")
+    right.hist(sample, density=True, bins=number_of_bins, label="data histogram")
     right.set_title("Polar plot")
-    right.legend(bbox_to_anchor=(0.15, 1.06))
+    right.legend(bbox_to_anchor=(0.2, 1.06))
 
     plt.show()
 
