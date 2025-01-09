@@ -3,16 +3,15 @@
 このとき、連続分布からサンプリングした離散分布で、元の連続分布を近似します。
 """
 
-from datetime import datetime
 import time
-from typing import Any, Dict, Tuple
-import matplotlib.pylab as plt
+from typing import Tuple
+
 import numpy as np
 import ot
 from scipy import optimize
 from scipy.stats import vonmises
+
 import vonmises_MLE
-from scipy.optimize import minimize
 
 
 def param_cost(est_mu, est_kappa, given_data) -> float:
