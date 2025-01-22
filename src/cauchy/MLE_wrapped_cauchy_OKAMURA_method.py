@@ -5,14 +5,16 @@
 from functools import partial
 
 import numpy as np
+import scipy.stats as stats
 
 
-def q(theta, n, x) -> complex:
-    return n / (np.sum(1 / (x - theta))) + theta
+# see section 3.2
+def q(w, n, x) -> complex:
+    return n / (np.sum(1 / (np.exp(1j * x) - 1 / w))) + 1 / w
 
 
 def calc_MLE(x, N: int, iter_num=100) -> complex:
-    """mu + i * gamma で返す"""
+    """rho e^(j mu) で返す"""
     if len(x) != N:
         raise ValueError("The length of x must be equal to N")
     if N < 3:
@@ -23,9 +25,8 @@ def calc_MLE(x, N: int, iter_num=100) -> complex:
     def my_Q(theta):
         return my_q(my_q(theta))
 
-    # 本当は初期値は median(x) + i * IRQ(x) が望ましい
     # 計算が面倒なので適当な初期値を設定
-    v = 1 + 1j
+    v = 1 / 2 + 1j / 2
     for _ in range(iter_num):
         print(v)
         v = my_Q(v)
@@ -33,11 +34,13 @@ def calc_MLE(x, N: int, iter_num=100) -> complex:
 
 
 def main():
-    N = 1000
-    mu = 2.0
-    gamma = 5.0
-    x = np.random.standard_cauchy(N) * gamma + mu
-    print(calc_MLE(x, N))
+    N = 100000
+    mu = np.pi / 2
+    rho = 0.2
+    x = stats.wrapcauchy.rvs(c=rho, loc=mu, size=N)
+    result = calc_MLE(x, N, iter_num=100)
+    print(f"rho MLE: {np.abs(result)}")
+    print(f"mu  MLE: {np.angle(result)}")
 
     # Example A.2
     # x = [-8, -5, -3, -1, 2, 7, 10]
