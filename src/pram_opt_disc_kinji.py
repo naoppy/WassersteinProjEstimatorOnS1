@@ -11,7 +11,7 @@ import ot
 from scipy import optimize
 from scipy.stats import vonmises
 
-import vonmises_MLE
+import vonmises.vonmises_MLE as vonmises_MLE
 
 
 def param_cost(est_mu, est_kappa, given_data) -> float:
