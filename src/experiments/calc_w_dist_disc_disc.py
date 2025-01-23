@@ -6,6 +6,12 @@ import numpy as np
 import ot
 from scipy.special import iv
 
+"""
+このファイルは、2つのフォンミーゼス分布のサンプル間のWasserstein距離が
+p=1, 2, 8など変えた時に輸送がどのように変化するか、どのくらい変わるかを実験したときのものです。
+兎に角輸送が変化することはわかりました。
+"""
+
 
 def pdf_von_Mises(theta, mu, kappa):
     pdf = np.exp(kappa * np.cos(theta - mu)) / (2.0 * np.pi * iv(0, kappa))
