@@ -19,7 +19,7 @@ def estimate_param(given_data) -> Tuple[float, float]:
     """与えられたデータから、最適なパラメータを推定する
 
     Args:
-        given_data (np.ndarray): サンプル1、[-pi, pi]のデータ
+        given_data (np.ndarray): サンプル1、[0, 2*pi]のデータ
 
     Returns:
         Tuple[float, float]: [推定したmu、推定したrho]
@@ -45,8 +45,8 @@ def estimate_param(given_data) -> Tuple[float, float]:
         cost_func,
         bounds,
         full_output=True,
-        # finish=finish_func,
-        finish=None,
+        finish=finish_func,
+        # finish=None,
         Ns=100,
     )[0]
 
@@ -54,11 +54,13 @@ def estimate_param(given_data) -> Tuple[float, float]:
 def main():
     N = 10000
     mu = np.pi / 2
-    rho = 0.7
+    rho = 0.1
 
     print(f"N={N}, True parameter: mu={mu}, rho={rho}")
 
+    # [0, 2*pi] の範囲でサンプリングしたいが、[mu, mu + 2*pi] の範囲になっているので修正
     sample = stats.wrapcauchy(loc=mu, c=rho).rvs(N)
+    sample = np.remainder(sample, 2 * np.pi)
 
     time1 = time.perf_counter()
     MLE = MLE_wrapped_cauchy_OKAMURA_method.calc_MLE(sample, N, iter_num=100)
