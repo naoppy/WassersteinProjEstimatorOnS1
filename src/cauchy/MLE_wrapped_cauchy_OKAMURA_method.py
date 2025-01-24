@@ -28,7 +28,7 @@ def calc_MLE(x, N: int, iter_num=100) -> complex:
     # 計算が面倒なので適当な初期値を設定
     v = 1 / 2 + 1j / 2
     for _ in range(iter_num):
-        print(v)
+        # print(v)
         v = my_Q(v)
     return v
 

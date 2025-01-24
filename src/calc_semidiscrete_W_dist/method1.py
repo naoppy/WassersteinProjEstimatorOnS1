@@ -2,7 +2,7 @@ import numpy.typing as npt
 import ot
 
 
-def calc_semidiscreate_W_dist(
+def method1(
         x_empirical: npt.NDArray[float], # type: ignore
         y_sampling: npt.NDArray[float], # type: ignore
         p: int

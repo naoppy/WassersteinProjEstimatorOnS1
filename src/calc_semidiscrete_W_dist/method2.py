@@ -2,7 +2,7 @@ import numpy as np
 import numpy.typing as npt
 
 
-def calc_semidiscreate_W_dist(
+def method2(
         x_hist_cumsum: npt.NDArray[float], # type: ignore
         y_hist_cumsum: npt.NDArray[float], # type: ignore
     ) -> float:

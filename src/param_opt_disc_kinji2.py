@@ -7,8 +7,6 @@ import time
 from typing import Tuple
 
 import numpy as np
-import ot
-from scipy import optimize
 from scipy.stats import vonmises
 
 import vonmises.vonmises_MLE as vonmises_MLE
