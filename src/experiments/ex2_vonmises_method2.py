@@ -28,10 +28,12 @@ def estimate_param(given_data) -> Tuple[float, float]:
     bin_num = len(given_data)
     data_hist = np.zeros(bin_num + 1)
     for x in given_data:
-        data_hist[np.clip(int((x + np.pi) / (2 * np.pi) * bin_num)+1, 1, bin_num)] += 1
+        data_hist[
+            np.clip(int((x + np.pi) / (2 * np.pi) * bin_num) + 1, 1, bin_num)
+        ] += 1
     data_cumsum_hist = np.cumsum(data_hist) / n
-    assert abs(data_cumsum_hist[0]-0.0) < 1e-7
-    assert abs(data_cumsum_hist[-1]-1.0) < 1e-7
+    assert abs(data_cumsum_hist[0] - 0.0) < 1e-7
+    assert abs(data_cumsum_hist[-1] - 1.0) < 1e-7
 
     def cost_func(x):
         mu, kappa = x
@@ -66,7 +68,9 @@ def main():
     time3 = time.perf_counter()
     mu_est, kappa_est = estimate_param(sample)
     time4 = time.perf_counter()
-    print(f"Mehtod2 Estimation result: mu={mu_est}, kappa={kappa_est}, time={time4-time3}s")
+    print(
+        f"Mehtod2 Estimation result: mu={mu_est}, kappa={kappa_est}, time={time4-time3}s"
+    )
 
 
 if __name__ == "__main__":

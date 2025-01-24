@@ -4,6 +4,7 @@
 """
 
 import time
+from functools import partial
 from typing import Tuple
 
 import numpy as np
@@ -27,28 +28,32 @@ def estimate_param(given_data) -> Tuple[float, float]:
     bin_num = len(given_data)
     data_hist = np.zeros(bin_num + 1)
     for x in given_data:
-        data_hist[np.clip(int(x / (2 * np.pi) * bin_num)+1, 1, bin_num)] += 1
+        data_hist[np.clip(int(x / (2 * np.pi) * bin_num) + 1, 1, bin_num)] += 1
     data_cumsum_hist = np.cumsum(data_hist) / n
-    assert abs(data_cumsum_hist[0]-0.0) < 1e-7
-    assert abs(data_cumsum_hist[-1]-1.0) < 1e-7
+    assert abs(data_cumsum_hist[0] - 0.0) < 1e-7
+    assert abs(data_cumsum_hist[-1] - 1.0) < 1e-7
 
     def cost_func(x):
         mu, rho = x
         dist_cumsum_hist = wrapped_cauchy_cumsum_hist.cumsum_hist(mu, rho, bin_num)
         return method2.method2(data_cumsum_hist[1:], dist_cumsum_hist[1:])
 
+    bounds = ((0, 2 * np.pi), (0.01, 0.99))
+    finish_func = partial(optimize.minimize, method="powell", bounds=bounds)
+
     return optimize.brute(
         cost_func,
-        ((-np.pi, np.pi), (0, 10)),
+        bounds,
         full_output=True,
-        finish=optimize.fmin_powell,
+        # finish=finish_func,
+        finish=None,
         Ns=100,
     )[0]
 
 
 def main():
     N = 10000
-    mu = np.pi/2
+    mu = np.pi / 2
     rho = 0.7
 
     print(f"N={N}, True parameter: mu={mu}, rho={rho}")
