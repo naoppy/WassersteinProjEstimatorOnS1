@@ -8,8 +8,8 @@ def cumsum_hist(mu: float, rho: float, bin_num) -> npt.NDArray[np.float64]:
     [F(i/D)] i=0,1,...,D
     """
     dist = wrapcauchy(loc=mu, c=rho)
-    x = np.linspace(-np.pi, np.pi, bin_num + 1)
-    y = dist.cdf(x) - dist.cdf(-np.pi)
+    x = np.linspace(0, 2*np.pi, bin_num + 1)
+    y = dist.cdf(x) - dist.cdf(0)
 
     assert len(y) == bin_num + 1
     assert abs(y[0] - 0.0) < 1e-7

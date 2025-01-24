@@ -33,8 +33,8 @@ def estimate_param(given_data) -> Tuple[float, float]:
     assert abs(data_cumsum_hist[-1]-1.0) < 1e-7
 
     def cost_func(x):
-        mu, kappa = x
-        dist_cumsum_hist = wrapped_cauchy_cumsum_hist.cumsum_hist(mu, kappa, bin_num)
+        mu, rho = x
+        dist_cumsum_hist = wrapped_cauchy_cumsum_hist.cumsum_hist(mu, rho, bin_num)
         return method2.method2(data_cumsum_hist[1:], dist_cumsum_hist[1:])
 
     return optimize.brute(
