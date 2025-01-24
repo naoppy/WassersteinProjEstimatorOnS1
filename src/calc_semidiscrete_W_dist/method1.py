@@ -1,11 +1,10 @@
-import numpy as np
 import numpy.typing as npt
 import ot
 
 
 def calc_semidiscreate_W_dist(
-        x_empirical: npt.NDArray[np.float],
-        y_sampling: npt.NDArray[np.float],
+        x_empirical: npt.NDArray[float], # type: ignore
+        y_sampling: npt.NDArray[float], # type: ignore
         p: int
     ) -> float:
     """半離散ケースでのp-Wasserstein距離を計算する

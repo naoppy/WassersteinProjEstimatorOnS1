@@ -3,8 +3,8 @@ import numpy.typing as npt
 
 
 def calc_semidiscreate_W_dist(
-        x_hist_cumsum: npt.NDArray[np.float],
-        y_hist_cumsum: npt.NDArray[np.float],
+        x_hist_cumsum: npt.NDArray[float], # type: ignore
+        y_hist_cumsum: npt.NDArray[float], # type: ignore
     ) -> float:
     """半離散ケースでの1-Wasserstein距離を計算する
     計算量は O(n) である。
