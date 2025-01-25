@@ -8,18 +8,17 @@
 
 from typing import Tuple
 
-import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats as stats
 from scipy import optimize
 
-from ..calc_semidiscrete_W_dist import method2
+from ..calc_semidiscrete_W_dist import method1, method2
 from ..plots import brute_heatmap
 from ..vonmises import vonmises_cumsum_hist
 from ..vonmises import vonmises_MLE as vonmises_MLE
 
 
-def estimate_param(given_data) -> Tuple[float, float]:
+def est_W1_method2(given_data) -> Tuple[float, float]:
     """与えられたデータから、最適なパラメータを推定する
 
     Args:
@@ -29,9 +28,7 @@ def estimate_param(given_data) -> Tuple[float, float]:
         Tuple[float, float]: [推定したmu、推定したkappa]
     """
     bin_num = len(given_data)
-    data_cumsum_hist = vonmises_cumsum_hist.cumsum_hist_data(
-        given_data, len(given_data)
-    )
+    data_cumsum_hist = vonmises_cumsum_hist.cumsum_hist_data(given_data, bin_num)
 
     def cost_func(x):
         mu, kappa = x
@@ -47,11 +44,9 @@ def estimate_param(given_data) -> Tuple[float, float]:
     )
 
 
-def estimate_param_justopt(given_data) -> Tuple[float, float]:
+def est_W1_method2_justopt(given_data) -> Tuple[float, float]:
     bin_num = len(given_data)
-    data_cumsum_hist = vonmises_cumsum_hist.cumsum_hist_data(
-        given_data, len(given_data)
-    )
+    data_cumsum_hist = vonmises_cumsum_hist.cumsum_hist_data(given_data, bin_num)
 
     def cost_func(x):
         mu, kappa = x
@@ -71,6 +66,43 @@ def estimate_param_justopt(given_data) -> Tuple[float, float]:
     )
 
 
+def est_W2_method1(given_data):
+    """Calc W2-estimator using method1"""
+    given_data_norm = np.remainder(given_data, 2 * np.pi) / (2 * np.pi)
+
+    def cost_func(x):
+        sample = stats.vonmises(loc=x[0], kappa=x[1]).rvs(len(given_data))
+        sample = np.remainder(sample, 2 * np.pi) / (2 * np.pi)
+        return method1.method1(given_data_norm, sample, p=2)
+
+    return optimize.brute(
+        cost_func,
+        ((-np.pi, np.pi), (0, 10)),
+        # ((-0.4, 0.6), (2, 4)),
+        full_output=True,
+        finish=None,
+        Ns=100,
+    )
+
+
+def est_W2_method1_justopt(given_data):
+    """Calc W2-estimator using method1"""
+    given_data_norm = np.remainder(given_data, 2 * np.pi) / (2 * np.pi)
+
+    def cost_func(x):
+        sample = stats.vonmises(loc=x[0], kappa=x[1]).rvs(len(given_data))
+        sample = np.remainder(sample, 2 * np.pi) / (2 * np.pi)
+        return method1.method1(given_data_norm, sample, p=2)
+
+    return optimize.minimize(
+        cost_func,
+        (0, 1),
+        bounds=((-np.pi, np.pi), (0, 10)),
+        method="powell",
+        options={"xtol": 1e-9, "ftol": 1e-9},
+    )
+
+
 def main():
     N = 1000
     mu1 = 0.3
@@ -83,12 +115,17 @@ def main():
 
     print(f"MLE: {vonmises_MLE.MLE(vonmises_MLE.T(sample), N)}")
 
-    ret = estimate_param(sample)
-    # print(ret)
+    ret = est_W1_method2(sample)
     brute_heatmap.plot_heatmap(ret, ("mu", "kappa"))
 
-    ret2 = estimate_param_justopt(sample)
+    ret2 = est_W1_method2_justopt(sample)
     print(ret2)
+
+    ret3 = est_W2_method1(sample)
+    brute_heatmap.plot_heatmap(ret3, ("mu", "kappa"))
+
+    ret4 = est_W2_method1_justopt(sample)
+    print(ret4)
 
 
 if __name__ == "__main__":

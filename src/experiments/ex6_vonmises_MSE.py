@@ -5,19 +5,16 @@ MSE, W2-estimator(method1), W1-estimator(method2)の比較
 
 import time
 from functools import partial
-from typing import Tuple
 
-import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats as stats
 from scipy import optimize
 
 from ..calc_semidiscrete_W_dist import method1, method2
-from ..vonmises import vonmises_cumsum_hist
-from ..vonmises import vonmises_MLE as vonmises_MLE
+from ..vonmises import vonmises_cumsum_hist, vonmises_MLE
 
 
-def est_method1(given_data) -> Tuple[float, float]:
+def est_method1(given_data):
     """Calc W2-estimator using method1
 
     Args:
@@ -42,7 +39,7 @@ def est_method1(given_data) -> Tuple[float, float]:
     )
 
 
-def est_method2(given_data) -> Tuple[float, float]:
+def est_method2(given_data):
     """Calc W1-estimator using method1
 
     Args:
@@ -69,10 +66,10 @@ def est_method2(given_data) -> Tuple[float, float]:
 def main():
     true_mu = 0.3
     true_kappa = 2
-    # Ns = [100, 500, 1000, 5000, 10000]
-    Ns = [1000]
-    # try_nums = [100, 100, 100, 100, 100]
-    try_nums = [10]
+    Ns = [100, 500, 1000, 5000, 10000]
+    # Ns = [1000]
+    try_nums = [100, 100, 100, 100, 100]
+    # try_nums = [10]
     for N, try_num in zip(Ns, try_nums, strict=True):  # データ数Nを変える
         print(f"N={N}")
         MLE_mu = np.zeros(try_num)
@@ -97,10 +94,10 @@ def main():
             MLE_time[i] = e_time - s_time
 
             s_time = time.perf_counter()
-            # est = est_method1(sample)
+            est = est_method1(sample)
             e_time = time.perf_counter()
-            # method1_mu[i] = est[0][0]
-            # method1_kappa[i] = est[0][1]
+            method1_mu[i] = est[0][0]
+            method1_kappa[i] = est[0][1]
             method1_time[i] = e_time - s_time
 
             s_time = time.perf_counter()
@@ -124,14 +121,12 @@ def main():
         print(
             f"MLE: mu_mse={MLE_mu_mse}, kappa_mse={MLE_kappa_mse}, time={MLE_time_mean}"
         )
-        # print(
-        #     f"method1: mu_mse={method1_mu_mse}, kappa_mse={method1_kappa_mse}, time={method1_time_mean}"
-        # )
+        print(
+            f"method1: mu_mse={method1_mu_mse}, kappa_mse={method1_kappa_mse}, time={method1_time_mean}"
+        )
         print(
             f"method2: mu_mse={method2_mu_mse}, kappa_mse={method2_kappa_mse}, time={method2_time_mean}"
         )
-        print(method2_mu)
-        print(method2_kappa)
 
 
 if __name__ == "__main__":

@@ -25,7 +25,11 @@ def cumsum_hist_data(data: npt.NDArray[np.float64], bin_num) -> npt.NDArray[np.f
     data_hist = np.zeros(bin_num + 1)
     for x in data:
         data_hist[
-            np.clip(int((x + np.pi) / (2 * np.pi) * bin_num) + 1, 1, bin_num)
+            np.clip(
+                int(np.remainder(bin_num * (x + np.pi) / (2 * np.pi), bin_num)) + 1,
+                1,
+                bin_num,
+            )
         ] += 1
     data_cumsum_hist = np.cumsum(data_hist) / n
 
