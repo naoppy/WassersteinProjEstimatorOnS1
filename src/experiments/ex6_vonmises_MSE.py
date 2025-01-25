@@ -70,8 +70,9 @@ def est_method2(given_data):
 
 
 def main():
-    true_mu = 0.3
-    true_kappa = 2
+    true_mu = -np.pi / 2
+    true_kappa = 0.4
+    print(f"true mu={true_mu}, true kappa={true_kappa}")
     Ns = [100, 500, 1000, 5000, 10000]
     # Ns = [1000]
     try_nums = [100, 100, 100, 100, 100]
