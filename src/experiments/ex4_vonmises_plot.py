@@ -63,11 +63,11 @@ def estimate_param_justopt(given_data) -> Tuple[float, float]:
         (0, 1),
         bounds=((-np.pi, np.pi), (0, 10)),
         # for powell method
-        # method="powell",
-        # options={"xtol": 1e-6, "ftol": 1e-6},
+        method="powell",
+        options={"xtol": 1e-6, "ftol": 1e-6},
         # for Nelder-Mead method
-        method="Nelder-Mead",
-        options={"xatol": 1e-6, "fatol": 1e-6},
+        # method="Nelder-Mead",
+        # options={"xatol": 1e-6, "fatol": 1e-6},
     )
 
 
