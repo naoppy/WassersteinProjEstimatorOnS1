@@ -6,12 +6,21 @@ MSE, W2-estimator(method1), W1-estimator(method2)の比較
 import time
 from functools import partial
 
+from tqdm import tqdm
+
 import numpy as np
 import scipy.stats as stats
 from scipy import optimize
 
 from ..calc_semidiscrete_W_dist import method1, method2
 from ..vonmises import vonmises_cumsum_hist, vonmises_MLE
+
+
+def W2_cost_func(x, given_data_normed_sorted):
+    sample = stats.vonmises(loc=x[0], kappa=x[1]).rvs(len(given_data_normed_sorted))
+    sample = np.remainder(sample, 2 * np.pi) / (2 * np.pi)
+    sample = np.sort(sample)
+    return method1.method1(given_data_normed_sorted, sample, p=2, sorted=True)
 
 
 def est_method1(given_data):
@@ -21,12 +30,8 @@ def est_method1(given_data):
         given_data (np.ndarray): [0, 2*pi]のデータ
     """
     given_data_norm = given_data / (2 * np.pi)
-
-    def cost_func(x):
-        sample = stats.vonmises(loc=x[0], kappa=x[1]).rvs(len(given_data))
-        sample = np.remainder(sample, 2 * np.pi) / (2 * np.pi)
-        return method1.method1(given_data_norm, sample, p=2)
-
+    given_data_norm_sorted = np.sort(given_data_norm)
+    cost_func = partial(W2_cost_func, given_data_normed_sorted=given_data_norm_sorted)
     bounds = ((-np.pi, np.pi), (0, 10))
     finish_func = partial(optimize.minimize, method="powell", bounds=bounds)
 
@@ -36,6 +41,7 @@ def est_method1(given_data):
         full_output=True,
         finish=finish_func,
         Ns=100,
+        workers=-1,
     )
 
 
@@ -82,7 +88,7 @@ def main():
         method2_kappa = np.zeros(try_num)
         method2_time = np.zeros(try_num)
 
-        for i in range(try_num):  # MSEをとるための試行回数
+        for i in tqdm(range(try_num)):  # MSEをとるための試行回数
             sample = stats.vonmises(loc=true_mu, kappa=true_kappa).rvs(N)
             sample = np.remainder(sample, 2 * np.pi)
 
