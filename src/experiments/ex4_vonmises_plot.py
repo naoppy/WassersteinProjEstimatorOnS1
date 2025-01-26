@@ -38,6 +38,7 @@ def est_W1_method2(given_data) -> Tuple[float, float]:
     return optimize.brute(
         cost_func,
         ((-np.pi, np.pi), (0, 10)),
+        # ((-0.4, 0.6), (1, 3)),
         full_output=True,
         finish=None,
         Ns=100,
@@ -108,17 +109,24 @@ def est_W2_method1_justopt(given_data):
 def main():
     N = 10000
     mu1 = 0.3
-    kappa1 = 2
+    kappa1 = 5
 
     print(f"N={N}, True parameter: mu={mu1}, kappa={kappa1}")
 
-    sample = stats.vonmises(loc=mu1, kappa=kappa1).rvs(N)
+    # normal version
+    # sample = stats.vonmises(loc=mu1, kappa=kappa1).rvs(N)
+
+    # bimodal version
+    sample1 = stats.vonmises(loc=mu1, kappa=kappa1).rvs(N // 2)
+    sample2 = stats.vonmises(loc=mu1 + np.pi * 3 / 4, kappa=kappa1).rvs(N - N // 2)
+    sample = np.concatenate([sample1, sample2])
+
     # vonmises_MLE.plot_vonmises(sample, mu1, kappa1, N)
 
     print(f"MLE: {vonmises_MLE.MLE(vonmises_MLE.T(sample), N)}")
 
-    # ret = est_W1_method2(sample)
-    # brute_heatmap.plot_heatmap(ret, ("mu", "kappa"))
+    ret = est_W1_method2(sample)
+    brute_heatmap.plot_heatmap(ret, ("mu", "kappa"))
 
     # ret2 = est_W1_method2_justopt(sample)
     # print(ret2)
@@ -126,8 +134,8 @@ def main():
     ret3 = est_W2_method1(sample)
     brute_heatmap.plot_heatmap(ret3, ("mu", "kappa"))
 
-    ret4 = est_W2_method1_justopt(sample)
-    print(ret4)
+    # ret4 = est_W2_method1_justopt(sample)
+    # print(ret4)
 
 
 if __name__ == "__main__":

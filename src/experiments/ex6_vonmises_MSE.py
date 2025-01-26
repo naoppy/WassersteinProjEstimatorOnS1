@@ -6,11 +6,10 @@ MSE, W2-estimator(method1), W1-estimator(method2)の比較
 import time
 from functools import partial
 
-from tqdm import tqdm
-
 import numpy as np
 import scipy.stats as stats
 from scipy import optimize
+from tqdm import tqdm
 
 from ..calc_semidiscrete_W_dist import method1, method2
 from ..vonmises import vonmises_cumsum_hist, vonmises_MLE
