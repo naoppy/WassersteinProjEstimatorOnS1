@@ -94,10 +94,10 @@ def main():
             sample = np.remainder(sample, 2 * np.pi)
 
             s_time = time.perf_counter()
-            MLE = MLE_wrapped_cauchy_OKAMURA_method(sample)
+            MLE = MLE_wrapped_cauchy_OKAMURA_method.calc_MLE(sample, N, iter_num=100)
             e_time = time.perf_counter()
-            MLE_mu[i] = MLE[0]
-            MLE_rho[i] = MLE[1]
+            MLE_mu[i] = np.angle(MLE)
+            MLE_rho[i] = np.abs(MLE)
             MLE_time[i] = e_time - s_time
 
             s_time = time.perf_counter()
