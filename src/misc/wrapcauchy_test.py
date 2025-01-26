@@ -38,7 +38,7 @@ def wrapcauchy_periodic_cdf(
 
 def main():
     mu = np.pi
-    rho = 0.6
+    rho = 0.2
     dist = wrapcauchy(loc=mu, c=rho)
     x = np.linspace(-2 * np.pi, 4 * np.pi, 3000, endpoint=True)
 

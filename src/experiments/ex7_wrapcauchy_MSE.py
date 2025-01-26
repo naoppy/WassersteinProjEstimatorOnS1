@@ -70,8 +70,8 @@ def est_method2(given_data):
 
 def main():
     true_mu = np.pi / 2
-    true_rho = 0.7
-    print(f"true mu={true_mu}, true kappa={true_rho}")
+    true_rho = 0.2
+    print(f"true mu={true_mu}, true rho={true_rho}")
     Ns = [100, 500, 1000, 5000, 10000]
     # Ns = [1000]
     try_nums = [100, 100, 100, 100, 100]
@@ -94,7 +94,7 @@ def main():
             sample = np.remainder(sample, 2 * np.pi)
 
             s_time = time.perf_counter()
-            MLE = MLE_wrapped_cauchy_OKAMURA_method.calc_MLE(sample, N, iter_num=100)
+            MLE = MLE_wrapped_cauchy_OKAMURA_method.calc_MLE(sample, N, iter_num=10000)
             e_time = time.perf_counter()
             MLE_mu[i] = np.angle(MLE)
             MLE_rho[i] = np.abs(MLE)
