@@ -70,8 +70,12 @@ def est_method2(given_data):
 
 def main():
     true_mu = np.pi / 2
-    true_rho = 0.2
+    # 実験条件1
+    true_rho = 0.7
+    # 実験条件2
+    # true_rho = 0.2
     print(f"true mu={true_mu}, true rho={true_rho}")
+
     Ns = [100, 500, 1000, 5000, 10000]
     # Ns = [1000]
     try_nums = [100, 100, 100, 100, 100]
