@@ -79,8 +79,8 @@ def est_W2_method1(given_data):
 
     return optimize.brute(
         cost_func,
-        # ((-np.pi, np.pi), (0, 10)),
-        ((-0.4, 0.6), (1, 3)),
+        ((-np.pi, np.pi), (0, 10)),
+        # ((-0.4, 0.6), (1, 3)),
         full_output=True,
         finish=None,
         Ns=100,

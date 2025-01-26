@@ -22,5 +22,5 @@ def method1(
         float: p-Wasserstein距離
     """
     return ot.binary_search_circle(
-        x_empirical, y_sampling, p=p, log=False, require_sort=sorted
+        x_empirical, y_sampling, p=p, log=False, require_sort=not sorted
     )
