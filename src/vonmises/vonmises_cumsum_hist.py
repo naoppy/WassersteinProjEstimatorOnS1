@@ -12,7 +12,7 @@ def cumsum_hist(mu: float, kappa: float, bin_num) -> npt.NDArray[np.float64]:
     y = dist.cdf(x) - dist.cdf(-np.pi)
 
     assert len(y) == bin_num + 1
-    assert abs(y[0] - 0.0) < 1e-7
+    assert abs(y[0] - 0.0) < 1e-7, print(f"{mu}, {kappa}, {y}")
     assert abs(y[-1] - 1.0) < 1e-7
     return y
 

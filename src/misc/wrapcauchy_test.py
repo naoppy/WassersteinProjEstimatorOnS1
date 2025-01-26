@@ -38,23 +38,31 @@ def wrapcauchy_periodic_cdf(
 
 def main():
     mu = np.pi
-    rho = 0.7
+    rho = 0.6
     dist = wrapcauchy(loc=mu, c=rho)
     x = np.linspace(-2 * np.pi, 4 * np.pi, 3000, endpoint=True)
 
-    y = dist.pdf(x)
-    plt.plot(x, y)
-    plt.show()
+    # y = dist.pdf(x)
+    # plt.plot(x, y)
+    # plt.show()
+
+    # y = wrapcauchy_true_pdf(x, rho, mu, 1)
+    # plt.plot(x, y)
+    # plt.show()
+
+    # y = dist.cdf(x)
+    # plt.plot(x, y)
+    # plt.show()
+
+    # y = wrapcauchy_periodic_cdf(x, rho, mu, 1)
+    # plt.plot(x, y)
+    # plt.show()
 
     y = wrapcauchy_true_pdf(x, rho, mu, 1)
     plt.plot(x, y)
     plt.show()
 
-    y = dist.cdf(x)
-    plt.plot(x, y)
-    plt.show()
-
-    y = wrapcauchy_periodic_cdf(x, rho, mu, 1)
+    plt.subplot(projection="polar")
     plt.plot(x, y)
     plt.show()
 

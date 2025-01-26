@@ -4,14 +4,22 @@ import scipy.stats as stats
 
 
 def main():
-    vonmises = stats.vonmises(loc=-np.pi / 2, kappa=0.4)
-    x = np.linspace(-np.pi, np.pi, 1000)
+    vonmises = stats.vonmises(loc=0, kappa=0)
+    x = np.linspace(-np.pi, np.pi, 101)
     y = vonmises.pdf(x)
     plt.plot(x, y)
     plt.show()
 
-    plt.subplot(projection="polar")
-    plt.plot(x, y)
+    # plt.subplot(projection="polar")
+    # plt.plot(x, y)
+    # plt.show()
+
+    z = vonmises.cdf(x)
+    if (np.isnan(z)).any():
+        print("nan!")
+    if np.isnan(vonmises.cdf(-np.pi)):
+        print("nan!!")
+    plt.plot(x, z)
     plt.show()
 
 
