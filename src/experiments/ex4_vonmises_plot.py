@@ -69,16 +69,18 @@ def est_W1_method2_justopt(given_data) -> Tuple[float, float]:
 def est_W2_method1(given_data):
     """Calc W2-estimator using method1"""
     given_data_norm = np.remainder(given_data, 2 * np.pi) / (2 * np.pi)
+    given_data_norm_sorted = np.sort(given_data_norm)
 
     def cost_func(x):
         sample = stats.vonmises(loc=x[0], kappa=x[1]).rvs(len(given_data))
         sample = np.remainder(sample, 2 * np.pi) / (2 * np.pi)
-        return method1.method1(given_data_norm, sample, p=2)
+        sample = np.sort(sample)
+        return method1.method1(given_data_norm_sorted, sample, p=2, sorted=True)
 
     return optimize.brute(
         cost_func,
-        ((-np.pi, np.pi), (0, 10)),
-        # ((-0.4, 0.6), (2, 4)),
+        # ((-np.pi, np.pi), (0, 10)),
+        ((-0.4, 0.6), (1, 3)),
         full_output=True,
         finish=None,
         Ns=100,
@@ -104,7 +106,7 @@ def est_W2_method1_justopt(given_data):
 
 
 def main():
-    N = 1000
+    N = 10000
     mu1 = 0.3
     kappa1 = 2
 
@@ -115,11 +117,11 @@ def main():
 
     print(f"MLE: {vonmises_MLE.MLE(vonmises_MLE.T(sample), N)}")
 
-    ret = est_W1_method2(sample)
-    brute_heatmap.plot_heatmap(ret, ("mu", "kappa"))
+    # ret = est_W1_method2(sample)
+    # brute_heatmap.plot_heatmap(ret, ("mu", "kappa"))
 
-    ret2 = est_W1_method2_justopt(sample)
-    print(ret2)
+    # ret2 = est_W1_method2_justopt(sample)
+    # print(ret2)
 
     ret3 = est_W2_method1(sample)
     brute_heatmap.plot_heatmap(ret3, ("mu", "kappa"))
