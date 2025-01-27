@@ -37,12 +37,33 @@ def wrapcauchy_periodic_cdf(
 
 
 def main():
-    mu = np.pi
-    rho = 0.2
+    mu = 0
+    rho = 0.8
     dist = wrapcauchy(loc=mu, c=rho)
     x = np.linspace(-2 * np.pi, 4 * np.pi, 3000, endpoint=True)
 
+    fig = plt.figure(figsize=(12, 6))
+    ax1 = fig.add_subplot(221)
+    ax1.plot(x, dist.pdf(x))
+    ax1.set_title("pdf")
+    ax2 = fig.add_subplot(222)
+    ax2.plot(x, wrapcauchy_true_pdf(x, rho, mu, 1))
+    ax2.set_title("periodic pdf")
+    ax3 = fig.add_subplot(223)
+    ax3.plot(x, dist.cdf(x))
+    ax3.set_title("cdf")
+    ax4 = fig.add_subplot(224)
+    ax4.plot(
+        x,
+        wrapcauchy_periodic_cdf(x, rho, mu, 1) - wrapcauchy_periodic_cdf(0, rho, mu, 1),
+    )
+    ax4.set_title("periodic cdf")
+    plt.show()
+
     # y = dist.pdf(x)
+    # plt.plot(x, y)
+    # plt.show()
+    # plt.subplot(projection="polar")
     # plt.plot(x, y)
     # plt.show()
 
@@ -57,14 +78,6 @@ def main():
     # y = wrapcauchy_periodic_cdf(x, rho, mu, 1)
     # plt.plot(x, y)
     # plt.show()
-
-    y = wrapcauchy_true_pdf(x, rho, mu, 1)
-    plt.plot(x, y)
-    plt.show()
-
-    plt.subplot(projection="polar")
-    plt.plot(x, y)
-    plt.show()
 
 
 if __name__ == "__main__":
