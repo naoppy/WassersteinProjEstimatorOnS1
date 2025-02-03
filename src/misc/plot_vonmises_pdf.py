@@ -4,7 +4,7 @@ import scipy.stats as stats
 
 
 def main():
-    vonmises = stats.vonmises(loc=0, kappa=1)
+    vonmises = stats.vonmises(loc=-np.pi/2, kappa=0.4)
     x = np.linspace(-np.pi, np.pi, 101)
     y = vonmises.pdf(x)
     plt.plot(x, y)
