@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+from ..cauchy.fisher import fisher_info_2x2
+
 
 def main():
     true_mu = np.pi / 2
@@ -48,8 +50,16 @@ def main():
         3.7324961550192025e-05,
         1.2873101016795889e-05,
     ]
+    fisher_mat = fisher_info_2x2(true_rho)
     plt.plot(
         np.log10(N), np.log10(MLE_mu_mse), label="MLE", marker="o", linestyle="dashdot"
+    )
+    plt.plot(
+        np.log10(N),
+        -np.log10(fisher_mat[0][0]) - np.log10(N),
+        label="Cramer-Rao lower bound",
+        marker="^",
+        linestyle="solid",
     )
     plt.plot(
         np.log10(N),
@@ -77,6 +87,13 @@ def main():
         label="MLE",
         marker="o",
         linestyle="dashdot",
+    )
+    plt.plot(
+        np.log10(N),
+        -np.log10(fisher_mat[1][1]) - np.log10(N),
+        label="Cramer-Rao lower bound",
+        marker="^",
+        linestyle="solid",
     )
     plt.plot(
         np.log10(N),

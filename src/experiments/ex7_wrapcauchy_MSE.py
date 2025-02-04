@@ -73,7 +73,7 @@ def est_method2(given_data):
 
 
 def main():
-    true_mu = np.pi / 2
+    true_mu = np.pi / 8
     # 実験条件1
     true_rho = 0.7
     # 実験条件2
@@ -112,7 +112,7 @@ def main():
             MLE_time_okamura[i] = e_time - s_time
 
             s_time = time.perf_counter()
-            MLE = MLE_wrapcauchy_Kent_method.calc_MLE(sample, tol=1e-9)
+            MLE = MLE_wrapcauchy_Kent_method.calc_MLE(sample, tol=1e-15)
             e_time = time.perf_counter()
             MLE_mu_kent[i] = MLE[0]
             MLE_rho_kent[i] = MLE[1]
