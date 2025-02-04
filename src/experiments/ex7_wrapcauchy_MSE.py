@@ -12,7 +12,11 @@ from scipy import optimize
 from tqdm import tqdm
 
 from ..calc_semidiscrete_W_dist import method1, method2
-from ..cauchy import MLE_wrapped_cauchy_OKAMURA_method, wrapped_cauchy_cumsum_hist
+from ..cauchy import (
+    MLE_wrapcauchy_Kent_method,
+    MLE_wrapped_cauchy_OKAMURA_method,
+    wrapped_cauchy_cumsum_hist,
+)
 
 
 def W2_cost_func(x, given_data_normed_sorted):
@@ -82,9 +86,12 @@ def main():
     # try_nums = [10]
     for N, try_num in zip(Ns, try_nums, strict=True):  # データ数Nを変える
         print(f"N={N}")
-        MLE_mu = np.zeros(try_num)
-        MLE_rho = np.zeros(try_num)
-        MLE_time = np.zeros(try_num)
+        MLE_mu_okamura = np.zeros(try_num)
+        MLE_rho_okamura = np.zeros(try_num)
+        MLE_time_okamura = np.zeros(try_num)
+        MLE_mu_kent = np.zeros(try_num)
+        MLE_rho_kent = np.zeros(try_num)
+        MLE_time_kent = np.zeros(try_num)
         method1_mu = np.zeros(try_num)
         method1_rho = np.zeros(try_num)
         method1_time = np.zeros(try_num)
@@ -100,9 +107,16 @@ def main():
             s_time = time.perf_counter()
             MLE = MLE_wrapped_cauchy_OKAMURA_method.calc_MLE(sample, N, iter_num=10000)
             e_time = time.perf_counter()
-            MLE_mu[i] = np.angle(MLE)
-            MLE_rho[i] = np.abs(MLE)
-            MLE_time[i] = e_time - s_time
+            MLE_mu_okamura[i] = np.angle(MLE)
+            MLE_rho_okamura[i] = np.abs(MLE)
+            MLE_time_okamura[i] = e_time - s_time
+
+            s_time = time.perf_counter()
+            MLE = MLE_wrapcauchy_Kent_method.calc_MLE(sample, tol=1e-9)
+            e_time = time.perf_counter()
+            MLE_mu_kent[i] = MLE[0]
+            MLE_rho_kent[i] = MLE[1]
+            MLE_time_kent[i] = e_time - s_time
 
             s_time = time.perf_counter()
             est = est_method1(sample)
@@ -119,9 +133,12 @@ def main():
             method2_time[i] = e_time - s_time
 
         # MSEを計算する
-        MLE_mu_mse = np.mean((MLE_mu - true_mu) ** 2)
-        MLE_kappa_mse = np.mean((MLE_rho - true_rho) ** 2)
-        MLE_time_mean = np.mean(MLE_time)
+        MLE_mu_okamura_mse = np.mean((MLE_mu_okamura - true_mu) ** 2)
+        MLE_kappa_okamura_mse = np.mean((MLE_rho_okamura - true_rho) ** 2)
+        MLE_time_okamura_mean = np.mean(MLE_time_okamura)
+        MLE_mu_kent_mse = np.mean((MLE_mu_kent - true_mu) ** 2)
+        MLE_kappa_kent_mse = np.mean((MLE_rho_kent - true_rho) ** 2)
+        MLE_time_kent_mean = np.mean(MLE_time_kent)
         method1_mu_mse = np.mean((method1_mu - true_mu) ** 2)
         method1_kappa_mse = np.mean((method1_rho - true_rho) ** 2)
         method1_time_mean = np.mean(method1_time)
@@ -130,13 +147,16 @@ def main():
         method2_time_mean = np.mean(method2_time)
 
         print(
-            f"MLE: mu_mse={MLE_mu_mse}, rho_mse={MLE_kappa_mse}, time={MLE_time_mean}"
+            f"MLE by okamura: mu_mse={MLE_mu_okamura_mse}, rho_mse={MLE_kappa_okamura_mse}, time={MLE_time_okamura_mean}"
         )
         print(
-            f"method1: mu_mse={method1_mu_mse}, rho_mse={method1_kappa_mse}, time={method1_time_mean}"
+            f"MLE by kent: mu_mse={MLE_mu_kent_mse}, rho_mse={MLE_kappa_kent_mse}, time={MLE_time_kent_mean}"
         )
         print(
-            f"method2: mu_mse={method2_mu_mse}, rho_mse={method2_kappa_mse}, time={method2_time_mean}"
+            f"W1-est by method1: mu_mse={method1_mu_mse}, rho_mse={method1_kappa_mse}, time={method1_time_mean}"
+        )
+        print(
+            f"W2-est by method2: mu_mse={method2_mu_mse}, rho_mse={method2_kappa_mse}, time={method2_time_mean}"
         )
 
 
