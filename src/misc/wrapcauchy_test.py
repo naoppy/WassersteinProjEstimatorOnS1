@@ -1,8 +1,7 @@
-import math
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.stats import wrapcauchy
 import numpy.typing as npt
+from scipy.stats import wrapcauchy
 
 """
 scipyの巻き込みコーシー分布の使い方メモ

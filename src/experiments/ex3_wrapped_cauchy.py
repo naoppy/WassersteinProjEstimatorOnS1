@@ -11,7 +11,7 @@ import numpy as np
 import scipy.stats as stats
 from scipy import optimize
 
-from ..calc_semidiscrete_W_dist import method1, method2
+from ..calc_semidiscrete_W_dist import method2
 from ..cauchy import MLE_wrapped_cauchy_OKAMURA_method, wrapped_cauchy_cumsum_hist
 
 
