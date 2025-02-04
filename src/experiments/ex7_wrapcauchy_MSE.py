@@ -119,10 +119,10 @@ def main():
             MLE_time_kent[i] = e_time - s_time
 
             s_time = time.perf_counter()
-            est = est_method1(sample)
+            # est = est_method1(sample)
             e_time = time.perf_counter()
-            method1_mu[i] = est[0][0]
-            method1_rho[i] = est[0][1]
+            # method1_mu[i] = est[0][0]
+            # method1_rho[i] = est[0][1]
             method1_time[i] = e_time - s_time
 
             s_time = time.perf_counter()
@@ -153,10 +153,10 @@ def main():
             f"MLE by kent: mu_mse={MLE_mu_kent_mse}, rho_mse={MLE_kappa_kent_mse}, time={MLE_time_kent_mean}"
         )
         print(
-            f"W1-est by method1: mu_mse={method1_mu_mse}, rho_mse={method1_kappa_mse}, time={method1_time_mean}"
+            f"W2-est by method1: mu_mse={method1_mu_mse}, rho_mse={method1_kappa_mse}, time={method1_time_mean}"
         )
         print(
-            f"W2-est by method2: mu_mse={method2_mu_mse}, rho_mse={method2_kappa_mse}, time={method2_time_mean}"
+            f"W1-est by method2: mu_mse={method2_mu_mse}, rho_mse={method2_kappa_mse}, time={method2_time_mean}"
         )
 
 
