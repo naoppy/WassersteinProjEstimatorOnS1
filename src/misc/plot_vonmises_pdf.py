@@ -4,14 +4,24 @@ import scipy.stats as stats
 
 
 def main():
-    vonmises = stats.vonmises(loc=-np.pi/2, kappa=0.4)
-    x = np.linspace(-np.pi, np.pi, 101)
+    mu = -np.pi / 2
+    kappa = 0.6
+    vonmises = stats.vonmises(loc=mu, kappa=kappa)
+    x = np.linspace(-np.pi, np.pi, 1001)
+    # pdfの表示
     y = vonmises.pdf(x)
     plt.plot(x, y)
     plt.show()
 
+    # ヒストグラム近似の図
     plt.subplot(projection="polar")
     plt.plot(x, y)
+    bin_num = 10
+    x2 = np.linspace(-np.pi, np.pi, bin_num + 1)
+    y2 = [vonmises.cdf(i) - vonmises.cdf(i - (2 * np.pi / bin_num)) for i in x2]
+    plt.bar(x2, y2, width=0.1, color="red")
+    print(np.sum(y2))
+    print(y2)
     plt.show()
 
     # mu1 = 0.3
