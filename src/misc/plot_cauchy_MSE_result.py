@@ -52,7 +52,11 @@ def main():
     ]
     fisher_mat = fisher_info_2x2(true_rho)
     plt.plot(
-        np.log10(N), np.log10(MLE_mu_mse), label="MLE", marker="o", linestyle="dashdot"
+        np.log10(N),
+        np.log10(MLE_mu_mse),
+        label="MLE by Okamura",
+        marker="o",
+        linestyle="dashdot",
     )
     plt.plot(
         np.log10(N),
@@ -64,14 +68,14 @@ def main():
     plt.plot(
         np.log10(N),
         np.log10(method1_mu_mse),
-        label="W2-estimator from method1",
+        label="W2-estimator by method1",
         marker="x",
         linestyle="solid",
     )
     plt.plot(
         np.log10(N),
         np.log10(method2_mu_mse),
-        label="W1-estimator from method2",
+        label="W1-estimator by method2",
         marker="s",
         linestyle="dashed",
     )
@@ -84,7 +88,7 @@ def main():
     plt.plot(
         np.log10(N),
         np.log10(MLE_rho_mse),
-        label="MLE",
+        label="MLE by Okamura",
         marker="o",
         linestyle="dashdot",
     )
@@ -98,14 +102,14 @@ def main():
     plt.plot(
         np.log10(N),
         np.log10(method1_rho_mse),
-        label="W2-estimator from method1",
+        label="W2-estimator by method1",
         marker="x",
         linestyle="solid",
     )
     plt.plot(
         np.log10(N),
         np.log10(method2_rho_mse),
-        label="W1-estimator from method2",
+        label="W1-estimator by method2",
         marker="s",
         linestyle="dashed",
     )
