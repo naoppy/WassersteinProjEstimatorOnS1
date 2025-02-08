@@ -1,6 +1,5 @@
 """
 巻き込みコーシー分布のフィッシャー情報量を計算する
-この式はかなーーーり怪しいので注意！！！！！
 """
 
 import numpy as np
@@ -13,6 +12,6 @@ def fisher_info_2x2(rho: float) -> npt.NDArray[np.float64]:
     return np.array(
         [
             [2 * rho_p2 / bunbo, 0],
-            [0, 2 * (1 + rho_p2) / bunbo],
+            [0, 2 / bunbo],
         ]
     )
