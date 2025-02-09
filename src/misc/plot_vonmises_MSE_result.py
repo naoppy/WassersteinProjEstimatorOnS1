@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+from ..vonmises.fisher import fisher_info_2x2
+
 
 def main():
     true_mu = 0.3
@@ -48,21 +50,29 @@ def main():
         0.0010758501326452756,
         0.0006832398768744339,
     ]
+    fisher_mat = fisher_info_2x2(true_kappa)
 
     plt.plot(
         np.log10(N), np.log10(MLE_mu_mse), label="MLE", marker="o", linestyle="dashdot"
     )
     plt.plot(
         np.log10(N),
+        -np.log10(fisher_mat[0][0]) - np.log10(N),
+        label="Cramer-Rao lower bound",
+        marker="^",
+        linestyle="solid",
+    )
+    plt.plot(
+        np.log10(N),
         np.log10(method1_mu_mse),
-        label="W2-estimator from method1",
+        label="W2-estimator by method1",
         marker="x",
         linestyle="solid",
     )
     plt.plot(
         np.log10(N),
         np.log10(method2_mu_mse),
-        label="W1-estimator from method2",
+        label="W1-estimator by method2",
         marker="s",
         linestyle="dashed",
     )
@@ -81,15 +91,22 @@ def main():
     )
     plt.plot(
         np.log10(N),
+        -np.log10(fisher_mat[1][1]) - np.log10(N),
+        label="Cramer-Rao lower bound",
+        marker="^",
+        linestyle="solid",
+    )
+    plt.plot(
+        np.log10(N),
         np.log10(method1_kappa_mse),
-        label="W2-estimator from method1",
+        label="W2-estimator by method1",
         marker="x",
         linestyle="solid",
     )
     plt.plot(
         np.log10(N),
         np.log10(method2_kappa_mse),
-        label="W1-estimator from method2",
+        label="W1-estimator by method2",
         marker="s",
         linestyle="dashed",
     )

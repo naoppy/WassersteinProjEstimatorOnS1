@@ -57,18 +57,19 @@ def main():
     )
     plt.plot(
         np.log10(N),
-        np.log10(method1_mu_mse),
-        label="W2-estimator from method1",
-        marker="x",
-        linestyle="solid",
-    )
-    plt.plot(
-        np.log10(N),
         -np.log10(fisher_mat[0][0]) - np.log10(N),
         label="Cramer-Rao lower bound",
         marker="^",
         linestyle="solid",
     )
+    plt.plot(
+        np.log10(N),
+        np.log10(method1_mu_mse),
+        label="W2-estimator from method1",
+        marker="x",
+        linestyle="solid",
+    )
+
     plt.plot(
         np.log10(N),
         np.log10(method2_mu_mse),
