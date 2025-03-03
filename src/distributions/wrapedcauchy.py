@@ -3,6 +3,20 @@ import numpy.typing as npt
 from scipy.stats import wrapcauchy
 
 
+def fisher_info_2x2(rho: float) -> npt.NDArray[np.float64]:
+    """
+    巻き込みコーシー分布のフィッシャー情報量を計算する
+    """
+    rho_p2 = rho * rho
+    bunbo = (1 - rho_p2) ** 2
+    return np.array(
+        [
+            [2 * rho_p2 / bunbo, 0],
+            [0, 2 / bunbo],
+        ]
+    )
+
+
 def wrapcauchy_true_pdf(
     x: npt.NDArray[np.float64], c: float, loc: float = 0.0, scale: float = 1.0
 ) -> npt.NDArray[np.float64]:
