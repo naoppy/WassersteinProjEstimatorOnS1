@@ -12,11 +12,7 @@ from scipy import optimize
 from tqdm import tqdm
 
 from ..calc_semidiscrete_W_dist import method1, method2
-from ..cauchy import (
-    MLE_wrapcauchy_Kent_method,
-    MLE_wrapped_cauchy_OKAMURA_method,
-    wrapped_cauchy_cumsum_hist,
-)
+from ..distributions import wrapedcauchy
 
 
 def W2_cost_func(x, given_data_normed_sorted):
@@ -55,11 +51,11 @@ def est_method2(given_data):
         given_data (np.ndarray): [0, 2*pi]のデータ
     """
     bin_num = len(given_data)
-    data_cumsum_hist = wrapped_cauchy_cumsum_hist.cumsum_hist_data(given_data, bin_num)
+    data_cumsum_hist = wrapedcauchy.cumsum_hist_data(given_data, bin_num)
 
     def cost_func(x):
         mu, rho = x
-        dist_cumsum_hist = wrapped_cauchy_cumsum_hist.cumsum_hist(mu, rho, bin_num)
+        dist_cumsum_hist = wrapedcauchy.cumsum_hist(mu, rho, bin_num)
         return method2.method2(data_cumsum_hist[1:], dist_cumsum_hist[1:])
 
     return optimize.minimize(
@@ -105,14 +101,14 @@ def main():
             sample = np.remainder(sample, 2 * np.pi)
 
             s_time = time.perf_counter()
-            MLE = MLE_wrapped_cauchy_OKAMURA_method.calc_MLE(sample, N, iter_num=10000)
+            MLE = wrapedcauchy.MLE_OKAMURA(sample, N, iter_num=10000)
             e_time = time.perf_counter()
             MLE_mu_okamura[i] = np.angle(MLE)
             MLE_rho_okamura[i] = np.abs(MLE)
             MLE_time_okamura[i] = e_time - s_time
 
             s_time = time.perf_counter()
-            MLE = MLE_wrapcauchy_Kent_method.calc_MLE(sample, tol=1e-15)
+            MLE = wrapedcauchy.MLE_Kent(sample, tol=1e-15)
             e_time = time.perf_counter()
             MLE_mu_kent[i] = MLE[0]
             MLE_rho_kent[i] = MLE[1]
