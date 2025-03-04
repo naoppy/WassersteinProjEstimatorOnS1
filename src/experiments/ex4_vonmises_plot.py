@@ -3,7 +3,6 @@
 
 結果：単峰っぽい形が出てきた、勾配降下法とかと相性が良さそう。
 とりあえず適当にパウエル法やネルダーミード法で動かしてもちゃんと真値近くに収束するので、グリッドサーチいらなそう。
-
 """
 
 from typing import Tuple
@@ -13,9 +12,8 @@ import scipy.stats as stats
 from scipy import optimize
 
 from ..calc_semidiscrete_W_dist import method1, method2
+from ..distributions import vonmises
 from ..plots import brute_heatmap
-from ..vonmises import vonmises_cumsum_hist
-from ..vonmises import vonmises_MLE as vonmises_MLE
 
 
 def est_W1_method2(given_data) -> Tuple[float, float]:
@@ -28,11 +26,11 @@ def est_W1_method2(given_data) -> Tuple[float, float]:
         Tuple[float, float]: [推定したmu、推定したkappa]
     """
     bin_num = len(given_data)
-    data_cumsum_hist = vonmises_cumsum_hist.cumsum_hist_data(given_data, bin_num)
+    data_cumsum_hist = vonmises.cumsum_hist.cumsum_hist_data(given_data, bin_num)
 
     def cost_func(x):
         mu, kappa = x
-        dist_cumsum_hist = vonmises_cumsum_hist.cumsum_hist(mu, kappa, bin_num)
+        dist_cumsum_hist = vonmises.cumsum_hist.cumsum_hist(mu, kappa, bin_num)
         return method2.method2(data_cumsum_hist[1:], dist_cumsum_hist[1:])
 
     return optimize.brute(
@@ -47,11 +45,11 @@ def est_W1_method2(given_data) -> Tuple[float, float]:
 
 def est_W1_method2_justopt(given_data) -> Tuple[float, float]:
     bin_num = len(given_data)
-    data_cumsum_hist = vonmises_cumsum_hist.cumsum_hist_data(given_data, bin_num)
+    data_cumsum_hist = vonmises.cumsum_hist.cumsum_hist_data(given_data, bin_num)
 
     def cost_func(x):
         mu, kappa = x
-        dist_cumsum_hist = vonmises_cumsum_hist.cumsum_hist(mu, kappa, bin_num)
+        dist_cumsum_hist = vonmises.cumsum_hist.cumsum_hist(mu, kappa, bin_num)
         return method2.method2(data_cumsum_hist[1:], dist_cumsum_hist[1:])
 
     return optimize.minimize(
@@ -123,7 +121,7 @@ def main():
 
     # vonmises_MLE.plot_vonmises(sample, mu1, kappa1, N)
 
-    print(f"MLE: {vonmises_MLE.MLE(vonmises_MLE.T(sample), N)}")
+    print(f"MLE: {vonmises.MLE(vonmises.T(sample), N)}")
 
     ret = est_W1_method2(sample)
     brute_heatmap.plot_heatmap(ret, ("mu", "kappa"))

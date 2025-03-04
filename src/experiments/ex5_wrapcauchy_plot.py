@@ -13,7 +13,7 @@ import scipy.stats as stats
 from scipy import optimize
 
 from ..calc_semidiscrete_W_dist import method1, method2
-from ..cauchy import MLE_wrapped_cauchy_OKAMURA_method, wrapped_cauchy_cumsum_hist
+from ..distributions import wrapedcauchy
 from ..plots import brute_heatmap
 
 
@@ -27,13 +27,11 @@ def est_W1_method2(given_data):
         Tuple[float, float]: [推定したmu、推定したrho]
     """
     bin_num = len(given_data)
-    data_cumsum_hist = wrapped_cauchy_cumsum_hist.cumsum_hist_data(
-        given_data, len(given_data)
-    )
+    data_cumsum_hist = wrapedcauchy.cumsum_hist_data(given_data, len(given_data))
 
     def cost_func(x):
         mu, rho = x
-        dist_cumsum_hist = wrapped_cauchy_cumsum_hist.cumsum_hist(mu, rho, bin_num)
+        dist_cumsum_hist = wrapedcauchy.cumsum_hist(mu, rho, bin_num)
         return method2.method2(data_cumsum_hist[1:], dist_cumsum_hist[1:])
 
     return optimize.brute(
@@ -47,13 +45,11 @@ def est_W1_method2(given_data):
 
 def est_W1_method2_justopt(given_data):
     bin_num = len(given_data)
-    data_cumsum_hist = wrapped_cauchy_cumsum_hist.cumsum_hist_data(
-        given_data, len(given_data)
-    )
+    data_cumsum_hist = wrapedcauchy.cumsum_hist_data(given_data, len(given_data))
 
     def cost_func(x):
         mu, rho = x
-        dist_cumsum_hist = wrapped_cauchy_cumsum_hist.cumsum_hist(mu, rho, bin_num)
+        dist_cumsum_hist = wrapedcauchy.cumsum_hist(mu, rho, bin_num)
         return method2.method2(data_cumsum_hist[1:], dist_cumsum_hist[1:])
 
     return optimize.minimize(
@@ -126,7 +122,7 @@ def main():
     sample = np.remainder(sample, 2 * np.pi)
 
     s_time = time.perf_counter()
-    MLE = MLE_wrapped_cauchy_OKAMURA_method.calc_MLE(sample, N, iter_num=100)
+    MLE = wrapedcauchy.MLE_OKAMURA(sample, N, iter_num=100)
     e_time = time.perf_counter()
     print(f"MLE result: mu={np.angle(MLE)}, rho={np.abs(MLE)}, time={e_time-s_time}s")
 
