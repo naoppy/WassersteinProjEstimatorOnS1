@@ -1,5 +1,6 @@
 import numpy as np
 import numpy.typing as npt
+from matplotlib import pyplot as plt
 from scipy.special import i0, i1, iv
 from scipy.stats import vonmises
 
@@ -104,26 +105,65 @@ def quantile_sampling(
         sample_num (int): サンプルする数
 
     Returns:
-        npt.NDArray[np.float64]: [-pi, pi] の範囲のサンプル
+        npt.NDArray[np.float64]: [-pi, pi] の範囲のサンプル。F^(-1)(i/D) (i=0, 1, ..., D)
     """
-    x = np.linspace(-np.pi, np.pi, sample_num + 1)
+    eps = 1e-7
+    x = np.linspace(
+        eps, 1 - eps, sample_num + 1
+    )  # なぜか0, 1のppfを計算するとinfになるので避ける。
     dist = vonmises(loc=mu, kappa=kappa)
     y = dist.ppf(x)
-    assert np.all((-np.pi <= y) and (y <= np.pi))
-    return y
+    y2 = np.remainder(y + np.pi, 2 * np.pi) - np.pi
+    assert np.all((-np.pi <= y2) & (y2 <= np.pi))
+    return y2
 
 
 def main():
-    loc = 0.5 * np.pi  # circular mean
-    kappa = 1  # concentration
+    mu = 0.5 * np.pi + 2 * np.pi  # circular mean
+    kappa = 1.3  # concentration
     N = 10000
-    sample = vonmises(loc=loc, kappa=kappa).rvs(N)
+    dist = vonmises(loc=mu, kappa=kappa)
 
-    # plot_vonmises(sample, loc, kappa, N)
+    # calc Fisher info matrix
+    print("Fisher info:")
+    print(fisher_info_2x2(kappa))
 
+    sample = dist.rvs(N)
+    print(f"min: {np.min(sample)}, max: {np.max(sample)}")  # [-pi, pi]
+
+    sample2 = np.remainder(sample, 2 * np.pi)
+    print(f"min: {np.min(sample2)}, max: {np.max(sample2)}")  # [0, 2pi]
+
+    # calc MLE
     T_data = T(sample)
     mu_MLE, kappa_MLE = MLE(T_data, N)
-    print(mu_MLE, kappa_MLE)
+    print(f"MLE: mu={mu_MLE}, kappa={kappa_MLE}")
+
+    sample2 = quantile_sampling(mu, kappa, N)
+    print(f"min: {np.min(sample2)}, max: {np.max(sample2)}")
+
+    # plots
+    # 普通のCDFは周期拡張されていて、平均で0.5になるようになっている。
+    # 不便なので、-piで0、piで1になるようなCDFに変換する。
+    print(dist.cdf(mu))  # 0.5
+    x = np.linspace(-np.pi, np.pi, 1001)
+    plt.plot(x, dist.pdf(x), label="pdf")
+    plt.plot(x, dist.cdf(x), label="cdf")
+    plt.plot(x, dist.cdf(x) - dist.cdf(-np.pi), label="normalized cdf")
+    plt.legend()
+    plt.show()
+
+    # 普通のPPFは周期拡張されていて、0で平均-pi, 1で平均+piになるようになっている。
+    # つまり、普通のCDFの逆関数になるようになっている。
+    # 0で-pi、1でpiになるようなPPFにすることもできるが、多くの場合する必要はない。
+    eps = 1e-7
+    x = np.linspace(eps, 1 - eps, 1001)
+    y = dist.ppf(x)
+    plt.plot(x, y, label="ppf")
+    # y2 = dist.ppf(x + dist.cdf(-np.pi))
+    # plt.plot(x, y2, label="normalized ppf")
+    plt.legend()
+    plt.show()
 
 
 if __name__ == "__main__":
