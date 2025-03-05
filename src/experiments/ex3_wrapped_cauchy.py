@@ -12,7 +12,7 @@ import scipy.stats as stats
 from scipy import optimize
 
 from ..calc_semidiscrete_W_dist import method2
-from ..cauchy import MLE_wrapped_cauchy_OKAMURA_method, wrapped_cauchy_cumsum_hist
+from ..distributions import wrapedcauchy
 
 
 def estimate_param(given_data) -> Tuple[float, float]:
@@ -35,7 +35,7 @@ def estimate_param(given_data) -> Tuple[float, float]:
 
     def cost_func(x):
         mu, rho = x
-        dist_cumsum_hist = wrapped_cauchy_cumsum_hist.cumsum_hist(mu, rho, bin_num)
+        dist_cumsum_hist = wrapedcauchy.cumsum_hist(mu, rho, bin_num)
         return method2.method2(data_cumsum_hist[1:], dist_cumsum_hist[1:])
 
     bounds = ((0, 2 * np.pi), (0.01, 0.99))
@@ -63,7 +63,7 @@ def main():
     sample = np.remainder(sample, 2 * np.pi)
 
     time1 = time.perf_counter()
-    MLE = MLE_wrapped_cauchy_OKAMURA_method.calc_MLE(sample, N, iter_num=100)
+    MLE = wrapedcauchy.MLE_OKAMURA(sample, N, iter_num=100)
     time2 = time.perf_counter()
     print(f"MLE result: mu={np.angle(MLE)}, rho={np.abs(MLE)}, time={time2-time1}s")
 

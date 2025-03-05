@@ -11,8 +11,7 @@ import scipy.stats as stats
 from scipy import optimize
 
 from ..calc_semidiscrete_W_dist import method2
-from ..vonmises import vonmises_cumsum_hist
-from ..vonmises import vonmises_MLE as vonmises_MLE
+from ..distributions import vonmises
 
 
 def estimate_param(given_data) -> Tuple[float, float]:
@@ -37,7 +36,7 @@ def estimate_param(given_data) -> Tuple[float, float]:
 
     def cost_func(x):
         mu, kappa = x
-        dist_cumsum_hist = vonmises_cumsum_hist.cumsum_hist(mu, kappa, bin_num)
+        dist_cumsum_hist = vonmises.cumsum_hist.cumsum_hist(mu, kappa, bin_num)
         return method2.method2(data_cumsum_hist[1:], dist_cumsum_hist[1:])
 
     return optimize.brute(
@@ -60,8 +59,8 @@ def main():
     # vonmises_MLE.plot_vonmises(sample, mu1, kappa1, N)
 
     time1 = time.perf_counter()
-    T_data = vonmises_MLE.T(sample)
-    mu_MLE, kappa_MLE = vonmises_MLE.MLE(T_data, N)
+    T_data = vonmises.T(sample)
+    mu_MLE, kappa_MLE = vonmises.MLE(T_data, N)
     time2 = time.perf_counter()
     print(f"MLE result: mu={mu_MLE}, kappa={kappa_MLE}, time={time2-time1}s")
 

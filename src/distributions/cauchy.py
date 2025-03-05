@@ -29,7 +29,7 @@ def Q(theta, n, x) -> complex:
     return q(q(theta, n, x), n, x)
 
 
-def calc_MLE(x, N: int, iter_num=100) -> complex:
+def MLE_OKAMURA(x, N: int, iter_num=100) -> complex:
     """mu + i * gamma で返す"""
     if len(x) != N:
         raise ValueError("The length of x must be equal to N")
@@ -55,7 +55,7 @@ def main():
     mu = 2.0
     gamma = 5.0
     x = np.random.standard_cauchy(N) * gamma + mu
-    print(calc_MLE(x, N))
+    print(MLE_OKAMURA(x, N))
 
     # Example A.2
     # x = [-8, -5, -3, -1, 2, 7, 10]
