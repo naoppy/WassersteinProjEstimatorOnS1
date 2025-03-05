@@ -100,6 +100,11 @@ def MLE_OKAMURA(x, N: int, iter_num=100) -> complex:
     https://arxiv.org/abs/2104.06130
     で提案されているコーシー分布に対する最尤推定法を実装する
     指数的に収束する反復法で、MLEに必ず収束する
+
+    Args:
+        x (npt.NDArray[np.float64]): 0~2piの角度データ
+        N (int): データ数
+        iter_num (int, optional): 反復回数. Defaults to 100.
     """
     if len(x) != N:
         raise ValueError("The length of x must be equal to N")
