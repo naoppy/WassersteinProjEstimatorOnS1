@@ -17,7 +17,7 @@ from ..distributions import wrapedcauchy
 
 def W2_cost_func(x, given_data_normed_sorted):
     sample = stats.wrapcauchy(loc=x[0], c=x[1]).rvs(len(given_data_normed_sorted))
-    sample = np.remainder(sample, 2 * np.pi)
+    sample = np.remainder(sample, 2 * np.pi) / (2 * np.pi)
     sample = np.sort(sample)
     return method1.method1(given_data_normed_sorted, sample, p=2, sorted=True)
 
@@ -31,6 +31,36 @@ def est_method1(given_data):
     given_data_norm = given_data / (2 * np.pi)
     given_data_norm_sorted = np.sort(given_data_norm)
     cost_func = partial(W2_cost_func, given_data_normed_sorted=given_data_norm_sorted)
+    bounds = ((0, 2 * np.pi), (0.05, 0.95))
+    finish_func = partial(optimize.minimize, method="powell", bounds=bounds)
+
+    return optimize.brute(
+        cost_func,
+        bounds,
+        full_output=True,
+        finish=finish_func,
+        Ns=100,
+        workers=-1,
+    )
+
+
+def W2_cost_func3(x, given_data_normed_sorted):
+    sample = wrapedcauchy.quantile_sampling(
+        x[0], x[1], len(given_data_normed_sorted)
+    ) / (2 * np.pi)
+    sample = np.sort(sample)
+    return method1.method1(given_data_normed_sorted, sample, p=2, sorted=True)
+
+
+def est_method3(given_data):
+    """Calc W2-estimator using method1
+
+    Args:
+        given_data (np.ndarray): [0, 2*pi]のデータ
+    """
+    given_data_norm = given_data / (2 * np.pi)
+    given_data_norm_sorted = np.sort(given_data_norm)
+    cost_func = partial(W2_cost_func3, given_data_normed_sorted=given_data_norm_sorted)
     bounds = ((0, 2 * np.pi), (0.05, 0.95))
     finish_func = partial(optimize.minimize, method="powell", bounds=bounds)
 
@@ -94,6 +124,9 @@ def main():
         method2_mu = np.zeros(try_num)
         method2_rho = np.zeros(try_num)
         method2_time = np.zeros(try_num)
+        method3_mu = np.zeros(try_num)
+        method3_rho = np.zeros(try_num)
+        method3_time = np.zeros(try_num)
 
         for i in tqdm(range(try_num)):  # MSEをとるための試行回数
             # [0, 2*pi] の範囲でサンプリングしたいが、[mu, mu + 2*pi] の範囲になっているので修正
@@ -115,10 +148,10 @@ def main():
             MLE_time_kent[i] = e_time - s_time
 
             s_time = time.perf_counter()
-            # est = est_method1(sample)
+            est = est_method1(sample)
             e_time = time.perf_counter()
-            # method1_mu[i] = est[0][0]
-            # method1_rho[i] = est[0][1]
+            method1_mu[i] = est[0][0]
+            method1_rho[i] = est[0][1]
             method1_time[i] = e_time - s_time
 
             s_time = time.perf_counter()
@@ -127,6 +160,13 @@ def main():
             method2_mu[i] = est.x[0]
             method2_rho[i] = est.x[1]
             method2_time[i] = e_time - s_time
+
+            s_time = time.perf_counter()
+            est = est_method3(sample)
+            e_time = time.perf_counter()
+            method3_mu[i] = est[0][0]
+            method3_rho[i] = est[0][1]
+            method3_time[i] = e_time - s_time
 
         # MSEを計算する
         MLE_mu_okamura_mse = np.mean((MLE_mu_okamura - true_mu) ** 2)
@@ -141,6 +181,9 @@ def main():
         method2_mu_mse = np.mean((method2_mu - true_mu) ** 2)
         method2_kappa_mse = np.mean((method2_rho - true_rho) ** 2)
         method2_time_mean = np.mean(method2_time)
+        method3_mu_mse = np.mean((method3_mu - true_mu) ** 2)
+        method3_kappa_mse = np.mean((method3_rho - true_rho) ** 2)
+        method3_time_mean = np.mean(method3_time)
 
         print(
             f"MLE by okamura: mu_mse={MLE_mu_okamura_mse}, rho_mse={MLE_kappa_okamura_mse}, time={MLE_time_okamura_mean}"
@@ -153,6 +196,9 @@ def main():
         )
         print(
             f"W1-est by method2: mu_mse={method2_mu_mse}, rho_mse={method2_kappa_mse}, time={method2_time_mean}"
+        )
+        print(
+            f"W2-est by method3: mu_mse={method3_mu_mse}, rho_mse={method3_kappa_mse}, time={method3_time_mean}"
         )
 
 
