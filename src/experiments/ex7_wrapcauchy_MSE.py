@@ -62,16 +62,6 @@ def est_W2_method3(given_data):
     given_data_norm = given_data / (2 * np.pi)
     given_data_norm_sorted = np.sort(given_data_norm)
     cost_func = partial(W2_cost_func3, given_data_normed_sorted=given_data_norm_sorted)
-    finish_func = partial(optimize.minimize, method="powell", bounds=bounds)
-
-    # return optimize.brute(
-    #     cost_func,
-    #     bounds,
-    #     full_output=True,
-    #     finish=finish_func,
-    #     Ns=100,
-    #     workers=-1,
-    # )
     return optimize.minimize(
         cost_func,
         (0, 0.5),
@@ -194,10 +184,10 @@ def main():
             MLE_time_direct[i] = e_time - s_time
 
             s_time = time.perf_counter()
-            # est = est_method1(sample)
+            est = est_W2_method1(sample)
             e_time = time.perf_counter()
-            # method1_mu[i] = est[0][0]
-            # method1_rho[i] = est[0][1]
+            method1_mu[i] = est[0][0]
+            method1_rho[i] = est[0][1]
             method1_time[i] = e_time - s_time
 
             s_time = time.perf_counter()

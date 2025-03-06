@@ -80,9 +80,7 @@ def quantile_sampling(
     Returns:
         npt.NDArray[np.float64]: [0, 2pi] の範囲のサンプル。F^(-1)(i/D) (i=0, 1, ..., D)
     """
-    x = np.linspace(
-        0, 1, sample_num + 1
-    )  # なぜか0, 1のppfを計算するとinfになるので避ける。
+    x = np.linspace(0, 1, sample_num + 1)
     y = wrapcauchy.ppf(x, rho, mu, 1)
     y2 = np.remainder(y, 2 * np.pi)
     assert np.all((0 <= y2) & (y2 <= 2 * np.pi))
