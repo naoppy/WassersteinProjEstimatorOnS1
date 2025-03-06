@@ -64,13 +64,20 @@ def est_method3(given_data):
     bounds = ((0, 2 * np.pi), (0.05, 0.95))
     finish_func = partial(optimize.minimize, method="powell", bounds=bounds)
 
-    return optimize.brute(
+    # return optimize.brute(
+    #     cost_func,
+    #     bounds,
+    #     full_output=True,
+    #     finish=finish_func,
+    #     Ns=100,
+    #     workers=-1,
+    # )
+    return optimize.minimize(
         cost_func,
-        bounds,
-        full_output=True,
-        finish=finish_func,
-        Ns=100,
-        workers=-1,
+        (np.pi, 0.5),
+        bounds=bounds,
+        method="powell",
+        options={"xtol": 1e-6, "ftol": 1e-6},
     )
 
 
@@ -101,9 +108,9 @@ def est_method2(given_data):
 def main():
     true_mu = np.pi / 8
     # 実験条件1
-    true_rho = 0.7
+    # true_rho = 0.7
     # 実験条件2
-    # true_rho = 0.2
+    true_rho = 0.2
     print(f"true mu={true_mu}, true rho={true_rho}")
 
     Ns = [100, 500, 1000, 5000, 10000]
@@ -148,10 +155,10 @@ def main():
             MLE_time_kent[i] = e_time - s_time
 
             s_time = time.perf_counter()
-            est = est_method1(sample)
+            # est = est_method1(sample)
             e_time = time.perf_counter()
-            method1_mu[i] = est[0][0]
-            method1_rho[i] = est[0][1]
+            # method1_mu[i] = est[0][0]
+            # method1_rho[i] = est[0][1]
             method1_time[i] = e_time - s_time
 
             s_time = time.perf_counter()
@@ -164,8 +171,10 @@ def main():
             s_time = time.perf_counter()
             est = est_method3(sample)
             e_time = time.perf_counter()
-            method3_mu[i] = est[0][0]
-            method3_rho[i] = est[0][1]
+            # method3_mu[i] = est[0][0]
+            # method3_rho[i] = est[0][1]
+            method3_mu[i] = est.x[0]
+            method3_rho[i] = est.x[1]
             method3_time[i] = e_time - s_time
 
         # MSEを計算する
