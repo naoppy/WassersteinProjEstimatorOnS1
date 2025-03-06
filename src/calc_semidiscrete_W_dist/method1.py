@@ -12,6 +12,7 @@ def method1(
 ) -> float:
     """半離散ケースでのp-Wasserstein距離を計算する
     内部でソートをするので O(n log n) かかる。
+    sortedがTrueの場合は O(n)
 
     Args:
         x_empirical (npt.NDArray[np.float]): [0, 1)のデータ

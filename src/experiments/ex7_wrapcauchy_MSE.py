@@ -14,6 +14,8 @@ from tqdm import tqdm
 from ..calc_semidiscrete_W_dist import method1, method2
 from ..distributions import wrapedcauchy
 
+bounds = ((-np.pi, np.pi), (0.01, 0.99))
+
 
 def W2_cost_func(x, given_data_normed_sorted):
     sample = stats.wrapcauchy(loc=x[0], c=x[1]).rvs(len(given_data_normed_sorted))
@@ -22,7 +24,7 @@ def W2_cost_func(x, given_data_normed_sorted):
     return method1.method1(given_data_normed_sorted, sample, p=2, sorted=True)
 
 
-def est_method1(given_data):
+def est_W2_method1(given_data):
     """Calc W2-estimator using method1
 
     Args:
@@ -31,7 +33,6 @@ def est_method1(given_data):
     given_data_norm = given_data / (2 * np.pi)
     given_data_norm_sorted = np.sort(given_data_norm)
     cost_func = partial(W2_cost_func, given_data_normed_sorted=given_data_norm_sorted)
-    bounds = ((0, 2 * np.pi), (0.05, 0.95))
     finish_func = partial(optimize.minimize, method="powell", bounds=bounds)
 
     return optimize.brute(
@@ -52,7 +53,7 @@ def W2_cost_func3(x, given_data_normed_sorted):
     return method1.method1(given_data_normed_sorted, sample, p=2, sorted=True)
 
 
-def est_method3(given_data):
+def est_W2_method3(given_data):
     """Calc W2-estimator using method1
 
     Args:
@@ -61,7 +62,6 @@ def est_method3(given_data):
     given_data_norm = given_data / (2 * np.pi)
     given_data_norm_sorted = np.sort(given_data_norm)
     cost_func = partial(W2_cost_func3, given_data_normed_sorted=given_data_norm_sorted)
-    bounds = ((0, 2 * np.pi), (0.05, 0.95))
     finish_func = partial(optimize.minimize, method="powell", bounds=bounds)
 
     # return optimize.brute(
@@ -74,14 +74,14 @@ def est_method3(given_data):
     # )
     return optimize.minimize(
         cost_func,
-        (np.pi, 0.5),
+        (0, 0.5),
         bounds=bounds,
         method="powell",
         options={"xtol": 1e-6, "ftol": 1e-6},
     )
 
 
-def est_method2(given_data):
+def est_W1_method2(given_data):
     """Calc W1-estimator using method1
 
     Args:
@@ -97,9 +97,35 @@ def est_method2(given_data):
 
     return optimize.minimize(
         cost_func,
-        (np.pi, 0.5),
-        bounds=((0, 2 * np.pi), (0.05, 0.95)),
+        (0, 0.5),
+        bounds=bounds,
         # for powell method
+        method="powell",
+        options={"xtol": 1e-6, "ftol": 1e-6},
+    )
+
+
+def W1_cost_func3(x, given_data_normed_sorted):
+    sample = wrapedcauchy.quantile_sampling(
+        x[0], x[1], len(given_data_normed_sorted)
+    ) / (2 * np.pi)
+    sample = np.sort(sample)
+    return method1.method1(given_data_normed_sorted, sample, p=1, sorted=True)
+
+
+def est_W1_method3(given_data):
+    """Calc W1-estimator using method3
+
+    Args:
+        given_data (np.ndarray): [0, 2*pi]のデータ
+    """
+    given_data_norm = given_data / (2 * np.pi)
+    given_data_norm_sorted = np.sort(given_data_norm)
+    cost_func = partial(W1_cost_func3, given_data_normed_sorted=given_data_norm_sorted)
+    return optimize.minimize(
+        cost_func,
+        (0, 0.5),
+        bounds=bounds,
         method="powell",
         options={"xtol": 1e-6, "ftol": 1e-6},
     )
@@ -137,6 +163,9 @@ def main():
         method3_mu = np.zeros(try_num)
         method3_rho = np.zeros(try_num)
         method3_time = np.zeros(try_num)
+        method4_mu = np.zeros(try_num)
+        method4_rho = np.zeros(try_num)
+        method4_time = np.zeros(try_num)
 
         for i in tqdm(range(try_num)):  # MSEをとるための試行回数
             # [0, 2*pi] の範囲でサンプリングしたいが、[mu, mu + 2*pi] の範囲になっているので修正
@@ -172,20 +201,27 @@ def main():
             method1_time[i] = e_time - s_time
 
             s_time = time.perf_counter()
-            est = est_method2(sample)
+            est = est_W1_method2(sample)
             e_time = time.perf_counter()
             method2_mu[i] = est.x[0]
             method2_rho[i] = est.x[1]
             method2_time[i] = e_time - s_time
 
             s_time = time.perf_counter()
-            est = est_method3(sample)
+            est = est_W2_method3(sample)
             e_time = time.perf_counter()
             # method3_mu[i] = est[0][0]
             # method3_rho[i] = est[0][1]
             method3_mu[i] = est.x[0]
             method3_rho[i] = est.x[1]
             method3_time[i] = e_time - s_time
+
+            s_time = time.perf_counter()
+            est = est_W1_method3(sample)
+            e_time = time.perf_counter()
+            method4_mu[i] = est.x[0]
+            method4_rho[i] = est.x[1]
+            method4_time[i] = e_time - s_time
 
         # MSEを計算する
         MLE_mu_okamura_mse = np.mean((MLE_mu_okamura - true_mu) ** 2)
@@ -206,6 +242,9 @@ def main():
         method3_mu_mse = np.mean((method3_mu - true_mu) ** 2)
         method3_kappa_mse = np.mean((method3_rho - true_rho) ** 2)
         method3_time_mean = np.mean(method3_time)
+        method4_mu_mse = np.mean((method4_mu - true_mu) ** 2)
+        method4_kappa_mse = np.mean((method4_rho - true_rho) ** 2)
+        method4_time_mean = np.mean(method4_time)
 
         print(
             f"MLE by okamura: mu_mse={MLE_mu_okamura_mse}, rho_mse={MLE_kappa_okamura_mse}, time={MLE_time_okamura_mean}"
@@ -224,6 +263,9 @@ def main():
         )
         print(
             f"W2-est by method3: mu_mse={method3_mu_mse}, rho_mse={method3_kappa_mse}, time={method3_time_mean}"
+        )
+        print(
+            f"W1-est by method3: mu_mse={method4_mu_mse}, rho_mse={method4_kappa_mse}, time={method4_time_mean}"
         )
 
 
