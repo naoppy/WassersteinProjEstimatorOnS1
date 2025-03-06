@@ -108,9 +108,9 @@ def est_method2(given_data):
 def main():
     true_mu = np.pi / 8
     # 実験条件1
-    # true_rho = 0.7
+    true_rho = 0.7
     # 実験条件2
-    true_rho = 0.2
+    # true_rho = 0.2
     print(f"true mu={true_mu}, true rho={true_rho}")
 
     Ns = [100, 500, 1000, 5000, 10000]
@@ -125,6 +125,9 @@ def main():
         MLE_mu_kent = np.zeros(try_num)
         MLE_rho_kent = np.zeros(try_num)
         MLE_time_kent = np.zeros(try_num)
+        MLE_mu_direct = np.zeros(try_num)
+        MLE_rho_direct = np.zeros(try_num)
+        MLE_time_direct = np.zeros(try_num)
         method1_mu = np.zeros(try_num)
         method1_rho = np.zeros(try_num)
         method1_time = np.zeros(try_num)
@@ -143,8 +146,8 @@ def main():
             s_time = time.perf_counter()
             MLE = wrapedcauchy.MLE_OKAMURA(sample, N, iter_num=10000)
             e_time = time.perf_counter()
-            MLE_mu_okamura[i] = np.angle(MLE)
-            MLE_rho_okamura[i] = np.abs(MLE)
+            MLE_mu_okamura[i] = MLE[0]
+            MLE_rho_okamura[i] = MLE[1]
             MLE_time_okamura[i] = e_time - s_time
 
             s_time = time.perf_counter()
@@ -153,6 +156,13 @@ def main():
             MLE_mu_kent[i] = MLE[0]
             MLE_rho_kent[i] = MLE[1]
             MLE_time_kent[i] = e_time - s_time
+
+            s_time = time.perf_counter()
+            MLE = wrapedcauchy.MLE_direct_opt(sample)
+            e_time = time.perf_counter()
+            MLE_mu_direct[i] = MLE[0]
+            MLE_rho_direct[i] = MLE[1]
+            MLE_time_direct[i] = e_time - s_time
 
             s_time = time.perf_counter()
             # est = est_method1(sample)
@@ -184,6 +194,9 @@ def main():
         MLE_mu_kent_mse = np.mean((MLE_mu_kent - true_mu) ** 2)
         MLE_kappa_kent_mse = np.mean((MLE_rho_kent - true_rho) ** 2)
         MLE_time_kent_mean = np.mean(MLE_time_kent)
+        MLE_mu_direct_mse = np.mean((MLE_mu_direct - true_mu) ** 2)
+        MLE_kappa_direct_mse = np.mean((MLE_rho_direct - true_rho) ** 2)
+        MLE_time_direct_mean = np.mean(MLE_time_direct)
         method1_mu_mse = np.mean((method1_mu - true_mu) ** 2)
         method1_kappa_mse = np.mean((method1_rho - true_rho) ** 2)
         method1_time_mean = np.mean(method1_time)
@@ -199,6 +212,9 @@ def main():
         )
         print(
             f"MLE by kent: mu_mse={MLE_mu_kent_mse}, rho_mse={MLE_kappa_kent_mse}, time={MLE_time_kent_mean}"
+        )
+        print(
+            f"MLE by direct: mu_mse={MLE_mu_direct_mse}, rho_mse={MLE_kappa_direct_mse}, time={MLE_time_direct_mean}"
         )
         print(
             f"W2-est by method1: mu_mse={method1_mu_mse}, rho_mse={method1_kappa_mse}, time={method1_time_mean}"

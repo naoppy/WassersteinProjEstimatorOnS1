@@ -3,6 +3,7 @@ from functools import partial
 import numpy as np
 import numpy.typing as npt
 from matplotlib import pyplot as plt
+from scipy import optimize
 from scipy.stats import wrapcauchy
 
 
@@ -93,8 +94,8 @@ def _q(w, n, x) -> complex:
     return n / (np.sum(1 / (np.exp(1j * x) - 1 / w))) + 1 / w
 
 
-def MLE_OKAMURA(x, N: int, iter_num=100) -> complex:
-    """rho e^(j mu) で返す
+def MLE_OKAMURA(x, N: int, iter_num=100) -> npt.NDArray[np.float64]:
+    """[mu, rho] で返す
 
     CHARACTERIZATIONS OF THE MAXIMUM LIKELIHOOD ESTIMATOR OF THE CAUCHY DISTRIBUTION
     https://arxiv.org/abs/2104.06130
@@ -105,6 +106,9 @@ def MLE_OKAMURA(x, N: int, iter_num=100) -> complex:
         x (npt.NDArray[np.float64]): 0~2piの角度データ
         N (int): データ数
         iter_num (int, optional): 反復回数. Defaults to 100.
+
+    Returns:
+        npt.NDArray[np.float64]: [mu, rho]。muは [-pi, pi] の範囲。rhoは [0, 1] の範囲
     """
     if len(x) != N:
         raise ValueError("The length of x must be equal to N")
@@ -121,7 +125,8 @@ def MLE_OKAMURA(x, N: int, iter_num=100) -> complex:
     for _ in range(iter_num):
         # print(v)
         v = my_Q(v)
-    return v
+    # v = rho e^(j mu) になっている
+    return np.array([np.angle(v), np.abs(v)])
 
 
 def _cossin(x: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
@@ -148,7 +153,7 @@ def MLE_Kent(x, tol=1e-6, max_iter=10000, debug=False) -> npt.NDArray[np.float64
         debug (bool, optional): デバッグモード. Defaults to False.
 
     Returns:
-        npt.NDArray[np.float64]: [rho, mu] の順
+        npt.NDArray[np.float64]: [mu_MLE, rho_MLE]。muは [-pi, pi] の範囲。rhoは [0, 1] の範囲
     """
     N = len(x)
     x = np.array(x)  # (N,)
@@ -168,11 +173,37 @@ def MLE_Kent(x, tol=1e-6, max_iter=10000, debug=False) -> npt.NDArray[np.float64
     mu = np.arctan2(eta[1], eta[0])
     eta_norm_pow2 = eta @ eta
     rho = (1 - np.sqrt(1 - eta_norm_pow2)) / np.sqrt(eta_norm_pow2)
-    return np.array([rho, mu])
+    return np.array([mu, rho])
+
+
+def _pdf_scale2pi(theta, mu, rho):
+    return (1 - rho * rho) / (1 + rho * rho - 2 * rho * np.cos(theta - mu))
+
+
+# 負の対数尤度関数の定義
+def neg_log_likelihood(params, data):
+    mu, rho = params
+    pdf_vals = _pdf_scale2pi(data, mu, rho)
+    # 小さな値を避けるためにクリッピング
+    eps = 1e-10
+    log_likelihood = np.sum(np.log(np.clip(pdf_vals, eps, None)))
+    return -log_likelihood  # 最小化関数用にマイナスを返す
+
+
+def MLE_direct_opt(x: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+    result = optimize.minimize(
+        neg_log_likelihood,
+        (0, 0.5),
+        args=(x,),
+        bounds=((-np.pi, np.pi), (0.01, 0.99)),
+        method="powell",
+        options={"xtol": 1e-6, "ftol": 1e-6},
+    )
+    return np.array([result.x[0], result.x[1]])
 
 
 def main():
-    mu = np.pi  # circular mean
+    mu = np.pi / 2  # circular mean
     rho = 0.7  # concentration
     N = 10000
     dist = wrapcauchy(loc=mu, c=rho)
@@ -189,11 +220,14 @@ def main():
 
     # calc MLE
     result = MLE_OKAMURA(sample, N, iter_num=100)
-    print(f"rho MLE: {np.abs(result)}")
-    print(f"mu  MLE: {np.angle(result)}")
+    print(f"mu  MLE: {result[0]}")
+    print(f"rho MLE: {result[1]}")
     result2 = MLE_Kent(sample, debug=True, tol=1e-9)
-    print(f"rho MLE by Kent: {result2[0]}")
-    print(f"mu  MLE by Kent: {result2[1]}")
+    print(f"mu MLE by Kent: {result2[0]}")
+    print(f"rho MLE by Kent: {result2[1]}")
+    result3 = MLE_direct_opt(sample)
+    print(f"mu MLE by direct: {result3[0]}")
+    print(f"rho MLE by direct: {result3[1]}")
 
     sample2 = quantile_sampling(mu, rho, N)
     print(f"min: {np.min(sample2)}, max: {np.max(sample2)}")  # [0, 2pi]
