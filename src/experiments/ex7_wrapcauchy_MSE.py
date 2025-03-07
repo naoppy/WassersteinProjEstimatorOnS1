@@ -124,9 +124,9 @@ def est_W1_method3(given_data):
 def main():
     true_mu = np.pi / 8
     # 実験条件1
-    true_rho = 0.7
+    # true_rho = 0.7
     # 実験条件2
-    # true_rho = 0.2
+    true_rho = 0.2
     print(f"true mu={true_mu}, true rho={true_rho}")
 
     Ns = [100, 500, 1000, 5000, 10000]
