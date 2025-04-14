@@ -1,8 +1,8 @@
 import numpy as np
 import numpy.typing as npt
+from matplotlib import pyplot as plt
 from scipy import stats
-from scipy.special import i0, i1, iv
-from scipy.stats import vonmises
+from scipy.special import i0
 
 
 def pdf(
@@ -47,7 +47,7 @@ def cdf(
 
 
 def rejection_sampling(
-    n: int, mu: float, kappa: float, lambda_: float, debug: False
+    n: int, mu: float, kappa: float, lambda_: float, debug: bool = False
 ) -> npt.NDArray[np.float64]:
     """棄却サンプリングによってSine-Skewed von Misesからサンプリングする
     提案分布としては 2倍のフォンミーゼス分布を用いる。
@@ -85,8 +85,35 @@ def rejection_sampling(
 
 
 def _main():
-    pass
+    n = 100000
+    kappa = 1
+    lambda_ = 0.7
+    mu = 0
+    sample = rejection_sampling(n, mu, kappa, lambda_)
+    print(f"min: {np.min(sample)}, max: {np.max(sample)}")  # [-pi, pi]
 
+    fig = plt.figure(figsize=(12, 6))
+    left = plt.subplot(121)
+    right = plt.subplot(122, projection='polar')
+    x = np.linspace(-np.pi, np.pi, 1000)
+    ss_vonmises_pdf = pdf(x, mu, kappa, lambda_)
+    ticks = [0, 0.15, 0.3]
+
+    left.plot(x, ss_vonmises_pdf)
+    left.set_yticks(ticks)
+    number_of_bins = int(np.sqrt(n))
+    left.hist(sample, density=True, bins=number_of_bins)
+    left.set_title("Cartesian plot")
+    left.set_xlim(-np.pi, np.pi)
+    left.grid(True)
+
+    right.plot(x, ss_vonmises_pdf, label="PDF")
+    right.set_yticks(ticks)
+    right.hist(sample, density=True, bins=number_of_bins, label="Histogram")
+    right.set_title("Polar plot")
+    right.legend(bbox_to_anchor=(0.15, 1.06))
+
+    plt.show()
 
 if __name__ == "__main__":
     _main()
