@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import numpy as np
 import numpy.typing as npt
 from matplotlib import pyplot as plt
@@ -44,6 +46,26 @@ def cdf(
         / (2 * np.pi * i0(kappa) * kappa)
         * (np.exp(-kappa) - np.exp(kappa * np.cos(x - mu)))
     )
+
+def neg_likelihood(params, data) -> float:
+    mu, kappa, lambda_ = params
+    eps = 1e-10
+    data = data-mu
+    n = len(data)
+    log_likelihood = -n*np.log(i0(kappa)) + kappa * np.sum(np.cos(data)) + np.sum(np.log(1 + lambda_ * np.sin(data)))
+    return -log_likelihood
+
+def MLE_justopt(x: npt.NDArray[np.float64]) -> Tuple[float, float, float]:
+    """SS-von MisesのMLEでのパラメータ推定を行う
+
+    Args:
+        x (npt.NDArray[np.float64]): データ in [-pi, pi]
+
+    Returns:
+        Tuple[float, float, float]: (mu, kappa, lambda) in [-pi, pi]x[0, inf]x[-1, 1]
+    """
+
+    pass
 
 
 def rejection_sampling(
