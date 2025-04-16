@@ -48,7 +48,7 @@ def cdf(
     )
 
 
-def info_mat_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
+def fisher_info_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
     """Sine-Skewed von Mises分布のフィッシャー情報行列を計算する。
     数値積分を使って近似的な値を計算することに注意。
     パラメータはmu, kappa, lambda の順。
