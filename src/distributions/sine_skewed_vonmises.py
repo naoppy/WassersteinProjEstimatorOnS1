@@ -3,8 +3,8 @@ from typing import Tuple
 import numpy as np
 import numpy.typing as npt
 from matplotlib import pyplot as plt
-from scipy import stats
-from scipy.special import i0
+from scipy import integrate, stats
+from scipy.special import i0, i1, iv
 
 
 def pdf(
@@ -47,13 +47,62 @@ def cdf(
         * (np.exp(-kappa) - np.exp(kappa * np.cos(x - mu)))
     )
 
+
+def info_mat_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
+    """Sine-Skewed von Mises分布のフィッシャー情報行列を計算する。
+    数値積分を使って近似的な値を計算することに注意。
+    パラメータはmu, kappa, lambda の順。
+
+    Args:
+        kappa (float): 分布のパラメータ (>0)
+        lambda_ (float): 摂動項のパラメータ in [-1, 1]
+
+    Returns:
+        npt.NDArray[np.float64]: フィッシャー情報行列
+    """
+    i_mu_mu = kappa * i1(kappa) / i0(kappa) + integrate.quad(
+        lambda x: np.exp(kappa * np.cos(x))
+        * (lambda_ + np.sin(x))
+        / (1 + lambda_ * np.sin(x)),
+        -np.pi,
+        np.pi,
+    ) / (2 * np.pi * i0(kappa))
+    i_kappa_kappa = 1 / 2 + iv(2, kappa) / i0(kappa) - (i1(kappa) / i0(kappa)) ** 2
+    i_lambda_lambda = integrate.quad(
+        lambda x: np.exp(kappa * np.cos(x))
+        * np.sin(x) ** 2
+        / (1 + lambda_ * np.sin(x)),
+        -np.pi,
+        np.pi,
+    ) / (2 * np.pi * i0(kappa))
+    i_mu_kappa = lambda_ / 2 * (1 - iv(2, kappa) / i0(kappa))
+    i_kappa_lambda = 0
+    i_mu_lambda = integrate.quad(
+        lambda x: np.exp(kappa * np.cos(x)) * np.cos(x) / (1 + lambda_ * np.sin(x)),
+        -np.pi,
+        np.pi,
+    ) / (2 * np.pi * i0(kappa))
+    return np.array(
+        [
+            [i_mu_mu, i_mu_kappa, i_mu_lambda],
+            [i_mu_kappa, i_kappa_kappa, i_kappa_lambda],
+            [i_mu_lambda, i_kappa_lambda, i_lambda_lambda],
+        ]
+    )
+
+
 def neg_likelihood(params, data) -> float:
     mu, kappa, lambda_ = params
     eps = 1e-10
-    data = data-mu
+    data = data - mu
     n = len(data)
-    log_likelihood = -n*np.log(i0(kappa)) + kappa * np.sum(np.cos(data)) + np.sum(np.log(1 + lambda_ * np.sin(data)))
+    log_likelihood = (
+        -n * np.log(i0(kappa))
+        + kappa * np.sum(np.cos(data))
+        + np.sum(np.log(1 + lambda_ * np.sin(data)))
+    )
     return -log_likelihood
+
 
 def MLE_justopt(x: npt.NDArray[np.float64]) -> Tuple[float, float, float]:
     """SS-von MisesのMLEでのパラメータ推定を行う
@@ -116,7 +165,7 @@ def _main():
 
     fig = plt.figure(figsize=(12, 6))
     left = plt.subplot(121)
-    right = plt.subplot(122, projection='polar')
+    right = plt.subplot(122, projection="polar")
     x = np.linspace(-np.pi, np.pi, 1000)
     ss_vonmises_pdf = pdf(x, mu, kappa, lambda_)
     ticks = [0, 0.15, 0.3]
@@ -136,6 +185,7 @@ def _main():
     right.legend(bbox_to_anchor=(0.15, 1.06))
 
     plt.show()
+
 
 if __name__ == "__main__":
     _main()
