@@ -3,7 +3,7 @@ from typing import Tuple
 import numpy as np
 import numpy.typing as npt
 from matplotlib import pyplot as plt
-from scipy import integrate, stats
+from scipy import integrate, optimize, stats
 from scipy.special import i0, i1, iv
 
 
@@ -91,20 +91,20 @@ def info_mat_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
     )
 
 
-def neg_likelihood(params, data) -> float:
+def neg_log_likelihood(params, data) -> float:
     mu, kappa, lambda_ = params
     eps = 1e-10
     data = data - mu
     n = len(data)
     log_likelihood = (
-        -n * np.log(i0(kappa))
+        -n * np.log(np.maximum(eps, i0(kappa)))
         + kappa * np.sum(np.cos(data))
-        + np.sum(np.log(1 + lambda_ * np.sin(data)))
+        + np.sum(np.log(np.maximum(eps, 1 + lambda_ * np.sin(data))))
     )
     return -log_likelihood
 
 
-def MLE_justopt(x: npt.NDArray[np.float64]) -> Tuple[float, float, float]:
+def MLE_direct_opt(x: npt.NDArray[np.float64]) -> Tuple[float, float, float]:
     """SS-von MisesのMLEでのパラメータ推定を行う
 
     Args:
@@ -113,8 +113,13 @@ def MLE_justopt(x: npt.NDArray[np.float64]) -> Tuple[float, float, float]:
     Returns:
         Tuple[float, float, float]: (mu, kappa, lambda) in [-pi, pi]x[0, inf]x[-1, 1]
     """
-
-    pass
+    result = optimize.differential_evolution(
+        neg_log_likelihood,
+        args=(x,),
+        bounds=((-np.pi, np.pi), (0.01, 4), (-1, 1)),
+    )
+    print(result)
+    return result.x
 
 
 def rejection_sampling(
@@ -183,6 +188,13 @@ def _main():
     right.hist(sample, density=True, bins=number_of_bins, label="Histogram")
     right.set_title("Polar plot")
     right.legend(bbox_to_anchor=(0.15, 1.06))
+
+    # param estimation
+    est_param = MLE_direct_opt(sample)
+    print(est_param)
+    ss_vonmises_est_pdf = pdf(x, est_param[0], est_param[1], est_param[2])
+    left.plot(x, ss_vonmises_est_pdf)
+    right.plot(x, ss_vonmises_est_pdf)
 
     plt.show()
 
