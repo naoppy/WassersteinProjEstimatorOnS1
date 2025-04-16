@@ -66,7 +66,7 @@ def fisher_info_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
         / (1 + lambda_ * np.sin(x)),
         -np.pi,
         np.pi,
-    ) / (2 * np.pi * i0(kappa))
+    )[0] / (2 * np.pi * i0(kappa))
     i_kappa_kappa = 1 / 2 + iv(2, kappa) / i0(kappa) - (i1(kappa) / i0(kappa)) ** 2
     i_lambda_lambda = integrate.quad(
         lambda x: np.exp(kappa * np.cos(x))
@@ -74,14 +74,14 @@ def fisher_info_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
         / (1 + lambda_ * np.sin(x)),
         -np.pi,
         np.pi,
-    ) / (2 * np.pi * i0(kappa))
+    )[0] / (2 * np.pi * i0(kappa))
     i_mu_kappa = lambda_ / 2 * (1 - iv(2, kappa) / i0(kappa))
     i_kappa_lambda = 0
     i_mu_lambda = integrate.quad(
         lambda x: np.exp(kappa * np.cos(x)) * np.cos(x) / (1 + lambda_ * np.sin(x)),
         -np.pi,
         np.pi,
-    ) / (2 * np.pi * i0(kappa))
+    )[0] / (2 * np.pi * i0(kappa))
     return np.array(
         [
             [i_mu_mu, i_mu_kappa, i_mu_lambda],
@@ -165,7 +165,7 @@ def _main():
     kappa = 1
     lambda_ = 0.7
     mu = 0
-    sample = rejection_sampling(n, mu, kappa, lambda_)
+    sample = rejection_sampling(n, mu, kappa, lambda_, debug=True)
     print(f"min: {np.min(sample)}, max: {np.max(sample)}")  # [-pi, pi]
 
     fig = plt.figure(figsize=(12, 6))
@@ -197,6 +197,10 @@ def _main():
     right.plot(x, ss_vonmises_est_pdf)
 
     plt.show()
+
+    mat = fisher_info_3x3(kappa, lambda_)
+    print("Fisher info:")
+    print(mat)
 
 
 if __name__ == "__main__":
