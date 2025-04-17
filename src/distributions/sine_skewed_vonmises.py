@@ -28,6 +28,7 @@ def cdf(
     x: npt.NDArray[np.float64], mu: float, kappa: float, lambda_: float
 ) -> npt.NDArray[np.float64]:
     """Sine-Skewed von Mises分布の累積分布関数を計算する
+    cdf(mu-pi) = 0, cdf(mu+pi) = 1 となるように定義されている。
 
     Args:
         x (npt.NDArray[np.float64]): 累積分布関数を計算する点 in [-pi, pi]
@@ -39,13 +40,9 @@ def cdf(
         npt.NDArray[np.float64]: 累積分布関数の値 in [0, 1]
     """
     dist = stats.vonmises(loc=mu, kappa=kappa)
-    return (
-        dist.cdf(x, loc=mu, kappa=kappa)
-        - dist.cdf(-np.pi, loc=mu, kappa=kappa)
-        + lambda_
-        / (2 * np.pi * i0(kappa) * kappa)
-        * (np.exp(-kappa) - np.exp(kappa * np.cos(x - mu)))
-    )
+    return dist.cdf(x, loc=mu, kappa=kappa) + lambda_ / (
+        2 * np.pi * i0(kappa) * kappa
+    ) * (np.exp(-kappa) - np.exp(kappa * np.cos(x - mu)))
 
 
 def fisher_info_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
