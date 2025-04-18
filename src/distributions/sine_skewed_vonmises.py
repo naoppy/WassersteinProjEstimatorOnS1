@@ -39,8 +39,7 @@ def cdf(
     Returns:
         npt.NDArray[np.float64]: 累積分布関数の値 in [0, 1]
     """
-    dist = stats.vonmises(loc=mu, kappa=kappa)
-    return dist.cdf(x, loc=mu, kappa=kappa) + lambda_ / (
+    return stats.vonmises.cdf(x, loc=mu, kappa=kappa) + lambda_ / (
         2 * np.pi * i0(kappa) * kappa
     ) * (np.exp(-kappa) - np.exp(kappa * np.cos(x - mu)))
 
@@ -101,7 +100,7 @@ def neg_log_likelihood(params, data) -> float:
     return -log_likelihood
 
 
-def MLE_direct_opt(x: npt.NDArray[np.float64]) -> Tuple[float, float, float]:
+def MLE_direct_opt(x: npt.NDArray[np.float64], debug: bool = False) -> Tuple[float, float, float]:
     """SS-von MisesのMLEでのパラメータ推定を行う
 
     Args:
@@ -115,7 +114,8 @@ def MLE_direct_opt(x: npt.NDArray[np.float64]) -> Tuple[float, float, float]:
         args=(x,),
         bounds=((-np.pi, np.pi), (0.01, 4), (-1, 1)),
     )
-    print(result)
+    if debug:
+        print(result)
     return result.x
 
 
@@ -222,7 +222,7 @@ def _main():
     right.legend(bbox_to_anchor=(0.15, 1.06))
 
     # param estimation
-    est_param = MLE_direct_opt(sample)
+    est_param = MLE_direct_opt(sample, debug=True)
     print(est_param)
     ss_vonmises_est_pdf = pdf(x, est_param[0], est_param[1], est_param[2])
     left.plot(x, ss_vonmises_est_pdf)
