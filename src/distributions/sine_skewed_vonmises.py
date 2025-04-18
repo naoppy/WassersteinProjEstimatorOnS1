@@ -171,7 +171,26 @@ def cumsum_hist(mu: float, kappa: float, lambda_: float, bin_num: int) -> npt.ND
 
 
 def cumsum_hist_data(data: npt.NDArray[np.float64], bin_num: int) -> npt.NDArray[np.float64]:
-    pass
+    """[-pi, pi] の間を bin_num (=D) 等分した区間でのデータの経験的cdfの値を返す
+    [F(i/D)] i=0,1,...,D
+    F(0)=0, F(1)=1を満たすソート済み列を返す
+    """
+    n = len(data)
+    data_hist = np.zeros(bin_num + 1)
+    for x in data:
+        data_hist[
+            np.clip(
+                int(np.remainder(bin_num * (x + np.pi) / (2 * np.pi), bin_num)) + 1,
+                1,
+                bin_num,
+            )
+        ] += 1
+    data_cumsum_hist = np.cumsum(data_hist) / n
+
+    assert abs(data_cumsum_hist[0] - 0.0) < 1e-7
+    assert abs(data_cumsum_hist[-1] - 1.0) < 1e-7
+    return data_cumsum_hist
+
 
 def _main():
     n = 100000
