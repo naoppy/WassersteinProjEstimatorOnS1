@@ -156,6 +156,22 @@ def rejection_sampling(
         print(f"accept rate: {n / try_num}")
     return ret
 
+def cumsum_hist(mu: float, kappa: float, lambda_: float, bin_num: int) -> npt.NDArray[np.float64]:
+    """[-pi, pi] の間を bin_num (=D) 等分した区間でのcdfの値を返す
+    [F(i/D)] i=0,1,...,D
+    F(0)=0, F(1)=1を満たすソート済み列を返す
+    """
+    x = np.linspace(-np.pi, np.pi, bin_num + 1)
+    y = cdf(x, mu, kappa, lambda_) - cdf(-np.pi, mu, kappa, lambda_)
+
+    assert len(y) == bin_num + 1
+    assert abs(y[0] - 0.0) < 1e-7, print(f"{mu}, {kappa}, {lambda_}, {y}")
+    assert abs(y[-1] - 1.0) < 1e-7
+    return y
+
+
+def cumsum_hist_data(data: npt.NDArray[np.float64], bin_num: int) -> npt.NDArray[np.float64]:
+    pass
 
 def _main():
     n = 100000

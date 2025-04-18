@@ -59,7 +59,7 @@ def MLE(T_data, N: int):
     return [mu_MLE, kappa_MLE]
 
 
-def cumsum_hist(mu: float, kappa: float, bin_num) -> npt.NDArray[np.float64]:
+def cumsum_hist(mu: float, kappa: float, bin_num: int) -> npt.NDArray[np.float64]:
     """[-pi, pi] の間を bin_num (=D) 等分した区間でのcdfの値を返す
     [F(i/D)] i=0,1,...,D
     """
