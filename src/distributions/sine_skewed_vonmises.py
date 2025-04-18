@@ -111,6 +111,7 @@ def MLE_direct_opt(x: npt.NDArray[np.float64], debug: bool = False) -> Tuple[flo
     """
     result = optimize.differential_evolution(
         neg_log_likelihood,
+        tol=0.001,
         args=(x,),
         bounds=((-np.pi, np.pi), (0.01, 4), (-1, 1)),
     )

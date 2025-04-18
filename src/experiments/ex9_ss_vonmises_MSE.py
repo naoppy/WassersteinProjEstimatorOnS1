@@ -29,6 +29,7 @@ def est_method2(given_data):
 
     return optimize.differential_evolution(
         cost_func,
+        tol=0.001,
         bounds=((-np.pi, np.pi), (0.01, 4), (-1, 1)),
     )
 
@@ -41,10 +42,9 @@ def main():
         f"true mu={true_mu}, true kappa={true_kappa}, true lambda={true_lambda}"
     )
 
-    Ns = [100, 500, 1000, 5000, 10000]
-    # Ns = [1000]
-    try_nums = [100, 100, 100, 100, 100]
-    # try_nums = [10]
+    Ns = np.power(10, [2, 2.5, 3, 3.5, 4, 4.5, 5]).astype(np.int64)
+    try_nums = [100, 100, 100, 100, 100, 50, 25]
+
     for N, try_num in zip(Ns, try_nums, strict=True):  # データ数Nを変える
         print(f"N={N}")
         MLE_mu = np.zeros(try_num)
