@@ -38,9 +38,8 @@ def main():
     true_mu = 0
     true_kappa = 1
     true_lambda = 0.7
-    print(
-        f"true mu={true_mu}, true kappa={true_kappa}, true lambda={true_lambda}"
-    )
+    print(f"true mu={true_mu}, true kappa={true_kappa}, true lambda={true_lambda}")
+    print("(mu, kappa, lambda, time)")
 
     Ns = np.power(10, [2, 2.5, 3, 3.5, 4, 4.5, 5]).astype(np.int64)
     try_nums = [100, 100, 100, 100, 100, 50, 25]
@@ -61,7 +60,9 @@ def main():
         method2_time = np.zeros(try_num)
 
         for i in tqdm(range(try_num)):  # MSEをとるための試行回数
-            sample = sine_skewed_vonmises.rejection_sampling(N, true_mu, true_kappa, true_lambda)
+            sample = sine_skewed_vonmises.rejection_sampling(
+                N, true_mu, true_kappa, true_lambda
+            )
 
             s_time = time.perf_counter()
             MLE = sine_skewed_vonmises.MLE_direct_opt(sample)
@@ -100,10 +101,8 @@ def main():
         method2_lambda_mse = np.mean((method2_lambda - true_lambda) ** 2)
         method2_time_mean = np.mean(method2_time)
 
-        print("MLE: (mu, kappa, lambda, time)")
-        print(
-            f"{MLE_mu_mse}, {MLE_kappa_mse}, {MLE_lambda_mse}, {MLE_time_mean}"
-        )
+        print("MLE:")
+        print(f"{MLE_mu_mse}, {MLE_kappa_mse}, {MLE_lambda_mse}, {MLE_time_mean}")
         print("Method1(W2):")
         print(
             f"{method1_mu_mse}, {method1_kappa_mse}, {method1_lambda_mse}, {method1_time_mean}"
