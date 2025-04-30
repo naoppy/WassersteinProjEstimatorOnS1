@@ -1,3 +1,4 @@
+from typing import List
 import numpy as np
 import numpy.typing as npt
 from matplotlib import pyplot as plt
@@ -15,6 +16,15 @@ def fisher_info_2x2(kappa: float) -> npt.NDArray[np.float64]:
             [0, 1 / 2 + iv(2, kappa) / i0(kappa) - (i1(kappa) / i0(kappa)) ** 2],
         ]
     )
+
+
+def fisher_mat_inv_diag(kappa: float) -> List[float]:
+    """フィッシャー情報行列の逆行列の対角成分のリストを返す。
+
+    Returns:
+        List[float]: [mu, kappa] の順
+    """
+    return
 
 
 def T(x):
