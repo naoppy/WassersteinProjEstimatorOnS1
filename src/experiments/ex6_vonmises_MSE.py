@@ -15,6 +15,7 @@ from tqdm import tqdm
 from ..calc_semidiscrete_W_dist import method1, method2
 from ..distributions import vonmises
 
+bounds = ((-np.pi, np.pi), (0.1, 5))
 
 def W2_cost_func3(x, given_data_normed_sorted):
     sample = vonmises.quantile_sampling(x[0], x[1], len(given_data_normed_sorted))
@@ -33,7 +34,6 @@ def est_method3(given_data):
     given_data_norm_sorted = np.sort(given_data_norm)
     cost_func = partial(W2_cost_func3, given_data_normed_sorted=given_data_norm_sorted)
 
-    bounds = ((-np.pi, np.pi), (0.1, 10))
     # finish_func = partial(optimize.minimize, method="powell", bounds=bounds)
     # return optimize.brute(
     #     cost_func,
@@ -45,9 +45,9 @@ def est_method3(given_data):
     # )
     return optimize.differential_evolution(
         cost_func,
-        tol=0.001,
+        tol=0.01,
         bounds=bounds,
-        workers=-1,
+        # workers=-1,
     )
 
 
@@ -75,9 +75,9 @@ def est_method2(given_data):
     # )
     return optimize.differential_evolution(
         cost_func,
-        tol=0.001,
-        bounds=((-np.pi, np.pi), (0.1, 10)),
-        workers=-1,
+        tol=0.01,
+        bounds=bounds,
+        # workers=-1,
     )
 
 
