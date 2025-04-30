@@ -24,7 +24,8 @@ def fisher_mat_inv_diag(kappa: float) -> List[float]:
     Returns:
         List[float]: [mu, kappa] の順
     """
-    return
+    mat = fisher_info_2x2(kappa) # 対角行列なので逆数が逆行列
+    return [1 / mat[0][0], 1 / mat[1][1]]
 
 
 def T(x):

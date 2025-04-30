@@ -1,6 +1,6 @@
 """
 何回かサンプルをとってMSEを計算する
-MSE, W2-estimator(method1), W1-estimator(method2)の比較
+MSE, W1-estimator(method2), W2-estimator(method3)の比較
 """
 
 import time
@@ -108,6 +108,7 @@ def main():
             "Cramer-Rao Lower Bound of kappa",
         ],
     )
+    fisher_mat_inv_diag = vonmises.fisher_mat_inv_diag(true_kappa)
 
     for i, (N, try_num) in enumerate(
         zip(Ns, try_nums, strict=True)
@@ -159,16 +160,14 @@ def main():
         method3_kappa_mse = np.mean((method3_kappa - true_kappa) ** 2)
         method3_time_mean = np.mean(method3_time)
         df.loc[log10_Ns[i]] = [
-            MLE_mu_mse,
-            MLE_kappa_mse,
-            method2_mu_mse,
-            method2_kappa_mse,
-            method3_mu_mse,
-            method3_kappa_mse,
-            -np.log10(vonmises.fisher_mat_inv_diag(true_mu, true_kappa)[0])
-            - log10_Ns[i],
-            -np.log10(vonmises.fisher_mat_inv_diag(true_mu, true_kappa)[1])
-            - log10_Ns[i],
+            np.log10(MLE_mu_mse),
+            np.log10(MLE_kappa_mse),
+            np.log10(method2_mu_mse),
+            np.log10(method2_kappa_mse),
+            np.log10(method3_mu_mse),
+            np.log10(method3_kappa_mse),
+            np.log10(fisher_mat_inv_diag[0]) - log10_Ns[i],
+            np.log10(fisher_mat_inv_diag[1]) - log10_Ns[i],
         ]
 
         print(
