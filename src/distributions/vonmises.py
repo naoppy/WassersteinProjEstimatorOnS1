@@ -1,4 +1,5 @@
 from typing import List
+
 import numpy as np
 import numpy.typing as npt
 from matplotlib import pyplot as plt
@@ -24,7 +25,7 @@ def fisher_mat_inv_diag(kappa: float) -> List[float]:
     Returns:
         List[float]: [mu, kappa] の順
     """
-    mat = fisher_info_2x2(kappa) # 対角行列なので逆数が逆行列
+    mat = fisher_info_2x2(kappa)  # 対角行列なので逆数が逆行列
     return [1 / mat[0][0], 1 / mat[1][1]]
 
 
@@ -120,13 +121,45 @@ def quantile_sampling(
     """
     eps = 1e-7
     x = np.linspace(
-        eps, 1 - eps, sample_num + 1
+        eps, 1 - eps, sample_num
     )  # なぜか0, 1のppfを計算するとinfになるので避ける。
     dist = vonmises(loc=mu, kappa=kappa)
     y = dist.ppf(x)
     y2 = np.remainder(y + np.pi, 2 * np.pi) - np.pi
     assert np.all((-np.pi <= y2) & (y2 <= np.pi))
     return y2
+
+
+def fast_quantile_sampling(
+    mu: float, kappa: float, sample_num: int
+) -> npt.NDArray[np.float64]:
+    """フォンミーゼス分布から簡易的な分位点サンプリングする
+
+    Args:
+        mu (float): 分布のパラメータ
+        kappa (float): 分布のパラメータ
+        sample_num (int): サンプルする数
+
+    Returns:
+        npt.NDArray[np.float64]: [-pi, pi] の範囲のサンプル。F^(-1)(i/D) (i=0, 1, ..., D)
+    """
+    x = np.linspace(0, 1, sample_num)
+    dist = vonmises(loc=mu, kappa=kappa)
+
+    # cdfを一気に計算しておく
+    y, step = np.linspace(mu - np.pi, mu + np.pi, 1048576, retstep=True)  # 2^20
+    z = dist.cdf(y)
+    lefts = np.zeros(len(x))
+    i = 0
+    for j, xi in enumerate(x):
+        while i < len(z) and z[i] < xi:
+            i += 1
+        if i == 0:
+            lefts[j] = mu - np.pi
+        else:
+            lefts[j] = mu - np.pi + (i - 1) * step
+    # now (lefts, lefts + step) に xi がある。中点で代表。
+    return lefts + step / 2
 
 
 def main():

@@ -17,8 +17,9 @@ from ..distributions import vonmises
 
 bounds = ((-np.pi, np.pi), (0.1, 5))
 
+
 def W2_cost_func3(x, given_data_normed_sorted):
-    sample = vonmises.quantile_sampling(x[0], x[1], len(given_data_normed_sorted))
+    sample = vonmises.fast_quantile_sampling(x[0], x[1], len(given_data_normed_sorted))
     sample = np.remainder(sample, 2 * np.pi) / (2 * np.pi)
     sample = np.sort(sample)
     return method1.method1(given_data_normed_sorted, sample, p=2, sorted=True)
@@ -47,8 +48,14 @@ def est_method3(given_data):
         cost_func,
         tol=0.01,
         bounds=bounds,
-        # workers=-1,
+        workers=-1,
     )
+
+
+def W1_cost_func(x, bin_num, data_cumsum_hist):
+    mu, kappa = x
+    dist_cumsum_hist = vonmises.cumsum_hist(mu, kappa, bin_num)
+    return method2.method2(data_cumsum_hist[1:], dist_cumsum_hist[1:])
 
 
 def est_method2(given_data):
@@ -59,11 +66,9 @@ def est_method2(given_data):
     """
     bin_num = len(given_data)
     data_cumsum_hist = vonmises.cumsum_hist_data(given_data, bin_num)
-
-    def cost_func(x):
-        mu, kappa = x
-        dist_cumsum_hist = vonmises.cumsum_hist(mu, kappa, bin_num)
-        return method2.method2(data_cumsum_hist[1:], dist_cumsum_hist[1:])
+    cost_func = partial(
+        W1_cost_func, bin_num=bin_num, data_cumsum_hist=data_cumsum_hist
+    )
 
     # return optimize.minimize(
     #     cost_func,
@@ -77,7 +82,7 @@ def est_method2(given_data):
         cost_func,
         tol=0.01,
         bounds=bounds,
-        # workers=-1,
+        workers=-1,
     )
 
 
