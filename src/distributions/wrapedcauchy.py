@@ -81,7 +81,6 @@ def quantile_sampling(
     mu: float, rho: float, sample_num: int
 ) -> npt.NDArray[np.float64]:
     """巻き込みコーシー分布から分位点サンプリングする
-    ソート済みのサンプルを返す。
 
     Args:
         mu (float): 分布のパラメータ

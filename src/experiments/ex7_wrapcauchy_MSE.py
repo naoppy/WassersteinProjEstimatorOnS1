@@ -22,7 +22,7 @@ def W2_cost_func3(x, given_data_normed_sorted):
     sample = wrapedcauchy.quantile_sampling(
         x[0], x[1], len(given_data_normed_sorted)
     ) / (2 * np.pi)
-    # sample = np.sort(sample) already sorted in quantile_sampling
+    sample = np.sort(sample)
     return method1.method1(given_data_normed_sorted, sample, p=2, sorted=True)
 
 
@@ -123,7 +123,9 @@ def main():
     )
     fisher_mat_inv_diag = wrapedcauchy.fisher_mat_inv_diag(true_rho)
 
-    for j, (N, try_num) in zip(Ns, try_nums, strict=True):  # データ数Nを変える
+    for j, (N, try_num) in enumerate(
+        zip(Ns, try_nums, strict=True)
+    ):  # データ数Nを変える
         print(f"N={N}")
         # MLE_mu_okamura = np.zeros(try_num)
         # MLE_rho_okamura = np.zeros(try_num)
