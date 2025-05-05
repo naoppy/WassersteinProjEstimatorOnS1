@@ -123,7 +123,7 @@ def main():
     )
     fisher_mat_inv_diag = wrapedcauchy.fisher_mat_inv_diag(true_rho)
 
-    for N, try_num in zip(Ns, try_nums, strict=True):  # データ数Nを変える
+    for j, (N, try_num) in zip(Ns, try_nums, strict=True):  # データ数Nを変える
         print(f"N={N}")
         # MLE_mu_okamura = np.zeros(try_num)
         # MLE_rho_okamura = np.zeros(try_num)
@@ -224,15 +224,15 @@ def main():
         # method4_rho_mse = np.mean((method4_rho - true_rho) ** 2)
         # method4_time_mean = np.mean(method4_time)
 
-        df.loc[log10_Ns[i]] = [
+        df.loc[log10_Ns[j]] = [
             np.log10(MLE_mu_kent_mse),
             np.log10(MLE_rho_kent_mse),
             np.log10(method2_mu_mse),
             np.log10(method2_rho_mse),
             np.log10(method3_mu_mse),
             np.log10(method3_rho_mse),
-            np.log10(fisher_mat_inv_diag[0]) - log10_Ns[i],
-            np.log10(fisher_mat_inv_diag[1]) - log10_Ns[i],
+            np.log10(fisher_mat_inv_diag[0]) - log10_Ns[j],
+            np.log10(fisher_mat_inv_diag[1]) - log10_Ns[j],
         ]
 
         # print(
