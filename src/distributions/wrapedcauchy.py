@@ -1,4 +1,5 @@
 from functools import partial
+from typing import List
 
 import numpy as np
 import numpy.typing as npt
@@ -19,6 +20,15 @@ def fisher_info_2x2(rho: float) -> npt.NDArray[np.float64]:
             [0, 2 / bunbo],
         ]
     )
+
+
+def fisher_mat_inv_diag(rho: float) -> List[float]:
+    """
+    巻き込みコーシー分布のフィッシャー情報量の逆行列の対角成分を計算する
+    """
+    rho_p2 = rho * rho
+    bunbo = (1 - rho_p2) ** 2
+    return [bunbo / (2 * rho_p2), bunbo / 2]
 
 
 def wrapcauchy_true_pdf(
@@ -71,6 +81,7 @@ def quantile_sampling(
     mu: float, rho: float, sample_num: int
 ) -> npt.NDArray[np.float64]:
     """巻き込みコーシー分布から分位点サンプリングする
+    ソート済みのサンプルを返す。
 
     Args:
         mu (float): 分布のパラメータ
@@ -80,7 +91,7 @@ def quantile_sampling(
     Returns:
         npt.NDArray[np.float64]: [0, 2pi] の範囲のサンプル。F^(-1)(i/D) (i=0, 1, ..., D)
     """
-    x = np.linspace(0, 1, sample_num + 1)
+    x = np.linspace(0, 1, sample_num)
     y = wrapcauchy.ppf(x, rho, mu, 1)
     y2 = np.remainder(y, 2 * np.pi)
     assert np.all((0 <= y2) & (y2 <= 2 * np.pi))

@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import scipy.stats as stats
 from scipy import optimize
+from scipy.stats import vonmises as vonmises_scipy
 from tqdm import tqdm
 
 from ..calc_semidiscrete_W_dist import method1, method2
@@ -25,7 +26,7 @@ def W2_cost_func3(x, given_data_normed_sorted):
     return method1.method1(given_data_normed_sorted, sample, p=2, sorted=True)
 
 
-def est_method3(given_data):
+def est_W2_method3(given_data):
     """Calc W2-estimator using method3
 
     Args:
@@ -35,20 +36,24 @@ def est_method3(given_data):
     given_data_norm_sorted = np.sort(given_data_norm)
     cost_func = partial(W2_cost_func3, given_data_normed_sorted=given_data_norm_sorted)
 
-    # finish_func = partial(optimize.minimize, method="powell", bounds=bounds)
-    # return optimize.brute(
-    #     cost_func,
-    #     bounds,
-    #     full_output=True,
-    #     finish=finish_func,
-    #     Ns=100,
-    #     workers=-1,
-    # )
     return optimize.differential_evolution(
-        cost_func,
-        tol=0.01,
-        bounds=bounds,
-        workers=-1,
+        cost_func, tol=0.01, bounds=bounds, workers=-1, updating="deferred"
+    )
+
+
+def W2_cost_func1(x, given_data_normed_sorted):
+    sample = vonmises_scipy(loc=x[0], kappa=x[1]).rvs(len(given_data_normed_sorted))
+    sample = np.remainder(sample, 2 * np.pi) / (2 * np.pi)
+    sample = np.sort(sample)
+    return method1.method1(given_data_normed_sorted, sample, p=2, sorted=True)
+
+
+def est_W2_method1(given_data):
+    given_data_norm = given_data / (2 * np.pi)
+    given_data_norm_sorted = np.sort(given_data_norm)
+    cost_func = partial(W2_cost_func1, given_data_normed_sorted=given_data_norm_sorted)
+    return optimize.differential_evolution(
+        cost_func, tol=0.01, bounds=bounds, workers=-1, updating="deferred"
     )
 
 
@@ -58,7 +63,7 @@ def W1_cost_func(x, bin_num, data_cumsum_hist):
     return method2.method2(data_cumsum_hist[1:], dist_cumsum_hist[1:])
 
 
-def est_method2(given_data):
+def est_W1_method2(given_data):
     """Calc W1-estimator using method1
 
     Args:
@@ -70,19 +75,8 @@ def est_method2(given_data):
         W1_cost_func, bin_num=bin_num, data_cumsum_hist=data_cumsum_hist
     )
 
-    # return optimize.minimize(
-    #     cost_func,
-    #     (0, 1),
-    #     bounds=((-np.pi, np.pi), (0.1, 10)),
-    #     # for powell method
-    #     method="powell",
-    #     options={"xtol": 1e-6, "ftol": 1e-6},
-    # )
     return optimize.differential_evolution(
-        cost_func,
-        tol=0.01,
-        bounds=bounds,
-        workers=-1,
+        cost_func, tol=0.01, bounds=bounds, workers=-1, updating="deferred"
     )
 
 
@@ -141,18 +135,18 @@ def main():
             MLE_time[i] = e_time - s_time
 
             s_time = time.perf_counter()
-            est = est_method2(sample)
+            est = est_W1_method2(sample)
             e_time = time.perf_counter()
             method2_mu[i] = est.x[0]
             method2_kappa[i] = est.x[1]
             method2_time[i] = e_time - s_time
 
             s_time = time.perf_counter()
-            est = est_method3(sample)
+            est = est_W2_method3(sample)
             e_time = time.perf_counter()
-            method2_mu[i] = est.x[0]
-            method2_kappa[i] = est.x[1]
-            method2_time[i] = e_time - s_time
+            method3_mu[i] = est.x[0]
+            method3_kappa[i] = est.x[1]
+            method3_time[i] = e_time - s_time
 
         # MSEを計算する
         MLE_mu_mse = np.mean((MLE_mu - true_mu) ** 2)
