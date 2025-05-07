@@ -2,7 +2,7 @@
 Vonmisesのcdf, ppfが異常に遅いので、速度を測定してみる。
 
 わかったこと
-cdf(x_list) は早いのだが、cdf(x) は遅い。
+cdf(x_list) は早いのだが、cdf(x) for x in x_list は遅い。
 なるべく一気にcdfを計算したほうが良い。
 ppfはcdfを二分探索のたびに実行しているので遅い。
 """
