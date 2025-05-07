@@ -62,26 +62,27 @@ def main():
 
     x = np.linspace(-np.pi, np.pi, 10001)
     # y = dist.pdf(x)
-    # plt.plot(x, y)
+    # plt.plot(x, y, label="pdf")
+    # z = dist.cdf(x)
+    # plt.plot(x, z, label="cdf")
     # plt.show()
     # plt.subplot(projection="polar")
     # plt.plot(x, y)
     # plt.show()
 
-    y = wrapcauchy_true_pdf(x, rho, mu, 1)
-    plt.plot(x, y)
-    plt.show()
-    plt.subplot(projection="polar")
-    plt.plot(x, y)
-    plt.show()
-
-    # y = dist.cdf(x)
+    # y = wrapcauchy_true_pdf(x, rho, mu, 1)
+    # plt.plot(x, y, label="pdf")
+    # z = wrapcauchy_periodic_cdf(x, rho, mu, 1)
+    # plt.plot(x, z, label="cdf")
+    # plt.show()
+    # plt.subplot(projection="polar")
     # plt.plot(x, y)
     # plt.show()
 
-    # y = wrapcauchy_periodic_cdf(x, rho, mu, 1)
-    # plt.plot(x, y)
-    # plt.show()
+    x2 = np.linspace(0, 1, 10001)
+    y2 = dist.ppf(x2)
+    plt.plot(x2, y2)
+    plt.show()
 
 
 if __name__ == "__main__":
