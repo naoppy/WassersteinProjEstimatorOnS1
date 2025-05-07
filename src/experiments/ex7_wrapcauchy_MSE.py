@@ -22,7 +22,7 @@ def W2_cost_func3(x, given_data_normed_sorted):
     sample = wrapedcauchy.quantile_sampling(
         x[0], x[1], len(given_data_normed_sorted)
     ) / (2 * np.pi)
-    sample = np.sort(sample)
+    # sample = np.sort(sample) already sorted
     return method1.method1(given_data_normed_sorted, sample, p=2, sorted=True)
 
 
@@ -104,7 +104,7 @@ def main():
     print(f"true mu={true_mu}, true rho={true_rho}")
     print("(mu, rho, time)")
 
-    log10_Ns = [2, 2.5, 3, 3.5, 4, 4.5, 5]
+    log10_Ns = [5]
     Ns = np.power(10, log10_Ns).astype(np.int64)
     try_nums = [1000] * len(Ns)
 
