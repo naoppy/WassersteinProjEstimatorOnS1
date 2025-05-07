@@ -3,12 +3,14 @@
 MSE, W2-estimator(method1), W1-estimator(method2)の比較
 """
 
+import cProfile
 import time
 from functools import partial
 
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
+from numpy import typing as npt
 from scipy import optimize
 from tqdm import tqdm
 
@@ -22,12 +24,11 @@ def W2_cost_func3(x, given_data_normed_sorted):
     sample = wrapedcauchy.quantile_sampling(
         x[0], x[1], len(given_data_normed_sorted)
     ) / (2 * np.pi)
-    # sample = np.sort(sample) already sorted
     return method1.method1(given_data_normed_sorted, sample, p=2, sorted=True)
 
 
-def est_W2_method3(given_data):
-    """Calc W2-estimator using method1
+def est_W2_method3(given_data: npt.NDArray[np.float64]):
+    """Calc W2-estimator using method3
 
     Args:
         given_data (np.ndarray): [0, 2*pi]のデータ
@@ -35,16 +36,16 @@ def est_W2_method3(given_data):
     given_data_norm = given_data / (2 * np.pi)
     given_data_norm_sorted = np.sort(given_data_norm)
     cost_func = partial(W2_cost_func3, given_data_normed_sorted=given_data_norm_sorted)
-    # return optimize.minimize(
-    #     cost_func,
-    #     (0, 0.5),
-    #     bounds=bounds,
-    #     method="powell",
-    #     options={"xtol": 1e-6, "ftol": 1e-6},
-    # )
-    return optimize.differential_evolution(
-        cost_func, tol=0.01, bounds=bounds, workers=-1, updating="deferred"
+    return optimize.minimize(
+        cost_func,
+        (0, 0.5),
+        bounds=bounds,
+        method="powell",
+        options={"xtol": 1e-6, "ftol": 1e-6},
     )
+    # return optimize.differential_evolution(
+    #     cost_func, tol=0.01, bounds=bounds, workers=-1, updating="deferred"
+    # )
 
 
 def W1_method2_cost_func(x, bin_num, data_cumsum_hist):
@@ -106,7 +107,7 @@ def main():
 
     log10_Ns = [5]
     Ns = np.power(10, log10_Ns).astype(np.int64)
-    try_nums = [1000] * len(Ns)
+    try_nums = [3] * len(Ns)
 
     df = pd.DataFrame(
         index=log10_Ns,
@@ -190,7 +191,11 @@ def main():
             method2_time[i] = e_time - s_time
 
             s_time = time.perf_counter()
+            # profiler = cProfile.Profile()
+            # profiler.enable()
             est = est_W2_method3(sample)
+            # profiler.disable()
+            # profiler.print_stats(sort="time")
             e_time = time.perf_counter()
             method3_mu[i] = est.x[0]
             method3_rho[i] = est.x[1]
