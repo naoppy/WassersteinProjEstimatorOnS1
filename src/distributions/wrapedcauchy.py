@@ -80,8 +80,8 @@ def cumsum_hist_data(sample, bin_Num) -> npt.NDArray[np.float64]:
 def quantile_sampling(
     mu: float, rho: float, sample_num: int
 ) -> npt.NDArray[np.float64]:
-    """巻き込みコーシー分布から分位点サンプリングする
-    ソート済みの点列を返す
+    """巻き込みコーシー分布から分位点サンプリングする。
+    ソート済みの点列を返す。O(n)。
 
     Args:
         mu (float): 分布のパラメータ
@@ -91,20 +91,21 @@ def quantile_sampling(
     Returns:
         npt.NDArray[np.float64]: [0, 2pi] の範囲のサンプル。F^(-1)(i/D) (i=0, 1, ..., D)
     """
-    x = np.linspace(0, 1, sample_num)
+    x, step = np.linspace(0, 1, sample_num, endpoint=False, retstep=True)
+    x = x + step / 2
     assert len(x) == sample_num
     y = wrapcauchy.ppf(x, rho, loc=mu)
     y = np.remainder(y, 2 * np.pi)
     # sort
     i = 0
-    if y[-1] <= y[0]:  # y2[i-1] <= y[i]
+    if y[-1] <= y[0] + 0.5:  # y[i-1] <= y[i]
         i += 1
-        while y[i - 1] <= y[i]:
+        while y[i - 1] <= y[i] + 0.5:
             i += 1
     # 既にソート済みならi=0, 全て同じ値(pdfがデルタ関数)ならi=sample_num, それ以外ならiは変曲点の奥のidx
     y = np.roll(y, -i)
     assert np.all((0 <= y) & (y <= 2 * np.pi))
-    assert np.all(y[i] <= y[i + 1] for i in range(sample_num - 1))
+    assert np.all(np.diff(y) >= 0)
     return y
 
 

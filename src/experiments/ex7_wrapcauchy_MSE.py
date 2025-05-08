@@ -65,8 +65,15 @@ def est_W1_method2(given_data):
     cost_func = partial(
         W1_method2_cost_func, bin_num=bin_num, data_cumsum_hist=data_cumsum_hist
     )
-    return optimize.differential_evolution(
-        cost_func, tol=0.01, bounds=bounds, workers=-1, updating="deferred"
+    # return optimize.differential_evolution(
+    #     cost_func, tol=0.01, bounds=bounds, workers=-1, updating="deferred"
+    # )
+    return optimize.minimize(
+        cost_func,
+        (0, 0.5),
+        bounds=bounds,
+        method="powell",
+        options={"xtol": 1e-6, "ftol": 1e-6},
     )
 
 
@@ -74,7 +81,6 @@ def W1_cost_func3(x, given_data_normed_sorted):
     sample = wrapedcauchy.quantile_sampling(
         x[0], x[1], len(given_data_normed_sorted)
     ) / (2 * np.pi)
-    # sample = np.sort(sample)
     return method1.method1(given_data_normed_sorted, sample, p=1, sorted=True)
 
 
