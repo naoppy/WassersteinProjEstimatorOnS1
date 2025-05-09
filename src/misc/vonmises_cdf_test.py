@@ -7,6 +7,7 @@ cdf(x_list) は早いのだが、cdf(x) for x in x_list は遅い。
 ppfはcdfを二分探索のたびに実行しているので遅い。
 """
 
+
 import time
 
 import numpy as np
