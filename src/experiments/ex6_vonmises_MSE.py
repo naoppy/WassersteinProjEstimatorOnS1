@@ -13,6 +13,7 @@ import pandas as pd
 import ray
 import scipy.stats as stats
 from numpy import typing as npt
+from parfor import pmap
 from scipy import optimize
 from scipy.stats import vonmises as vonmises_scipy
 from tqdm import tqdm
@@ -97,8 +98,7 @@ def est_W1_method2(given_data):
     )
 
 
-@ray.remote
-def run_once(true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
+def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
     sample = stats.vonmises(loc=true_mu, kappa=true_kappa).rvs(N)
     sample = np.remainder(sample, 2 * np.pi)
 
@@ -129,7 +129,6 @@ def run_once(true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
 
 
 def main():
-    ray.init(num_cpus=multiprocessing.cpu_count())
     # 実験条件1
     true_mu = 0.3
     true_kappa = 2
@@ -172,11 +171,8 @@ def main():
         method3_kappa = np.zeros(try_num)
         method3_time = np.zeros(try_num)
 
-        ray_ids = []
-        for _ in range(try_num):  # MSEをとるための試行回数
-            ret = run_once.remote(true_mu, true_kappa, N)
-            ray_ids.append(ret)
-        result = ray.get(ray_ids) # (1000, 9)
+        # MSEをとるための試行回数
+        result = pmap(run_once, range(try_num), (true_mu, true_kappa, N))
         for i in range(try_num):
             r = result[i]
             MLE_mu[i] = r[0]
