@@ -5,10 +5,13 @@ MSE, W1-estimator(method2), W2-estimator(method3)の比較
 
 import time
 from functools import partial
+from typing import Tuple
 
 import numpy as np
 import pandas as pd
+import ray
 import scipy.stats as stats
+from numpy import typing as npt
 from scipy import optimize
 from scipy.stats import vonmises as vonmises_scipy
 from tqdm import tqdm
@@ -36,8 +39,15 @@ def est_W2_method3(given_data):
     given_data_norm_sorted = np.sort(given_data_norm)
     cost_func = partial(W2_cost_func3, given_data_normed_sorted=given_data_norm_sorted)
 
-    return optimize.differential_evolution(
-        cost_func, tol=0.01, bounds=bounds, workers=-1, updating="deferred"
+    # return optimize.differential_evolution(
+    #     cost_func, tol=0.01, bounds=bounds, workers=-1, updating="deferred"
+    # )
+    return optimize.minimize(
+        cost_func,
+        (0, 2.5),
+        bounds=bounds,
+        method="powell",
+        options={"xtol": 1e-6, "ftol": 1e-6},
     )
 
 
@@ -74,10 +84,47 @@ def est_W1_method2(given_data):
     cost_func = partial(
         W1_cost_func, bin_num=bin_num, data_cumsum_hist=data_cumsum_hist
     )
-
-    return optimize.differential_evolution(
-        cost_func, tol=0.01, bounds=bounds, workers=-1, updating="deferred"
+    # return optimize.differential_evolution(
+    #     cost_func, tol=0.01, bounds=bounds, workers=-1, updating="deferred"
+    # )
+    return optimize.minimize(
+        cost_func,
+        (0, 2.5),
+        bounds=bounds,
+        method="powell",
+        options={"xtol": 1e-6, "ftol": 1e-6},
     )
+
+
+@ray.remote
+def run_once(true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
+    sample = stats.vonmises(loc=true_mu, kappa=true_kappa).rvs(N)
+    sample = np.remainder(sample, 2 * np.pi)
+
+    s_time = time.perf_counter()
+    MLE = vonmises.MLE(vonmises.T(sample), N)
+    e_time = time.perf_counter()
+    MLE_mu = MLE[0]
+    MLE_kappa = MLE[1]
+    MLE_time = e_time - s_time
+
+    s_time = time.perf_counter()
+    est = est_W1_method2(sample)
+    e_time = time.perf_counter()
+    method2_mu = est.x[0]
+    method2_kappa = est.x[1]
+    method2_time = e_time - s_time
+
+    s_time = time.perf_counter()
+    est = est_W2_method3(sample)
+    e_time = time.perf_counter()
+    method3_mu = est.x[0]
+    method3_kappa = est.x[1]
+    method3_time = e_time - s_time
+
+    return np.array([MLE_mu, MLE_kappa, MLE_time,
+            method2_mu, method2_kappa, method2_time,
+            method3_mu, method3_kappa, method3_time])
 
 
 def main():
@@ -90,7 +137,7 @@ def main():
     print(f"true mu={true_mu}, true kappa={true_kappa}")
     print("(mu, kappa, time)")
 
-    log10_Ns = [2, 2.5, 3, 3.5, 4, 4.5, 5]
+    log10_Ns = [2, 2.5, 3, 3.5, 4, 4.5]
     Ns = np.power(10, log10_Ns).astype(np.int64)
     try_nums = [1000] * len(Ns)
 
@@ -123,30 +170,11 @@ def main():
         method3_kappa = np.zeros(try_num)
         method3_time = np.zeros(try_num)
 
+        ray_ids = []
         for i in tqdm(range(try_num)):  # MSEをとるための試行回数
-            sample = stats.vonmises(loc=true_mu, kappa=true_kappa).rvs(N)
-            sample = np.remainder(sample, 2 * np.pi)
-
-            s_time = time.perf_counter()
-            MLE = vonmises.MLE(vonmises.T(sample), N)
-            e_time = time.perf_counter()
-            MLE_mu[i] = MLE[0]
-            MLE_kappa[i] = MLE[1]
-            MLE_time[i] = e_time - s_time
-
-            s_time = time.perf_counter()
-            est = est_W1_method2(sample)
-            e_time = time.perf_counter()
-            method2_mu[i] = est.x[0]
-            method2_kappa[i] = est.x[1]
-            method2_time[i] = e_time - s_time
-
-            s_time = time.perf_counter()
-            est = est_W2_method3(sample)
-            e_time = time.perf_counter()
-            method3_mu[i] = est.x[0]
-            method3_kappa[i] = est.x[1]
-            method3_time[i] = e_time - s_time
+            ret = run_once(true_mu, true_kappa, N)
+            ray_ids.append(ret)
+        result = ray.get(ray_ids) # (1000, 9)
 
         # MSEを計算する
         MLE_mu_mse = np.mean((MLE_mu - true_mu) ** 2)
@@ -173,10 +201,10 @@ def main():
             f"MLE: mu_mse={MLE_mu_mse}, kappa_mse={MLE_kappa_mse}, time={MLE_time_mean}"
         )
         print(
-            f"method2: mu_mse={method2_mu_mse}, kappa_mse={method2_kappa_mse}, time={method2_time_mean}"
+            f"W1 method2: mu_mse={method2_mu_mse}, kappa_mse={method2_kappa_mse}, time={method2_time_mean}"
         )
         print(
-            f"method3: mu_mse={method3_mu_mse}, kappa_mse={method3_kappa_mse}, time={method3_time_mean}"
+            f"W2 method3: mu_mse={method3_mu_mse}, kappa_mse={method3_kappa_mse}, time={method3_time_mean}"
         )
 
     print(df)
