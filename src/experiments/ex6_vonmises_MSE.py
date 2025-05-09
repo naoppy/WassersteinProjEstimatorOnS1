@@ -3,6 +3,7 @@
 MSE, W1-estimator(method2), W2-estimator(method3)の比較
 """
 
+import multiprocessing
 import time
 from functools import partial
 from typing import Tuple
@@ -128,6 +129,7 @@ def run_once(true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
 
 
 def main():
+    ray.init(num_cpus=multiprocessing.cpu_count())
     # 実験条件1
     true_mu = 0.3
     true_kappa = 2
@@ -171,10 +173,21 @@ def main():
         method3_time = np.zeros(try_num)
 
         ray_ids = []
-        for i in tqdm(range(try_num)):  # MSEをとるための試行回数
-            ret = run_once(true_mu, true_kappa, N)
+        for _ in range(try_num):  # MSEをとるための試行回数
+            ret = run_once.remote(true_mu, true_kappa, N)
             ray_ids.append(ret)
         result = ray.get(ray_ids) # (1000, 9)
+        for i in range(try_num):
+            r = result[i]
+            MLE_mu[i] = r[0]
+            MLE_kappa[i] = r[1]
+            MLE_time[i] = r[2]
+            method2_mu[i] = r[3]
+            method2_kappa[i] = r[4]
+            method2_time[i] = r[5]
+            method3_mu[i] = r[6]
+            method3_kappa[i] = r[7]
+            method3_time[i] = r[8]
 
         # MSEを計算する
         MLE_mu_mse = np.mean((MLE_mu - true_mu) ** 2)
