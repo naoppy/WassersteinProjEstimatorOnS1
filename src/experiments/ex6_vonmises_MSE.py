@@ -10,7 +10,6 @@ from typing import Tuple
 
 import numpy as np
 import pandas as pd
-import ray
 import scipy.stats as stats
 from numpy import typing as npt
 from parfor import pmap
@@ -123,9 +122,19 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
     method3_kappa = est.x[1]
     method3_time = e_time - s_time
 
-    return np.array([MLE_mu, MLE_kappa, MLE_time,
-            method2_mu, method2_kappa, method2_time,
-            method3_mu, method3_kappa, method3_time])
+    return np.array(
+        [
+            MLE_mu,
+            MLE_kappa,
+            MLE_time,
+            method2_mu,
+            method2_kappa,
+            method2_time,
+            method3_mu,
+            method3_kappa,
+            method3_time,
+        ]
+    )
 
 
 def main():
@@ -157,7 +166,7 @@ def main():
     )
     fisher_mat_inv_diag = vonmises.fisher_mat_inv_diag(true_kappa)
 
-    for i, (N, try_num) in enumerate(
+    for j, (N, try_num) in enumerate(
         zip(Ns, try_nums, strict=True)
     ):  # データ数Nを変える
         print(f"N={N}")
@@ -195,15 +204,15 @@ def main():
         method3_mu_mse = np.mean((method3_mu - true_mu) ** 2)
         method3_kappa_mse = np.mean((method3_kappa - true_kappa) ** 2)
         method3_time_mean = np.mean(method3_time)
-        df.loc[log10_Ns[i]] = [
+        df.loc[log10_Ns[j]] = [
             np.log10(MLE_mu_mse),
             np.log10(MLE_kappa_mse),
             np.log10(method2_mu_mse),
             np.log10(method2_kappa_mse),
             np.log10(method3_mu_mse),
             np.log10(method3_kappa_mse),
-            np.log10(fisher_mat_inv_diag[0]) - log10_Ns[i],
-            np.log10(fisher_mat_inv_diag[1]) - log10_Ns[i],
+            np.log10(fisher_mat_inv_diag[0]) - log10_Ns[j],
+            np.log10(fisher_mat_inv_diag[1]) - log10_Ns[j],
         ]
 
         print(

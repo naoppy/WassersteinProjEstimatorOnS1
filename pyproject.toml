@@ -12,7 +12,6 @@ scipy = "^1.15.0"
 pandas = "^2.2.3"
 tqdm = "^4.67.1"
 parfor = "^2025.1.0"
-ray = "^2.46.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.7.1"
