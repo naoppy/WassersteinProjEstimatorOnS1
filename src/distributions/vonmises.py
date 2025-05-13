@@ -141,7 +141,7 @@ def fast_quantile_sampling(
         sample_num (int): サンプルする数
 
     Returns:
-        npt.NDArray[np.float64]: [-pi, pi] の範囲のサンプル。F^(-1)(i/D) (i=0, 1, ..., D)
+        npt.NDArray[np.float64]: [mu-pi, mu+pi] の範囲のサンプル。F^(-1)(i/D) (i=0, 1, ..., D)
     """
     x, step = np.linspace(0, 1, sample_num, endpoint=False, retstep=True)
     x = x + step / 2
