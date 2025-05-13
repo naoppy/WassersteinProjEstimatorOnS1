@@ -161,7 +161,7 @@ def main():
     print(f"true mu={true_mu}, true kappa={true_kappa}")
     print("(mu, kappa, time)")
 
-    log10_Ns = [2, 2.5, 3, 3.5, 4, 4.5]
+    log10_Ns = [2, 2.5, 3, 3.5, 4, 4.5, 5]
     Ns = np.power(10, log10_Ns).astype(np.int64)
     try_nums = [1000] * len(Ns)
 
