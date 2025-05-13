@@ -14,7 +14,7 @@ def fisher_info_2x2(kappa: float) -> npt.NDArray[np.float64]:
     return np.array(
         [
             [kappa * i1(kappa) / i0(kappa), 0],
-            [0, 1 / 2 + iv(2, kappa) / i0(kappa) - (i1(kappa) / i0(kappa)) ** 2],
+            [0, (1 + iv(2, kappa) / i0(kappa)) / 2 - (i1(kappa) / i0(kappa)) ** 2],
         ]
     )
 
