@@ -168,59 +168,40 @@ def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
     )
 
 
-def main():
+def _main():
     true_mu = np.pi / 8
-    # 実験条件1
-    true_rho = 0.7
-    # 実験条件2
-    # true_rho = 0.2
-    print(f"true mu={true_mu}, true rho={true_rho}")
+    N = int(np.power(10, 5))
+    print(f"true mu={true_mu}, N={N}")
     print("(mu, rho, time)")
 
-    log10_Ns = [2, 2.5, 3, 3.5, 4, 4.5, 5]
-    Ns = np.power(10, log10_Ns).astype(np.int64)
-    try_nums = [1000] * len(Ns)
+    rhos = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
+    try_nums = [1000] * len(rhos)
 
     df = pd.DataFrame(
-        index=log10_Ns,
+        index=rhos,
         columns=[
-            "MLE_mu",
-            "MLE_rho",
+            "MLE_mu / CR_mu",
+            "MLE_rho / CR_rho",
             "W1(method2)_mu",
-            "W1(method2)_rho",
-            "W2(method3)_mu",
-            "W2(method3)_rho",
-            "Cramer-Rao Lower Bound of mu",
-            "Cramer-Rao Lower Bound of rho",
+            "W1(method2)_rho / CR_rho",
+            "W2(method3)_mu / CR_mu",
+            "W2(method3)_rho / CR_rho",
         ],
     )
-    fisher_mat_inv_diag = wrapedcauchy.fisher_mat_inv_diag(true_rho)
 
-    for j, (N, try_num) in enumerate(
-        zip(Ns, try_nums, strict=True)
+    for j, (true_rho, try_num) in enumerate(
+        zip(rhos, try_nums, strict=True)
     ):  # データ数Nを変える
-        print(f"N={N}")
-        # MLE_mu_okamura = np.zeros(try_num)
-        # MLE_rho_okamura = np.zeros(try_num)
-        # MLE_time_okamura = np.zeros(try_num)
+        print(f"rho={true_rho}")
         MLE_mu_kent = np.zeros(try_num)
         MLE_rho_kent = np.zeros(try_num)
         MLE_time_kent = np.zeros(try_num)
-        # MLE_mu_direct = np.zeros(try_num)
-        # MLE_rho_direct = np.zeros(try_num)
-        # MLE_time_direct = np.zeros(try_num)
-        # method1_mu = np.zeros(try_num)
-        # method1_rho = np.zeros(try_num)
-        # method1_time = np.zeros(try_num)
         W1method2_mu = np.zeros(try_num)
         W1method2_rho = np.zeros(try_num)
         W1method2_time = np.zeros(try_num)
         W2method3_mu = np.zeros(try_num)
         W2method3_rho = np.zeros(try_num)
         W2method3_time = np.zeros(try_num)
-        # method4_mu = np.zeros(try_num)
-        # method4_rho = np.zeros(try_num)
-        # method4_time = np.zeros(try_num)
 
         result = pmap(run_once, range(try_num), (true_mu, true_rho, N))
         for i in range(try_num):
@@ -236,64 +217,40 @@ def main():
             W2method3_time[i] = r[8]
 
         # MSEを計算する
-        # MLE_mu_okamura_mse = np.mean((MLE_mu_okamura - true_mu) ** 2)
-        # MLE_rho_okamura_mse = np.mean((MLE_rho_okamura - true_rho) ** 2)
-        # MLE_time_okamura_mean = np.mean(MLE_time_okamura)
         MLE_mu_kent_mse = np.mean((MLE_mu_kent - true_mu) ** 2)
         MLE_rho_kent_mse = np.mean((MLE_rho_kent - true_rho) ** 2)
         MLE_time_kent_mean = np.mean(MLE_time_kent)
-        # MLE_mu_direct_mse = np.mean((MLE_mu_direct - true_mu) ** 2)
-        # MLE_rho_direct_mse = np.mean((MLE_rho_direct - true_rho) ** 2)
-        # MLE_time_direct_mean = np.mean(MLE_time_direct)
-        # method1_mu_mse = np.mean((method1_mu - true_mu) ** 2)
-        # method1_rho_mse = np.mean((method1_rho - true_rho) ** 2)
-        # method1_time_mean = np.mean(method1_time)
         method2_mu_mse = np.mean((W1method2_mu - true_mu) ** 2)
         method2_rho_mse = np.mean((W1method2_rho - true_rho) ** 2)
         method2_time_mean = np.mean(W1method2_time)
         method3_mu_mse = np.mean((W2method3_mu - true_mu) ** 2)
         method3_rho_mse = np.mean((W2method3_rho - true_rho) ** 2)
         method3_time_mean = np.mean(W2method3_time)
-        # method4_mu_mse = np.mean((method4_mu - true_mu) ** 2)
-        # method4_rho_mse = np.mean((method4_rho - true_rho) ** 2)
-        # method4_time_mean = np.mean(method4_time)
 
-        df.loc[log10_Ns[j]] = [
-            np.log10(MLE_mu_kent_mse),
-            np.log10(MLE_rho_kent_mse),
-            np.log10(method2_mu_mse),
-            np.log10(method2_rho_mse),
-            np.log10(method3_mu_mse),
-            np.log10(method3_rho_mse),
-            np.log10(fisher_mat_inv_diag[0]) - log10_Ns[j],
-            np.log10(fisher_mat_inv_diag[1]) - log10_Ns[j],
+        fisher_mat_inv_diag = wrapedcauchy.fisher_mat_inv_diag(true_rho)
+
+        df.loc[true_rho] = [
+            N * MLE_mu_kent_mse / fisher_mat_inv_diag[0],
+            N * MLE_rho_kent_mse / fisher_mat_inv_diag[1],
+            N * method2_mu_mse / fisher_mat_inv_diag[0],
+            N * method2_rho_mse / fisher_mat_inv_diag[1],
+            N * method3_mu_mse / fisher_mat_inv_diag[0],
+            N * method3_rho_mse / fisher_mat_inv_diag[1],
         ]
 
-        # print(
-        #     f"MLE by okamura: mu_mse={MLE_mu_okamura_mse}, rho_mse={MLE_rho_okamura_mse}, time={MLE_time_okamura_mean}"
-        # )
         print(
             f"MLE kent: mu_mse={MLE_mu_kent_mse}, rho_mse={MLE_rho_kent_mse}, time={MLE_time_kent_mean}"
         )
-        # print(
-        #     f"MLE by direct: mu_mse={MLE_mu_direct_mse}, rho_mse={MLE_rho_direct_mse}, time={MLE_time_direct_mean}"
-        # )
-        # print(
-        #     f"W2-est by method1: mu_mse={method1_mu_mse}, rho_mse={method1_rho_mse}, time={method1_time_mean}"
-        # )
         print(
             f"W1 method2: mu_mse={method2_mu_mse}, rho_mse={method2_rho_mse}, time={method2_time_mean}"
         )
         print(
             f"W2 method3: mu_mse={method3_mu_mse}, rho_mse={method3_rho_mse}, time={method3_time_mean}"
         )
-        # print(
-        #     f"W1-est by method3: mu_mse={method4_mu_mse}, rho_mse={method4_rho_mse}, time={method4_time_mean}"
-        # )
 
     print(df)
-    df.to_csv("./data/ex7_wrapcauchy_MSE.csv")
+    df.to_csv("./data/ex75_wrapcauchy_change_rho.csv")
 
 
 if __name__ == "__main__":
-    main()
+    _main()
