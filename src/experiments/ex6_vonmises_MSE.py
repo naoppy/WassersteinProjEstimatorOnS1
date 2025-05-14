@@ -13,7 +13,6 @@ from numpy import typing as npt
 from parfor import pmap
 from scipy import optimize
 from scipy.stats import vonmises as vonmises_scipy
-from tqdm import tqdm
 
 from ..calc_semidiscrete_W_dist import method1, method2
 from ..distributions import vonmises
@@ -27,11 +26,14 @@ def Wp_cost_func3(x, given_data_normed_sorted, p: int):
     sample = np.sort(sample)
     return method1.method1(given_data_normed_sorted, sample, p=p, sorted=True)
 
+
 def est_W1_method3(given_data):
     """calc W1E by method3, given_data should be in [0, 2pi]"""
     given_data_norm = given_data / (2 * np.pi)
     given_data_norm_sorted = np.sort(given_data_norm)
-    cost_func = partial(Wp_cost_func3, given_data_normed_sorted=given_data_norm_sorted, p=1)
+    cost_func = partial(
+        Wp_cost_func3, given_data_normed_sorted=given_data_norm_sorted, p=1
+    )
     return optimize.minimize(
         cost_func,
         (0, 2.5),
@@ -39,6 +41,7 @@ def est_W1_method3(given_data):
         method="powell",
         options={"xtol": 1e-6, "ftol": 1e-6},
     )
+
 
 def est_W2_method3(given_data):
     """Calc W2-estimator using method3
@@ -48,7 +51,9 @@ def est_W2_method3(given_data):
     """
     given_data_norm = given_data / (2 * np.pi)
     given_data_norm_sorted = np.sort(given_data_norm)
-    cost_func = partial(Wp_cost_func3, given_data_normed_sorted=given_data_norm_sorted, p=2)
+    cost_func = partial(
+        Wp_cost_func3, given_data_normed_sorted=given_data_norm_sorted, p=2
+    )
     return optimize.minimize(
         cost_func,
         (0, 2.5),

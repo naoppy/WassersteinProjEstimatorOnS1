@@ -12,7 +12,7 @@ import time
 
 import numpy as np
 from numpy import typing as npt
-from scipy.stats import vonmises, vonmises_line
+from scipy.stats import vonmises
 
 
 def my_ppf(x: npt.NDArray[np.float64], mu, kappa):
