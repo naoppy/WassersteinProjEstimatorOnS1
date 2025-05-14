@@ -17,7 +17,8 @@ from scipy.stats import vonmises as vonmises_scipy
 from ..calc_semidiscrete_W_dist import method1, method2
 from ..distributions import vonmises
 
-bounds = ((-np.pi, np.pi), (0.1, 5))
+bounds = ((-np.pi, np.pi), (0.1, 7.0))
+initial_guess = (0, 3.5)
 
 
 def Wp_cost_func3(x, given_data_normed_sorted, p: int):
@@ -36,7 +37,7 @@ def est_W1_method3(given_data):
     )
     return optimize.minimize(
         cost_func,
-        (0, 2.5),
+        initial_guess,
         bounds=bounds,
         method="powell",
         options={"xtol": 1e-6, "ftol": 1e-6},
@@ -56,7 +57,7 @@ def est_W2_method3(given_data):
     )
     return optimize.minimize(
         cost_func,
-        (0, 2.5),
+        initial_guess,
         bounds=bounds,
         method="powell",
         options={"xtol": 1e-6, "ftol": 1e-6},
@@ -99,7 +100,7 @@ def est_W1_method2(given_data):
     )
     return optimize.minimize(
         cost_func,
-        (0, 2.5),
+        initial_guess,
         bounds=bounds,
         method="powell",
         options={"xtol": 1e-6, "ftol": 1e-6},
@@ -227,7 +228,7 @@ def main():
         )
 
     print(df)
-    df.to_csv("./data/vonmises_MSE_kappa_change.csv")
+    df.to_csv("./data/ex65_MSE_kappa_change.csv")
 
 
 if __name__ == "__main__":
