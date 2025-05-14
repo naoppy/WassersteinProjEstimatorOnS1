@@ -41,8 +41,9 @@ def main():
     print(f"true mu={true_mu}, true kappa={true_kappa}, true lambda={true_lambda}")
     print("(mu, kappa, lambda, time)")
 
-    Ns = np.power(10, [2, 2.5, 3, 3.5, 4, 4.5, 5]).astype(np.int64)
-    try_nums = [100, 100, 100, 100, 100, 50, 25]
+    log10_Ns = np.array([2, 2.5, 3, 3.5, 4, 4.5, 5])
+    Ns = np.power(10, log10_Ns).astype(np.int64)
+    try_nums = [1000] * len(Ns)
 
     for N, try_num in zip(Ns, try_nums, strict=True):  # データ数Nを変える
         print(f"N={N}")
