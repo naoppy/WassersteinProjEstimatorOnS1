@@ -147,12 +147,12 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
     )
 
 
-def main():
+def _main():
     # 実験条件1
     true_mu = 0.3
     kappas = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]
     try_nums = [1000] * len(kappas)
-    N = int(np.power(10, 4))
+    N = int(np.power(10, 5))
     print("N=", N, "true_mu=", true_mu)
     print("(mu, kappa, time)")
 
@@ -206,15 +206,15 @@ def main():
         W2method3_mu_mse = np.mean((W2method3_mu - true_mu) ** 2)
         W2method3_kappa_mse = np.mean((W2method3_kappa - true_kappa) ** 2)
         W2method3_time_mean = np.mean(W2method3_time)
-        CR_mu = vonmises.fisher_mat_inv_diag(true_kappa)[0] / N
-        CR_kappa = vonmises.fisher_mat_inv_diag(true_kappa)[1] / N
+        CR_mu = vonmises.fisher_mat_inv_diag(true_kappa)[0]
+        CR_kappa = vonmises.fisher_mat_inv_diag(true_kappa)[1]
         df.loc[true_kappa] = [
-            MLE_mu_mse / CR_mu,
-            MLE_kappa_mse / CR_kappa,
-            W1method2_mu_mse / CR_mu,
-            W1method2_kappa_mse / CR_kappa,
-            W2method3_mu_mse / CR_mu,
-            W2method3_kappa_mse / CR_kappa,
+            N * MLE_mu_mse / CR_mu,
+            N * MLE_kappa_mse / CR_kappa,
+            N * W1method2_mu_mse / CR_mu,
+            N * W1method2_kappa_mse / CR_kappa,
+            N * W2method3_mu_mse / CR_mu,
+            N * W2method3_kappa_mse / CR_kappa,
         ]
 
         print(
@@ -232,4 +232,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    _main()
