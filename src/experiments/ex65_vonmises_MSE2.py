@@ -152,7 +152,7 @@ def _main():
     true_mu = 0.3
     kappas = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]
     try_nums = [1000] * len(kappas)
-    N = int(np.power(10, 5))
+    N = np.power(10, 5).astype(np.int64)
     print("N=", N, "true_mu=", true_mu)
     print("(mu, kappa, time)")
 

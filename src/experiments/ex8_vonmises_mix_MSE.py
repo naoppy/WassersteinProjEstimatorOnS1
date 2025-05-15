@@ -134,7 +134,7 @@ def main():
     print("(mu, kappa, time)")
 
     log10_Ns = [2, 2.5, 3, 3.5, 4, 4.5, 5]
-    Ns = int(np.power(10, log10_Ns))
+    Ns = np.power(10, log10_Ns).astype(np.int64)
     try_nums = [1000] * len(Ns)
 
     df = pd.DataFrame(
