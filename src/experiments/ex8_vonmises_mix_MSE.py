@@ -144,8 +144,6 @@ def main():
             "MLE_kappa",
             "W1(method2)_mu",
             "W1(method2)_kappa",
-            "W1(method3)_mu",
-            "W1(method3)_kappa",
             "W2(method3)_mu",
             "W2(method3)_kappa",
         ],
