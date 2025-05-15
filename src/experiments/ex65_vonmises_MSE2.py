@@ -161,10 +161,10 @@ def _main():
         columns=[
             "MLE_mu / CR_mu",
             "MLE_kappa / CR_kappa",
-            "W1(method2)_mu / CR_mu",
-            "W1(method2)_kappa / CR_kappa",
-            "W2(method3)_mu / CR_mu",
-            "W2(method3)_kappa / CR_kappa",
+            "W1(method2)_mu / MLE_mu",
+            "W1(method2)_kappa / MLE_kappa",
+            "W2(method3)_mu / MLE_mu",
+            "W2(method3)_kappa / MLE_kappa",
         ],
     )
 
@@ -211,10 +211,10 @@ def _main():
         df.loc[true_kappa] = [
             N * MLE_mu_mse / CR_mu,
             N * MLE_kappa_mse / CR_kappa,
-            N * W1method2_mu_mse / CR_mu,
-            N * W1method2_kappa_mse / CR_kappa,
-            N * W2method3_mu_mse / CR_mu,
-            N * W2method3_kappa_mse / CR_kappa,
+            W1method2_mu_mse / MLE_mu,
+            W1method2_kappa_mse / MLE_kappa,
+            W2method3_mu_mse / MLE_mu,
+            W2method3_kappa_mse / MLE_kappa,
         ]
 
         print(
