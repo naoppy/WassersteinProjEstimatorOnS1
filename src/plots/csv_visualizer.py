@@ -12,11 +12,12 @@ def _main():
     df = pd.read_csv(
         # "./data/csv_data/vonmises_MSE_cond1/ex6_mu0.3kappa2.csv",
         # "./data/csv_data/vonmises_MSE/ex65_MSE_kappa_change.csv",
-        "./data/csv_data/wrapcauchy_MSE_cond1/ex7.csv",
+        # "./data/csv_data/wrapcauchy_MSE_cond1/ex7.csv",
+        "./data/csv_data/vonmises_mix/ex8_vonmises_mix_MSE.csv",
         index_col=0,
     )
-    # xylabel = ["log10(N)", "log10(MSE)"]
-    xylabel = ["kappa", "MSE/CR"]
+    xylabel = ["log10(N)", "log10(MSE)"]
+    # xylabel = ["kappa", "MSE/CR"]
 
     # データの表示
     print(df)

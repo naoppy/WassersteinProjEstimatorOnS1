@@ -63,24 +63,6 @@ def est_W2_method3(given_data):
         options={"xtol": 1e-6, "ftol": 1e-6},
     )
 
-
-def W2_cost_func1(x, given_data_normed_sorted):
-    sample = vonmises_scipy(loc=x[0], kappa=x[1]).rvs(len(given_data_normed_sorted))
-    sample = np.remainder(sample, 2 * np.pi) / (2 * np.pi)
-    sample = np.sort(sample)
-    return method1.method1(given_data_normed_sorted, sample, p=2, sorted=True)
-
-
-def est_W2_method1(given_data):
-    """method1: random sampling, not used now"""
-    given_data_norm = given_data / (2 * np.pi)
-    given_data_norm_sorted = np.sort(given_data_norm)
-    cost_func = partial(W2_cost_func1, given_data_normed_sorted=given_data_norm_sorted)
-    return optimize.differential_evolution(
-        cost_func, tol=0.01, bounds=bounds, workers=-1, updating="deferred"
-    )
-
-
 def W1_cost_func2(x, bin_num, data_cumsum_hist):
     mu, kappa = x
     dist_cumsum_hist = vonmises.cumsum_hist(mu, kappa, bin_num)
@@ -226,6 +208,7 @@ def _main():
         print(
             f"W2 method3: mu_mse={W2method3_mu_mse}, kappa_mse={W2method3_kappa_mse}, time={W2method3_time_mean}"
         )
+        df.to_csv("./data/ex65_MSE_kappa_change.csv")
 
     print(df)
     df.to_csv("./data/ex65_MSE_kappa_change.csv")
