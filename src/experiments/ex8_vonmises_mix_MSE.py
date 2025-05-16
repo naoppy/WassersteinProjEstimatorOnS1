@@ -199,10 +199,10 @@ def main():
             f"MLE: mu_mse={MLE_mu_mse}, kappa_mse={MLE_kappa_mse}, time={MLE_time_mean}"
         )
         print(
-            f"method1: mu_mse={W1method2_mu_mse}, kappa_mse={W1method2_kappa_mse}, time={W1method2_time_mean}"
+            f"W1method2: mu_mse={W1method2_mu_mse}, kappa_mse={W1method2_kappa_mse}, time={W1method2_time_mean}"
         )
         print(
-            f"method2: mu_mse={W2method3_mu_mse}, kappa_mse={W2method3_kappa_mse}, time={W2method3_time_mean}"
+            f"W2method3: mu_mse={W2method3_mu_mse}, kappa_mse={W2method3_kappa_mse}, time={W2method3_time_mean}"
         )
     print(df)
     df.to_csv("./data/ex8_vonmises_mix_MSE.csv")

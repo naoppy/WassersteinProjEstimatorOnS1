@@ -174,7 +174,7 @@ def _main():
     print(f"true mu={true_mu}, N={N}")
     print("(mu, rho, time)")
 
-    rhos = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
+    rhos = [0.05, 0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95]
     try_nums = [1000] * len(rhos)
 
     df = pd.DataFrame(
