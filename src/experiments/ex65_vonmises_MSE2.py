@@ -63,6 +63,7 @@ def est_W2_method3(given_data):
         options={"xtol": 1e-6, "ftol": 1e-6},
     )
 
+
 def W1_cost_func2(x, bin_num, data_cumsum_hist):
     mu, kappa = x
     dist_cumsum_hist = vonmises.cumsum_hist(mu, kappa, bin_num)
@@ -188,15 +189,15 @@ def _main():
         W2method3_mu_mse = np.mean((W2method3_mu - true_mu) ** 2)
         W2method3_kappa_mse = np.mean((W2method3_kappa - true_kappa) ** 2)
         W2method3_time_mean = np.mean(W2method3_time)
-        CR_mu = vonmises.fisher_mat_inv_diag(true_kappa)[0]
-        CR_kappa = vonmises.fisher_mat_inv_diag(true_kappa)[1]
+        CR_mu_mse_times_N = vonmises.fisher_mat_inv_diag(true_kappa)[0]
+        CR_kappa_mse_times_N = vonmises.fisher_mat_inv_diag(true_kappa)[1]
         df.loc[true_kappa] = [
-            N * MLE_mu_mse / CR_mu,
-            N * MLE_kappa_mse / CR_kappa,
-            W1method2_mu_mse / MLE_mu,
-            W1method2_kappa_mse / MLE_kappa,
-            W2method3_mu_mse / MLE_mu,
-            W2method3_kappa_mse / MLE_kappa,
+            N * MLE_mu_mse / CR_mu_mse_times_N,
+            N * MLE_kappa_mse / CR_kappa_mse_times_N,
+            W1method2_mu_mse / MLE_mu_mse,
+            W1method2_kappa_mse / MLE_kappa_mse,
+            W2method3_mu_mse / MLE_mu_mse,
+            W2method3_kappa_mse / MLE_kappa_mse,
         ]
 
         print(
