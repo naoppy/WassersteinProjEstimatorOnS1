@@ -182,10 +182,10 @@ def _main():
         columns=[
             "MLE_mu / CR_mu",
             "MLE_rho / CR_rho",
-            "W1(method2)_mu",
-            "W1(method2)_rho / CR_rho",
-            "W2(method3)_mu / CR_mu",
-            "W2(method3)_rho / CR_rho",
+            "W1(method2)_mu / MLE_mu",
+            "W1(method2)_rho / MLE_rho",
+            "W2(method3)_mu / MLE_mu",
+            "W2(method3)_rho / MLE_rho",
         ],
     )
 
@@ -228,14 +228,16 @@ def _main():
         method3_time_mean = np.mean(W2method3_time)
 
         fisher_mat_inv_diag = wrapedcauchy.fisher_mat_inv_diag(true_rho)
+        CR_mu_mse_times_N = fisher_mat_inv_diag[0]
+        CR_rho_mse_times_N = fisher_mat_inv_diag[1]
 
         df.loc[true_rho] = [
-            N * MLE_mu_kent_mse / fisher_mat_inv_diag[0],
-            N * MLE_rho_kent_mse / fisher_mat_inv_diag[1],
-            N * method2_mu_mse / fisher_mat_inv_diag[0],
-            N * method2_rho_mse / fisher_mat_inv_diag[1],
-            N * method3_mu_mse / fisher_mat_inv_diag[0],
-            N * method3_rho_mse / fisher_mat_inv_diag[1],
+            N * MLE_mu_kent_mse / CR_mu_mse_times_N,
+            N * MLE_rho_kent_mse / CR_rho_mse_times_N,
+            method2_mu_mse / MLE_mu_kent_mse,
+            method2_rho_mse / MLE_rho_kent_mse,
+            method3_mu_mse / MLE_mu_kent_mse,
+            method3_rho_mse / MLE_rho_kent_mse,
         ]
 
         print(
