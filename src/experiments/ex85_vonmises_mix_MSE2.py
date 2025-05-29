@@ -128,9 +128,7 @@ def main():
     true_mu = np.pi / 4
     true_kappa = 5
     N = np.power(10, 5).astype(np.int64)
-    print(
-        f"true mu={true_mu}, true kappa={true_kappa}, N={N}"
-    )
+    print(f"true mu={true_mu}, true kappa={true_kappa}, N={N}")
     print("(mu, kappa, time)")
 
     noise_rates = [0, 0.02, 0.04, 0.06, 0.08, 0.10, 0.12, 0.14, 0.16, 0.18, 0.20]
@@ -160,9 +158,7 @@ def main():
         method2_kappa = np.zeros(try_num)
         method2_time = np.zeros(try_num)
 
-        result = pmap(
-            run_once, range(try_num), (true_mu, true_kappa, noise_rate, N)
-        )
+        result = pmap(run_once, range(try_num), (true_mu, true_kappa, noise_rate, N))
         for i in range(try_num):
             r = result[i]
             MLE_mu[i] = r[0]
@@ -203,6 +199,7 @@ def main():
         print(
             f"W2method3: mu_mse={W2method3_mu_mse}, kappa_mse={W2method3_kappa_mse}, time={W2method3_time_mean}"
         )
+        df.to_csv("./data/ex85_change_noise_rate.csv")
     print(df)
     df.to_csv("./data/ex85_change_noise_rate.csv")
 
