@@ -35,6 +35,7 @@ def est_method2(given_data):
         bounds=((-np.pi, np.pi), (0.01, 4), (-1, 1)),
     )
 
+
 def run_once(i, true_mu, true_kappa, true_lambda, N: int) -> npt.NDArray[np.float64]:
     sample = sine_skewed_vonmises.rejection_sampling(
         N, true_mu, true_kappa, true_lambda
@@ -56,18 +57,21 @@ def run_once(i, true_mu, true_kappa, true_lambda, N: int) -> npt.NDArray[np.floa
     W1method2_lambda = est.x[2]
     W1method2_time = e_time - s_time
 
-    return np.array([
-        MLE_mu,
-        MLE_kappa,
-        MLE_lambda,
-        MLE_time,
-        W1method2_mu,
-        W1method2_kappa,
-        W1method2_lambda,
-        W1method2_time,
-    ])
+    return np.array(
+        [
+            MLE_mu,
+            MLE_kappa,
+            MLE_lambda,
+            MLE_time,
+            W1method2_mu,
+            W1method2_kappa,
+            W1method2_lambda,
+            W1method2_time,
+        ]
+    )
 
-def main():
+
+def _main():
     true_mu = 0
     true_kappa = 1
     true_lambda = 0.7
@@ -76,7 +80,7 @@ def main():
 
     log10_Ns = np.array([2, 2.5, 3, 3.5, 4, 4.5, 5])
     Ns = np.power(10, log10_Ns).astype(np.int64)
-    try_nums = [1000] * len(Ns)
+    try_nums = [10000] * len(Ns)
 
     df = pd.DataFrame(
         index=log10_Ns,
@@ -93,11 +97,11 @@ def main():
         ],
     )
 
-    fisher_mat_inv_diag = sine_skewed_vonmises.fisher_info_3x3(true_kappa, true_lambda)
+    fisher_mat_inv_diag = sine_skewed_vonmises.fisher_mat_inv_diag(
+        true_kappa, true_lambda
+    )
 
-    for j, (N, try_num) in enumerate(
-        zip(Ns, try_nums, strict=True)
-    ):
+    for j, (N, try_num) in enumerate(zip(Ns, try_nums, strict=True)):
         print(f"N={N}")
         MLE_mu = np.zeros(try_num)
         MLE_kappa = np.zeros(try_num)
@@ -156,4 +160,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    _main()

@@ -86,6 +86,7 @@ def fisher_info_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
         ]
     )
 
+
 def fisher_mat_inv_diag(kappa: float, lambda_: float) -> List[float]:
     mat = fisher_info_3x3(kappa, lambda_)
     mat_inv = np.linalg.inv(mat)
@@ -105,7 +106,9 @@ def neg_log_likelihood(params, data) -> float:
     return -log_likelihood
 
 
-def MLE_direct_opt(x: npt.NDArray[np.float64], debug: bool = False) -> Tuple[float, float, float]:
+def MLE_direct_opt(
+    x: npt.NDArray[np.float64], debug: bool = False
+) -> Tuple[float, float, float]:
     """SS-von MisesのMLEでのパラメータ推定を行う
 
     Args:
@@ -162,7 +165,10 @@ def rejection_sampling(
         print(f"accept rate: {n / try_num}")
     return ret
 
-def cumsum_hist(mu: float, kappa: float, lambda_: float, bin_num: int) -> npt.NDArray[np.float64]:
+
+def cumsum_hist(
+    mu: float, kappa: float, lambda_: float, bin_num: int
+) -> npt.NDArray[np.float64]:
     """[-pi, pi] の間を bin_num (=D) 等分した区間でのcdfの値を返す
     [F(i/D)] i=0,1,...,D
     F(0)=0, F(1)=1を満たすソート済み列を返す
@@ -176,7 +182,9 @@ def cumsum_hist(mu: float, kappa: float, lambda_: float, bin_num: int) -> npt.ND
     return y
 
 
-def cumsum_hist_data(data: npt.NDArray[np.float64], bin_num: int) -> npt.NDArray[np.float64]:
+def cumsum_hist_data(
+    data: npt.NDArray[np.float64], bin_num: int
+) -> npt.NDArray[np.float64]:
     """[-pi, pi] の間を bin_num (=D) 等分した区間でのデータの経験的cdfの値を返す
     [F(i/D)] i=0,1,...,D
     F(0)=0, F(1)=1を満たすソート済み列を返す
@@ -239,6 +247,9 @@ def _main():
     mat = fisher_info_3x3(kappa, lambda_)
     print("Fisher info:")
     print(mat)
+    mat_inv_diag = fisher_mat_inv_diag(kappa, lambda_)
+    print("Fisher info inverse diagonal:")
+    print(mat_inv_diag)
 
 
 if __name__ == "__main__":
