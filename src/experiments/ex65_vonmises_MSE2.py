@@ -12,7 +12,6 @@ import scipy.stats as stats
 from numpy import typing as npt
 from parfor import pmap
 from scipy import optimize
-from scipy.stats import vonmises as vonmises_scipy
 
 from ..calc_semidiscrete_W_dist import method1, method2
 from ..distributions import vonmises
