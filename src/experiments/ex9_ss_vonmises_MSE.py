@@ -109,7 +109,7 @@ def main():
         W1method2_time = np.zeros(try_num)
 
         # MSEをとるための試行回数
-        result = pmap(run_once, range(try_num), (true_mu, true_kappa, N))
+        result = pmap(run_once, range(try_num), (true_mu, true_kappa, true_lambda, N))
         for i in range(try_num):
             r = result[i]
             MLE_mu[i] = r[0]
