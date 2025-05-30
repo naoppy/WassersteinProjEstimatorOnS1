@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import List, Tuple
 
 import numpy as np
 import numpy.typing as npt
@@ -85,6 +85,11 @@ def fisher_info_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
             [i_mu_lambda, i_kappa_lambda, i_lambda_lambda],
         ]
     )
+
+def fisher_mat_inv_diag(kappa: float, lambda_: float) -> List[float]:
+    mat = fisher_info_3x3(kappa, lambda_)
+    mat_inv = np.linalg.inv(mat)
+    return [mat_inv[0][0], mat_inv[1][1], mat_inv[2][2]]
 
 
 def neg_log_likelihood(params, data) -> float:
