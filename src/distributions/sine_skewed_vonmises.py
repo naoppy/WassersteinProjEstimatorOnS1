@@ -56,14 +56,14 @@ def fisher_info_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
     Returns:
         npt.NDArray[np.float64]: フィッシャー情報行列
     """
-    i_mu_mu = kappa * i1(kappa) / i0(kappa) + integrate.quad(
+    i_mu_mu = kappa * i1(kappa) / i0(kappa) + lambda_ * integrate.quad(
         lambda x: np.exp(kappa * np.cos(x))
         * (lambda_ + np.sin(x))
         / (1 + lambda_ * np.sin(x)),
         -np.pi,
         np.pi,
     )[0] / (2 * np.pi * i0(kappa))
-    i_kappa_kappa = 1 / 2 + iv(2, kappa) / i0(kappa) - (i1(kappa) / i0(kappa)) ** 2
+    i_kappa_kappa = (1 + iv(2, kappa) / i0(kappa)) / 2 - (i1(kappa) / i0(kappa)) ** 2
     i_lambda_lambda = integrate.quad(
         lambda x: np.exp(kappa * np.cos(x))
         * np.sin(x) ** 2
@@ -71,7 +71,7 @@ def fisher_info_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
         -np.pi,
         np.pi,
     )[0] / (2 * np.pi * i0(kappa))
-    i_mu_kappa = lambda_ / 2 * (1 - iv(2, kappa) / i0(kappa))
+    i_mu_kappa = lambda_ * (1 - iv(2, kappa) / i0(kappa)) / 2
     i_kappa_lambda = 0
     i_mu_lambda = integrate.quad(
         lambda x: np.exp(kappa * np.cos(x)) * np.cos(x) / (1 + lambda_ * np.sin(x)),

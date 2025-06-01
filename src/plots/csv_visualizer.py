@@ -14,7 +14,8 @@ def _main():
         # "./data/csv_data/vonmises_MSE/ex65_MSE_kappa_change.csv",
         # "./data/csv_data/wrapcauchy_MSE/ex7.csv",
         # "./data/csv_data/vonmises_mix/ex8_vonmises_mix_MSE.csv",
-        "./data/csv_data/vonmises_mix/ex85_change_noise_rate.csv",
+        # "./data/csv_data/vonmises_mix/ex85_change_noise_rate.csv",
+        "./data/csv_data/ss_vonmises_MSE/ex9_ss_vonmises_MSE.csv",
         index_col=0,
     )
     xylabel = ["log10(N)", "log10(MSE)"]
