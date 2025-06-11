@@ -71,7 +71,7 @@ def fisher_info_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
         -np.pi,
         np.pi,
     )[0] / (2 * np.pi * i0(kappa))
-    i_mu_kappa = lambda_ * (1 - iv(2, kappa) / i0(kappa)) / 2
+    i_mu_kappa = lambda_ * (iv(2, kappa) / i0(kappa) - 1) / 2
     i_kappa_lambda = 0
     i_mu_lambda = integrate.quad(
         lambda x: np.exp(kappa * np.cos(x)) * np.cos(x) / (1 + lambda_ * np.sin(x)),
