@@ -14,6 +14,8 @@ from scipy import optimize
 from ..calc_semidiscrete_W_dist import method2
 from ..distributions import sine_skewed_vonmises
 
+TOL = 1e-7
+
 
 def est_method2(given_data):
     """Calc W1-estimator using method1
@@ -31,7 +33,7 @@ def est_method2(given_data):
 
     return optimize.differential_evolution(
         cost_func,
-        tol=0.001,
+        tol=TOL,
         bounds=((-np.pi, np.pi), (0.01, 4), (-1, 1)),
     )
 
@@ -42,7 +44,7 @@ def run_once(i, true_mu, true_kappa, true_lambda, N: int) -> npt.NDArray[np.floa
     )
 
     s_time = time.perf_counter()
-    MLE = sine_skewed_vonmises.MLE_direct_opt(sample)
+    MLE = sine_skewed_vonmises.MLE_direct_opt(sample, tol=TOL)
     e_time = time.perf_counter()
     MLE_mu = MLE[0]
     MLE_kappa = MLE[1]
@@ -78,7 +80,7 @@ def _main():
     print(f"true mu={true_mu}, true kappa={true_kappa}, true lambda={true_lambda}")
     print("(mu, kappa, lambda, time)")
 
-    log10_Ns = np.array([2, 2.5, 3, 3.5, 4, 4.5, 5])
+    log10_Ns = np.array([2, 3, 4, 5])
     Ns = np.power(10, log10_Ns).astype(np.int64)
     try_nums = [10000] * len(Ns)
 
