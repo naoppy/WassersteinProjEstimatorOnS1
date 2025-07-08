@@ -145,6 +145,7 @@ def main():
             "W2(method3)_kappa",
         ],
     )
+    df.index.name = "noise_rate"
 
     for j, (noise_rate, try_num) in enumerate(zip(noise_rates, try_nums, strict=True)):
         print(f"noise_rate={noise_rate}")

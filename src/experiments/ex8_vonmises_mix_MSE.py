@@ -148,6 +148,7 @@ def main():
             "W2(method3)_kappa",
         ],
     )
+    df.index.name = "log10N"
 
     for j, (N, try_num) in enumerate(zip(Ns, try_nums, strict=True)):
         print(f"N={N}")
