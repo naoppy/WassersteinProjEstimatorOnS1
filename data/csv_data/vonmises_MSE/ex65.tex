@@ -6,13 +6,12 @@
 \usepackage{caption}
 \usepackage{pgfplots}
 \usepackage{tikz}
-\usepackage{pgfplotstable}
 
 \pgfplotsset{compat=1.18}
 
 \pgfplotstableread[
 col sep=comma,
-]{./ex6_mu0.3kappa2.csv}\mycsv
+]{./ex65_MSE_kappa_change.csv}\mycsv
 
 \thispagestyle{empty}
 \begin{document}
@@ -20,9 +19,9 @@ col sep=comma,
 		\tikzset{every node/.style={}}
 		\begin{axis}
 			[
-			xmax=5,xmin=2,
+			xmax=5,xmin=0.5,
 			%width=6cm,
-			xlabel={$\log_{10} n$},
+			xlabel={$\kappa$},
 			ylabel={$\mu$ MSE ratio w.r.t. MLE},
 			yticklabel style={
 				/pgf/number format/.cd,
@@ -34,9 +33,9 @@ col sep=comma,
 			legend pos=north east,
 			legend style={legend cell align=left,draw=none,fill=white,fill opacity=0.8,text opacity=1,},
 			]
-			\addplot[color=black, mark=square*, mark options={solid}] table [x=log10N, y expr={pow(10, \thisrow{W1(method2)_mu} - \thisrow{MLE_mu})}] {\mycsv};
+			\addplot[color=black, mark=square*, mark options={solid}] table [x=kappa, y=W1(method2)_mu / MLE_mu] {\mycsv};
 			\addlegendentry{W1/MLE}
-			\addplot[color=black, dashed, mark=*, mark options={solid}] table [x=log10N, y expr={pow(10, \thisrow{W2(method3)_mu} - \thisrow{MLE_mu})}] {\mycsv};
+			\addplot[color=black, dashed, mark=*, mark options={solid}] table [x=kappa, y=W2(method3)_mu / MLE_mu] {\mycsv};
 			\addlegendentry{W2/MLE}
 			\addplot[thin, color=black, dotted,] {1};
 		\end{axis}
@@ -45,9 +44,9 @@ col sep=comma,
 		\tikzset{every node/.style={}}
 		\begin{axis}
 			[
-			xmax=5,xmin=2,
+			xmax=5,xmin=0.5,
 			%width=6cm,
-			xlabel={$\log_{10} n$},
+			xlabel={$\kappa$},
 			ylabel={$\kappa$ MSE ratio w.r.t. MLE},
 			yticklabel style={
 				/pgf/number format/.cd,
@@ -59,9 +58,9 @@ col sep=comma,
 			legend pos=north east,
 			legend style={legend cell align=left,draw=none,fill=white,fill opacity=0.8,text opacity=1,},
 			]
-			\addplot[color=black, mark=square*, mark options={solid}] table [x=log10N, y expr={pow(10, \thisrow{W1(method2)_kappa} - \thisrow{MLE_kappa})}] {\mycsv};
+			\addplot[color=black, mark=square*, mark options={solid}] table [x=kappa, y=W1(method2)_kappa / MLE_kappa] {\mycsv};
 			\addlegendentry{W1/MLE}
-			\addplot[color=black, dashed, mark=*, mark options={solid}] table [x=log10N, y expr={pow(10, \thisrow{W2(method3)_kappa} - \thisrow{MLE_kappa})}] {\mycsv};
+			\addplot[color=black, dashed, mark=*, mark options={solid}] table [x=kappa, y=W2(method3)_kappa / MLE_kappa] {\mycsv};
 			\addlegendentry{W2/MLE}
 			\addplot[color=black, dotted,] {1};
 		\end{axis}

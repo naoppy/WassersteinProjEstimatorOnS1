@@ -194,6 +194,7 @@ def main():
             "Cramer-Rao Lower Bound of rho",
         ],
     )
+    df.index.name = "log10N"
     fisher_mat_inv_diag = wrapedcauchy.fisher_mat_inv_diag(true_rho)
 
     for j, (N, try_num) in enumerate(

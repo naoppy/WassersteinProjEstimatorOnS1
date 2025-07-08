@@ -149,6 +149,7 @@ def _main():
             "W2(method3)_kappa / MLE_kappa",
         ],
     )
+    df.index.name = "kappa"
 
     for j, (true_kappa, try_num) in enumerate(
         zip(kappas, try_nums, strict=True)

@@ -188,6 +188,7 @@ def _main():
             "W2(method3)_rho / MLE_rho",
         ],
     )
+    df.index.name = "rho"
 
     for j, (true_rho, try_num) in enumerate(
         zip(rhos, try_nums, strict=True)
