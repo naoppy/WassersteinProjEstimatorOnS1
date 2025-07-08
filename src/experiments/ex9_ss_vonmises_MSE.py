@@ -98,6 +98,7 @@ def _main():
             "Cramer-Rao Lower Bound of lambda",
         ],
     )
+    df.index.name = "log10N"
 
     fisher_mat_inv_diag = sine_skewed_vonmises.fisher_mat_inv_diag(
         true_kappa, true_lambda

@@ -1,3 +1,11 @@
+# tex
+*.aux
+*.dvi
+*.log
+*.synctex.gz
+*.bbl
+*.blg
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

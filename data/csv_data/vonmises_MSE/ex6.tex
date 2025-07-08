@@ -1,0 +1,68 @@
+\documentclass[dvipdfmx]{standalone}
+%\usepackage[dvipdfmx]{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{caption}
+\usepackage{pgfplots}
+\usepackage{tikz}
+
+\pgfplotsset{compat=1.18}
+
+\pgfplotstableread[
+col sep=comma,
+]{./ex6_mu0.3kappa2_excel_for_visualize.csv}\mycsv
+
+\thispagestyle{empty}
+\begin{document}
+	\begin{tikzpicture}
+		\tikzset{every node/.style={}}
+		\begin{axis}
+			[
+			xmax=5,xmin=2,
+			%width=6cm,
+			xlabel={$\log_{10} n$},
+			ylabel={$\mu$ MSE ratio w.r.t. MLE},
+			yticklabel style={
+				/pgf/number format/.cd,
+				fixed,
+				zerofill,
+				precision=3,
+			},
+			ylabel near ticks,
+			legend pos=north east,
+			legend style={legend cell align=left,draw=none,fill=white,fill opacity=0.8,text opacity=1,},
+			]
+			\addplot[color=black, mark=square*, mark options={solid}] table [x=log10N, y=W1/MLE_mu] {\mycsv};
+			\addlegendentry{W1/MLE}
+			\addplot[color=black, dashed, mark=*, mark options={solid}] table [x=log10N, y=W2/MLE_mu] {\mycsv};
+			\addlegendentry{W2/MLE}
+			\addplot[thin, color=black, dotted,] {1};
+		\end{axis}
+	\end{tikzpicture}
+	\begin{tikzpicture}
+		\tikzset{every node/.style={}}
+		\begin{axis}
+			[
+			xmax=5,xmin=2,
+			%width=6cm,
+			xlabel={$\log_{10} n$},
+			ylabel={$\kappa$ MSE ratio w.r.t. MLE},
+			yticklabel style={
+				/pgf/number format/.cd,
+				fixed,
+				zerofill,
+				precision=3,
+			},
+			ylabel near ticks,
+			legend pos=north east,
+			legend style={legend cell align=left,draw=none,fill=white,fill opacity=0.8,text opacity=1,},
+			]
+			\addplot[color=black, mark=square*, mark options={solid}] table [x=log10N, y=W1/MLE_kappa] {\mycsv};
+			\addlegendentry{W1/MLE}
+			\addplot[color=black, dashed, mark=*, mark options={solid}] table [x=log10N, y=W2/MLE_kappa] {\mycsv};
+			\addlegendentry{W2/MLE}
+			\addplot[color=black, dotted,] {1};
+		\end{axis}
+	\end{tikzpicture}
+\end{document}
