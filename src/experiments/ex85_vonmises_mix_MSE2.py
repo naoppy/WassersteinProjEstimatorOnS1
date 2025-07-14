@@ -15,7 +15,7 @@ from scipy import optimize
 from ..calc_semidiscrete_W_dist import method1, method2
 from ..distributions import vonmises
 
-bounds = ((-np.pi, np.pi), (0.1, 5))
+bounds = ((-np.pi, np.pi), (0.5, 8))
 
 
 def Wp_cost_func3(x, given_data_normed_sorted, p: int):
