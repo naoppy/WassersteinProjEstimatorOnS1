@@ -15,6 +15,11 @@ from ..calc_semidiscrete_W_dist import method2
 from ..distributions import sine_skewed_vonmises
 
 
+TOL = 1e-7
+
+bounds = ((-np.pi, np.pi), (0.01, 2), (-1, 1))
+
+
 def est_method2(given_data):
     """Calc W1-estimator using method1
 
@@ -31,8 +36,8 @@ def est_method2(given_data):
 
     return optimize.differential_evolution(
         cost_func,
-        tol=0.001,
-        bounds=((-np.pi, np.pi), (0.01, 4), (-1, 1)),
+        tol=TOL,
+        bounds=bounds,
     )
 
 
@@ -42,7 +47,7 @@ def run_once(i, true_mu, true_kappa, true_lambda, N: int) -> npt.NDArray[np.floa
     )
 
     s_time = time.perf_counter()
-    MLE = sine_skewed_vonmises.MLE_direct_opt(sample)
+    MLE = sine_skewed_vonmises.MLE_direct_opt(sample, bounds=bounds, tol=TOL)
     e_time = time.perf_counter()
     MLE_mu = MLE[0]
     MLE_kappa = MLE[1]
@@ -134,7 +139,17 @@ def _main():
         W1method2_lambda_mse = np.mean((W1method2_lambda - true_lambda) ** 2)
         W1method2_time_mean = np.mean(W1method2_time)
 
-        df.loc[true_lambda] = []
+        df.loc[true_lambda] = [
+            np.log10(MLE_mu_mse),
+            np.log10(MLE_kappa_mse),
+            np.log10(MLE_lambda_mse),
+            np.log10(W1method2_mu_mse),
+            np.log10(W1method2_kappa_mse),
+            np.log10(W1method2_lambda_mse),
+            np.log10(fisher_mat_inv_diag[0]) - np.log10(N),
+            np.log10(fisher_mat_inv_diag[1]) - np.log10(N),
+            np.log10(fisher_mat_inv_diag[2]) - np.log10(N),
+        ]
 
         print("MLE:")
         print(f"{MLE_mu_mse}, {MLE_kappa_mse}, {MLE_lambda_mse}, {MLE_time_mean}")

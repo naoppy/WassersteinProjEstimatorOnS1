@@ -120,7 +120,10 @@ def neg_log_likelihood(params, data) -> float:
 
 
 def MLE_direct_opt(
-    x: npt.NDArray[np.float64], tol: float = 0.001, debug: bool = False
+    x: npt.NDArray[np.float64],
+    bounds=((-np.pi, np.pi), (0.01, 4), (-1, 1)),
+    tol: float = 0.001,
+    debug: bool = False,
 ) -> Tuple[float, float, float]:
     """SS-von MisesのMLEでのパラメータ推定を行う
 
@@ -134,7 +137,7 @@ def MLE_direct_opt(
         neg_log_likelihood,
         tol=tol,
         args=(x,),
-        bounds=((-np.pi, np.pi), (0.01, 4), (-1, 1)),
+        bounds=bounds,
     )
     if debug:
         print(result)

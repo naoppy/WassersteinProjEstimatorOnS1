@@ -16,6 +16,8 @@ from ..distributions import sine_skewed_vonmises
 
 TOL = 1e-7
 
+bounds = ((-np.pi, np.pi), (0.01, 2), (-1, 1))
+
 
 def est_method2(given_data):
     """Calc W1-estimator using method1
@@ -34,7 +36,7 @@ def est_method2(given_data):
     return optimize.differential_evolution(
         cost_func,
         tol=TOL,
-        bounds=((-np.pi, np.pi), (0.01, 4), (-1, 1)),
+        bounds=bounds,
     )
 
 
@@ -44,7 +46,7 @@ def run_once(i, true_mu, true_kappa, true_lambda, N: int) -> npt.NDArray[np.floa
     )
 
     s_time = time.perf_counter()
-    MLE = sine_skewed_vonmises.MLE_direct_opt(sample, tol=TOL)
+    MLE = sine_skewed_vonmises.MLE_direct_opt(sample, bounds=bounds, tol=TOL)
     e_time = time.perf_counter()
     MLE_mu = MLE[0]
     MLE_kappa = MLE[1]
