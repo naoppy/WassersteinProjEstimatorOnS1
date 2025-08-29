@@ -222,7 +222,37 @@ def MLE_direct_opt(x: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
     return np.array([result.x[0], result.x[1]])
 
 
-def main():
+def _plot_for_slide():
+    """スライドに載せる分布の例の画像を作成する"""
+    n = 100000
+    mu = 0
+    rho = 0.4
+    fig = plt.figure(figsize=(12, 6))
+    left = plt.subplot(121)
+    right = plt.subplot(122, projection="polar")
+    x = np.linspace(-np.pi, np.pi, 1000)
+    wrapedcauchy_pdf = wrapcauchy_true_pdf(x, loc=mu, c=rho)
+    sample = np.remainder(quantile_sampling(mu, rho, n) + np.pi, 2 * np.pi) - np.pi
+    ticks = [0, 0.15, 0.3]
+
+    left.plot(x, wrapedcauchy_pdf)
+    left.set_yticks(ticks)
+    number_of_bins = int(np.sqrt(n))
+    left.hist(sample, density=True, bins=number_of_bins)
+    left.set_title("Cartesian plot")
+    left.set_xlim(-np.pi, np.pi)
+    left.grid(True)
+
+    right.plot(x, wrapedcauchy_pdf, label="PDF")
+    right.set_yticks(ticks)
+    right.hist(sample, density=True, bins=number_of_bins, label="Histogram")
+    right.set_title("Polar plot")
+
+    right.legend(bbox_to_anchor=(0.15, 1.06))
+    plt.show()
+
+
+def _main():
     mu = np.pi / 2  # circular mean
     rho = 0.7  # concentration
     N = 10000
@@ -280,4 +310,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # _main()
+    _plot_for_slide()

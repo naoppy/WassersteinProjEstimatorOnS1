@@ -163,7 +163,37 @@ def fast_quantile_sampling(
     return lefts + step / 2
 
 
-def main():
+def _plot_for_slide():
+    """スライドに載せる分布の例の画像を作成する"""
+    n = 100000
+    mu = 0
+    kappa = 2
+    fig = plt.figure(figsize=(12, 6))
+    left = plt.subplot(121)
+    right = plt.subplot(122, projection="polar")
+    x = np.linspace(-np.pi, np.pi, 1000)
+    vonmises_pdf = vonmises.pdf(x, loc=mu, kappa=kappa)
+    sample = fast_quantile_sampling(mu, kappa, n)
+    ticks = [0, 0.15, 0.3]
+
+    left.plot(x, vonmises_pdf)
+    left.set_yticks(ticks)
+    number_of_bins = int(np.sqrt(n))
+    left.hist(sample, density=True, bins=number_of_bins)
+    left.set_title("Cartesian plot")
+    left.set_xlim(-np.pi, np.pi)
+    left.grid(True)
+
+    right.plot(x, vonmises_pdf, label="PDF")
+    right.set_yticks(ticks)
+    right.hist(sample, density=True, bins=number_of_bins, label="Histogram")
+    right.set_title("Polar plot")
+
+    right.legend(bbox_to_anchor=(0.15, 1.06))
+    plt.show()
+
+
+def _main():
     mu = 0.5 * np.pi + 2 * np.pi  # circular mean
     kappa = 1.3  # concentration
     N = 10000
@@ -212,4 +242,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # _main()
+    _plot_for_slide()

@@ -249,15 +249,15 @@ def _main():
     right.set_yticks(ticks)
     right.hist(sample, density=True, bins=number_of_bins, label="Histogram")
     right.set_title("Polar plot")
-    right.legend(bbox_to_anchor=(0.15, 1.06))
 
     # param estimation
     est_param = MLE_direct_opt(sample, debug=True)
     print(est_param)
     ss_vonmises_est_pdf = pdf(x, est_param[0], est_param[1], est_param[2])
-    left.plot(x, ss_vonmises_est_pdf)
-    right.plot(x, ss_vonmises_est_pdf)
+    left.plot(x, ss_vonmises_est_pdf, label="Estimated PDF")
+    right.plot(x, ss_vonmises_est_pdf, label="Estimated PDF")
 
+    right.legend(bbox_to_anchor=(0.15, 1.06))
     plt.show()
 
     mat = fisher_info_3x3(kappa, lambda_)
