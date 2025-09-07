@@ -1,5 +1,6 @@
 from typing import List, Tuple
 
+import matplotlib
 import numpy as np
 import numpy.typing as npt
 from matplotlib import pyplot as plt
@@ -221,6 +222,37 @@ def cumsum_hist_data(
     assert abs(data_cumsum_hist[-1] - 1.0) < 1e-7
     return data_cumsum_hist
 
+def _plot_for_slide():
+    """スライドに載せる分布の例の画像を作成する"""
+    n = 100000
+    mu = 0
+    kappa = 1
+    lambda_ = 0.7
+    fig = plt.figure(figsize=(12, 6))
+    left = plt.subplot(121)
+    right = plt.subplot(122, projection="polar")
+    x = np.linspace(-np.pi, np.pi, 1000)
+    ss_vM_pdf = pdf(x, mu, kappa, lambda_)
+    ticks = [0, 0.15, 0.3]
+    sample = rejection_sampling(n, mu, kappa, lambda_)
+    left.plot(x, ss_vM_pdf)
+    left.set_yticks(ticks)
+    number_of_bins = int(np.sqrt(n))
+    # left.hist(sample, density=True, bins=number_of_bins)
+    left.fill_between(x, ss_vM_pdf, color='tab:orange')
+    left.set_title("Cartesian plot")
+    left.set_xlim(-np.pi, np.pi)
+    left.grid(True)
+
+    right.plot(x, ss_vM_pdf, label="PDF")
+    right.set_yticks(ticks)
+    # right.hist(sample, density=True, bins=number_of_bins, label="Histogram")
+    right.fill_between(x, ss_vM_pdf, color='tab:orange', label="Histogram")
+    right.set_title("Polar plot")
+
+    right.legend(bbox_to_anchor=(0.15, 1.06))
+    plt.show()
+
 
 def _main():
     n = 100000
@@ -269,4 +301,5 @@ def _main():
 
 
 if __name__ == "__main__":
-    _main()
+    # _main()
+    _plot_for_slide()
