@@ -171,7 +171,7 @@ def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
 def main():
     true_mu = np.pi / 8
     # 実験条件1
-    true_rho = 0.7
+    true_rho = 0.4
     # 実験条件2
     # true_rho = 0.2
     print(f"true mu={true_mu}, true rho={true_rho}")
