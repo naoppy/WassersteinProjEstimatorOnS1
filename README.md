@@ -5,6 +5,13 @@ Implementation of [Wasserstein projection estimators for circular distributions]
 ## Installation
 download `uv`, run `uv sync`.
 
+## Computational Environment
+This code uses only CPU. No GPU is required.
+Tested on Linux and Windows systems.
+
+Computation time may be long depending on the parameters.
+We used strong workstation with many cores to run the experiments.
+
 ## Run Scripts
 `python -m src.experiments.ex6_vonmises_MSE -O`
 
