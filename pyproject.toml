@@ -1,25 +1,18 @@
-[tool.poetry]
+[project]
 name = "todaib4thesis"
 version = "0.1.0"
-package-mode = false
-
-[tool.poetry.dependencies]
-python = "^3.12"
-numpy = "^2.1.2"
-matplotlib = "^3.9.2"
-POT = "^0.9.4"
-scipy = "^1.15.0"
-pandas = "^2.2.3"
-tqdm = "^4.67.1"
-parfor = "^2025.1.0"
-
-[tool.poetry.group.dev.dependencies]
-ruff = "^0.7.1"
-mypy = "^1.14.1"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+description = "python code for https://arxiv.org/abs/2510.18367"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "matplotlib>=3.10.7",
+    "numpy>=2.3.4",
+    "pandas>=2.3.3",
+    "parfor>=2025.1.0",
+    "pot>=0.9.6.post1",
+    "scipy>=1.16.3",
+    "tqdm>=4.67.1",
+]
 
 [tool.ruff]
 exclude = [".venv"]
@@ -36,3 +29,4 @@ select = ["E", "F", "W", "B", "I"]
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+
