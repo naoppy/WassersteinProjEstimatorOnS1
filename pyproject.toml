@@ -1,5 +1,5 @@
 [project]
-name = "todaib4thesis"
+name = "Wasserstein-Projection-Estimator-On-Circle"
 version = "0.1.0"
 description = "python code for https://arxiv.org/abs/2510.18367"
 readme = "README.md"
