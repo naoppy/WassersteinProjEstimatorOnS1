@@ -163,6 +163,19 @@ def fast_quantile_sampling(
     return lefts + step / 2
 
 
+def circular_variance(kappa: float) -> float:
+    """フォンミーゼス分布の円周分散を計算する
+
+    Args:
+        kappa (float): 分布のパラメータ
+
+    Returns:
+        float: 円周分散
+    """
+    R = i1(kappa) / i0(kappa)
+    return 1 - R
+
+
 def _plot_for_slide():
     """スライドに載せる分布の例の画像を作成する"""
     n = 100000

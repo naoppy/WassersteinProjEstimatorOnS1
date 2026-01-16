@@ -222,6 +222,18 @@ def MLE_direct_opt(x: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
     return np.array([result.x[0], result.x[1]])
 
 
+def circular_variance(rho: float) -> float:
+    """巻き込みコーシー分布の円周分散を計算する
+
+    Args:
+        rho (float): 分布のパラメータ
+
+    Returns:
+        float: 円周分散
+    """
+    return 1 - rho
+
+
 def _plot_for_slide():
     """スライドに載せる分布の例の画像を作成する"""
     n = 100000
