@@ -161,7 +161,7 @@ def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
 def main():
     # true distribution is wraped cauchy
     true_mu = np.pi / 8
-    true_rho = 0.25
+    true_rho = 0.3
     true_CV = wrapedcauchy.circular_variance(true_rho)
     print(f"true mu={true_mu}, true rho={true_rho}, true_CV={true_CV}")
     print("(mu, CV, time)")
