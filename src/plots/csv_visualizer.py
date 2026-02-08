@@ -15,7 +15,8 @@ def _main():
         # "./data/csv_data/wrapcauchy_MSE/ex7.csv",
         # "./data/csv_data/vonmises_mix/ex8_vonmises_mix_MSE.csv",
         # "./data/csv_data/vonmises_mix/ex85_change_noise_rate.csv",
-        "./data/csv_data/ss_vonmises_MSE/ex9_ss_vonmises_MSE.csv",
+        # "./data/csv_data/ss_vonmises_MSE/ex9_ss_vonmises_MSE.csv",
+        "./data/ex10_model_misspecification_MSE.csv",
         index_col=0,
     )
     xylabel = ["log10(N)", "log10(MSE)"]
@@ -27,6 +28,8 @@ def _main():
     # グラフの描画
     plt.figure(figsize=(10, 6))
     for column in df.columns:
+        if "mu" not in column:
+            continue
         plt.plot(df.index, df[column], label=column)
     plt.xlabel(xylabel[0])
     plt.ylabel(xylabel[1])
