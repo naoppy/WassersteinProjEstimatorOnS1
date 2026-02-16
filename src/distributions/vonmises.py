@@ -235,7 +235,7 @@ def type0_estimate(data: npt.NDArray[np.float64], gamma: float, debug: bool=Fals
     now_mu: float = initial_guess[0]
     now_kappa: float = initial_guess[1]
 
-    for i in range(100):  # 最大100回の更新
+    for i in range(1000):  # 最大1000回の更新
         # 更新式
         next_mu = now_mu
         next_kappa = now_kappa
@@ -248,7 +248,7 @@ def type0_estimate(data: npt.NDArray[np.float64], gamma: float, debug: bool=Fals
         target = np.hypot(x, y) / w_sum
         next_kappa = A0Inverse(target) / (1 + gamma)
 
-        if (next_mu - now_mu) ** 2 + (next_kappa - now_kappa) ** 2 < 1e-6:
+        if (next_mu - now_mu) ** 2 + (next_kappa - now_kappa) ** 2 < 1e-16:
             break   # 収束判定
         now_mu = next_mu
         now_kappa = next_kappa
@@ -276,7 +276,7 @@ def type1_estimate(data: npt.NDArray[np.float64], beta: float, debug: bool=False
     now_mu: float = initial_guess[0]
     now_kappa: float = initial_guess[1]
 
-    for i in range(100):  # 最大100回の更新
+    for i in range(1000):  # 最大1000回の更新
         # 更新式
         next_mu = now_mu
         next_kappa = now_kappa
@@ -290,7 +290,7 @@ def type1_estimate(data: npt.NDArray[np.float64], beta: float, debug: bool=False
         target = np.hypot(x - N * D * np.cos(now_mu), y - N * D * np.sin(now_mu)) / w_sum
         next_kappa = A0Inverse(target)
 
-        if (next_mu - now_mu) ** 2 + (next_kappa - now_kappa) ** 2 < 1e-6:
+        if (next_mu - now_mu) ** 2 + (next_kappa - now_kappa) ** 2 < 1e-16:
             break   # 収束判定
         now_mu = next_mu
         now_kappa = next_kappa

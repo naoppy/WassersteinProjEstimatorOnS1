@@ -109,6 +109,20 @@ def run_once(i, true_mu, true_kappa, uniform_noise_rate, N: int):
     W2method3_kappa = est.x[1]
     W2method3_time = e_time - s_time
 
+    s_time = time.perf_counter()
+    est = vonmises.type0_estimate(sample, gamma=0.5)
+    e_time = time.perf_counter()
+    type0_gamma05_mu = est[0]
+    type0_gamma05_kappa = est[1]
+    type0_gamma05_time = e_time - s_time
+
+    s_time = time.perf_counter()
+    est = vonmises.type1_estimate(sample, beta=0.5)
+    e_time = time.perf_counter()
+    type1_beta05_mu = est[0]
+    type1_beta05_kappa = est[1]
+    type1_beta05_time = e_time - s_time
+
     return np.array(
         [
             MLE_mu,
@@ -120,6 +134,12 @@ def run_once(i, true_mu, true_kappa, uniform_noise_rate, N: int):
             W2method3_mu,
             W2method3_kappa,
             W2method3_time,
+            type0_gamma05_mu,
+            type0_gamma05_kappa,
+            type0_gamma05_time,
+            type1_beta05_mu,
+            type1_beta05_kappa,
+            type1_beta05_time,
         ]
     )
 
@@ -146,6 +166,10 @@ def main():
             "W1(method2)_kappa",
             "W2(method3)_mu",
             "W2(method3)_kappa",
+            "type0_gamma05_mu",
+            "type0_gamma05_kappa",
+            "type1_beta05_mu",
+            "type1_beta05_kappa",
         ],
     )
     df.index.name = "log10N"
@@ -161,6 +185,12 @@ def main():
         method2_mu = np.zeros(try_num)
         method2_kappa = np.zeros(try_num)
         method2_time = np.zeros(try_num)
+        type0_gamma05_mu = np.zeros(try_num)
+        type0_gamma05_kappa = np.zeros(try_num)
+        type0_gamma05_time = np.zeros(try_num)
+        type1_beta05_mu = np.zeros(try_num)
+        type1_beta05_kappa = np.zeros(try_num)
+        type1_beta05_time = np.zeros(try_num)
 
         result = pmap(
             run_once, range(try_num), (true_mu, true_kappa, uniform_noise_rate, N)
@@ -176,7 +206,12 @@ def main():
             method2_mu[i] = r[6]
             method2_kappa[i] = r[7]
             method2_time[i] = r[8]
-
+            type0_gamma05_mu[i] = r[9]
+            type0_gamma05_kappa[i] = r[10]
+            type0_gamma05_time[i] = r[11]
+            type1_beta05_mu[i] = r[12]
+            type1_beta05_kappa[i] = r[13]
+            type1_beta05_time[i] = r[14]
         # MSEを計算する
         MLE_mu_mse = np.mean((MLE_mu - true_mu) ** 2)
         MLE_kappa_mse = np.mean((MLE_kappa - true_kappa) ** 2)
@@ -187,6 +222,12 @@ def main():
         W2method3_mu_mse = np.mean((method2_mu - true_mu) ** 2)
         W2method3_kappa_mse = np.mean((method2_kappa - true_kappa) ** 2)
         W2method3_time_mean = np.mean(method2_time)
+        type0_gamma05_mu_mse = np.mean((type0_gamma05_mu - true_mu) ** 2)
+        type0_gamma05_kappa_mse = np.mean((type0_gamma05_kappa - true_kappa) ** 2)
+        type0_gamma05_time_mean = np.mean(type0_gamma05_time)
+        type1_beta05_mu_mse = np.mean((type1_beta05_mu - true_mu) ** 2)
+        type1_beta05_kappa_mse = np.mean((type1_beta05_kappa - true_kappa) ** 2)
+        type1_beta05_time_mean = np.mean(type1_beta05_time)
         df.loc[log10_Ns[j]] = [
             np.log10(MLE_mu_mse),
             np.log10(MLE_kappa_mse),
@@ -194,6 +235,10 @@ def main():
             np.log10(W1method2_kappa_mse),
             np.log10(W2method3_mu_mse),
             np.log10(W2method3_kappa_mse),
+            np.log10(type0_gamma05_mu_mse),
+            np.log10(type0_gamma05_kappa_mse),
+            np.log10(type1_beta05_mu_mse),
+            np.log10(type1_beta05_kappa_mse),
         ]
 
         print(
@@ -204,6 +249,12 @@ def main():
         )
         print(
             f"W2method3: mu_mse={W2method3_mu_mse}, kappa_mse={W2method3_kappa_mse}, time={W2method3_time_mean}"
+        )
+        print(
+            f"type0_gamma05: mu_mse={type0_gamma05_mu_mse}, kappa_mse={type0_gamma05_kappa_mse}, time={type0_gamma05_time_mean}"
+        )
+        print(
+            f"type1_beta05: mu_mse={type1_beta05_mu_mse}, kappa_mse={type1_beta05_kappa_mse}, time={type1_beta05_time_mean}"
         )
     print(df)
     df.to_csv("./data/ex8_vonmises_mix_MSE.csv")
