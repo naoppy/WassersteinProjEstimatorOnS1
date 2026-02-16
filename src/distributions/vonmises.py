@@ -176,6 +176,129 @@ def circular_variance(kappa: float) -> float:
     return 1 - R
 
 
+def A0(kappa: float) -> float:
+    """A0関数を計算する。
+    A0(0)=0, A0(inf)=1 の単調増加関数。
+    大きな値だとオーバーフローするので注意。
+
+    Args:
+        kappa (float): 分布のパラメータ
+
+    Returns:
+        float: A0(kappa) の値
+    """
+    return i1(kappa) / i0(kappa)
+
+
+def A0Inverse(y: float) -> float:
+    """A0の逆関数を数値的に求める
+    A0はA0(kappa) = I1(kappa) / I0(kappa) で定義される関数で、kappa >= 0 の単調増加関数。
+    Ap(0)=0, Ap(inf)=1
+
+    Args:
+        y (float): A0(kappa) の値. 0 <= y < 1
+
+    Returns:
+        float: kappa の値
+    """
+    EPS = 1e-6
+    left = EPS
+    right = 1000  # これ以上大きくするとベッセル関数が発散(オーバーフロー)してしまう！
+    while right - left > EPS:
+        mid = (left + right) / 2
+        now_value = i1(mid) / i0(mid)
+        if np.abs(now_value - y) < EPS:
+            break
+        elif now_value - y > 0:
+            right = mid
+        else:
+            left = mid
+    return mid
+
+
+def type0_estimate(data: npt.NDArray[np.float64], gamma: float, debug: bool=False) -> List[float]:
+    """type0推定量を計算する
+    Kato and Eguchi (2016)
+
+    Args:
+        data (npt.NDArray[np.float64]): サンプルデータ
+        gamma (float): ハイパーパラメータ
+        debug (bool): デバッグ用のフラグ。Trueのとき、更新ごとに推定値を出力する。
+
+    Returns:
+        List[float]: 推定値 [mu, kappa] の順
+    """
+    T_data = T(data)
+    N = len(data)
+    initial_guess = MLE(T_data, N)  # 最尤推定値を初期値として使用
+
+    now_mu: float = initial_guess[0]
+    now_kappa: float = initial_guess[1]
+
+    for i in range(100):  # 最大100回の更新
+        # 更新式
+        next_mu = now_mu
+        next_kappa = now_kappa
+
+        w = np.exp(gamma * now_kappa * np.cos(data - now_mu))
+        w_sum = np.sum(w)
+        y = np.sum(w * np.sin(data))
+        x = np.sum(w * np.cos(data))
+        next_mu = np.arctan2(y, x)
+        target = np.hypot(x, y) / w_sum
+        next_kappa = A0Inverse(target) / (1 + gamma)
+
+        if (next_mu - now_mu) ** 2 + (next_kappa - now_kappa) ** 2 < 1e-6:
+            break   # 収束判定
+        now_mu = next_mu
+        now_kappa = next_kappa
+        if debug:
+            print(f"debug: i={i}, mu={now_mu}, kappa={now_kappa}")
+    return [now_mu, now_kappa]
+
+
+def type1_estimate(data: npt.NDArray[np.float64], beta: float, debug: bool=False) -> List[float]:
+    """type1推定量を計算する
+    Kato and Eguchi (2016)
+
+    Args:
+        data (npt.NDArray[np.float64]): サンプルデータ
+        beta (float): ハイパーパラメータ
+        debug (bool): デバッグ用のフラグ。Trueのとき、更新ごとに推定値を出力する。
+
+    Returns:
+        List[float]: 推定値 [mu, kappa] の順
+    """
+    T_data = T(data)
+    N = len(data)
+    initial_guess = MLE(T_data, N)  # 最尤推定値を初期値として使用
+
+    now_mu: float = initial_guess[0]
+    now_kappa: float = initial_guess[1]
+
+    for i in range(100):  # 最大100回の更新
+        # 更新式
+        next_mu = now_mu
+        next_kappa = now_kappa
+
+        w = np.exp(beta * now_kappa * np.cos(data - now_mu))
+        w_sum = np.sum(w)
+        y = np.sum(w * np.sin(data))
+        x = np.sum(w * np.cos(data))
+        next_mu = np.arctan2(y, x)
+        D = i0((1 + beta) * now_kappa) / i0(now_kappa) * (A0((1 + beta) * now_kappa) - A0(now_kappa)) / now_kappa
+        target = np.hypot(x - N * D * np.cos(now_mu), y - N * D * np.sin(now_mu)) / w_sum
+        next_kappa = A0Inverse(target)
+
+        if (next_mu - now_mu) ** 2 + (next_kappa - now_kappa) ** 2 < 1e-6:
+            break   # 収束判定
+        now_mu = next_mu
+        now_kappa = next_kappa
+        if debug:
+            print(f"debug: i={i}, mu={now_mu}, kappa={now_kappa}")
+    return [now_mu, now_kappa]
+
+
 def _plot_for_slide():
     """スライドに載せる分布の例の画像を作成する"""
     n = 100000
@@ -204,6 +327,28 @@ def _plot_for_slide():
 
     right.legend(bbox_to_anchor=(0.15, 1.06))
     plt.show()
+
+
+def _estimate():
+    """
+    いろんな推定量を計算してみる
+    """
+    mu = 0.5 * np.pi + 2 * np.pi  # circular mean
+    kappa = 1.3  # concentration
+    N = 10000
+    dist = vonmises(loc=mu, kappa=kappa)
+    sample = dist.rvs(N)
+    T_data = T(sample)
+    mu_MLE, kappa_MLE = MLE(T_data, N)
+    print(f"MLE: mu={mu_MLE}, kappa={kappa_MLE}")
+    mu_type0, kappa_type0 = type0_estimate(sample, gamma=0, debug=True)
+    print(f"type0 estimator: mu={mu_type0}, kappa={kappa_type0}")
+    mu_type1, kappa_type1 = type1_estimate(sample, beta=0, debug=True)
+    print(f"type1 estimator: mu={mu_type1}, kappa={kappa_type1}")
+    mu_type0, kappa_type0 = type0_estimate(sample, gamma=0.5, debug=True)
+    print(f"type0 estimator: mu={mu_type0}, kappa={kappa_type0}")
+    mu_type1, kappa_type1 = type1_estimate(sample, beta=0.5, debug=True)
+    print(f"type1 estimator: mu={mu_type1}, kappa={kappa_type1}")
 
 
 def _main():
@@ -255,5 +400,6 @@ def _main():
 
 
 if __name__ == "__main__":
+    _estimate()
     # _main()
-    _plot_for_slide()
+    # _plot_for_slide()
