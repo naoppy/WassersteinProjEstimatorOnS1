@@ -91,6 +91,7 @@ def fisher_info_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
                 / (1 + lambda_ * np.sin(x)),
                 -np.pi,
                 np.pi,
+                points=[0.0],
             )[0]
             / scale_factor
         )
@@ -101,6 +102,7 @@ def fisher_info_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
                 / (1 + lambda_ * np.sin(x)),
                 -np.pi,
                 np.pi,
+                points=[0.0],
             )[0]
             / scale_factor
         )
@@ -111,6 +113,7 @@ def fisher_info_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
                 / (1 + lambda_ * np.sin(x)),
                 -np.pi,
                 np.pi,
+                points=[0.0],
             )[0]
             / scale_factor
         )
@@ -125,6 +128,7 @@ def fisher_info_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
                 / (1 + lambda_ * np.sin(x)),
                 -np.pi,
                 np.pi,
+                points=[0.0],
             )[0]
             / scale_factor_ive
         )
@@ -135,6 +139,7 @@ def fisher_info_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
                 / (1 + lambda_ * np.sin(x)),
                 -np.pi,
                 np.pi,
+                points=[0.0],
             )[0]
             / scale_factor_ive
         )
@@ -145,6 +150,7 @@ def fisher_info_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
                 / (1 + lambda_ * np.sin(x)),
                 -np.pi,
                 np.pi,
+                points=[0.0],
             )[0]
             / scale_factor_ive
         )

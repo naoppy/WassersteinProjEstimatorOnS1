@@ -272,7 +272,9 @@ def type0_estimate(
         next_mu = now_mu
         next_kappa = now_kappa
 
-        w = np.exp(gamma * now_kappa * np.cos(data - now_mu))
+        exponents = gamma * now_kappa * np.cos(data - now_mu)
+        max_exp = np.max(exponents)
+        w = np.exp(exponents - max_exp)
         w_sum = np.sum(w)
         y = np.sum(w * np.sin(data))
         x = np.sum(w * np.cos(data))
@@ -315,15 +317,26 @@ def type1_estimate(
         next_mu = now_mu
         next_kappa = now_kappa
 
-        w = np.exp(beta * now_kappa * np.cos(data - now_mu))
+        exponents = beta * now_kappa * np.cos(data - now_mu)
+        max_exp = np.max(exponents)
+        w = np.exp(exponents - max_exp)
         w_sum = np.sum(w)
-        y = np.sum(w * np.sin(data))
-        x = np.sum(w * np.cos(data))
-        next_mu = np.arctan2(y, x)
-        r_i0 = _bessel_ratio_i0((1 + beta) * now_kappa, now_kappa)
-        D = r_i0 * (A0((1 + beta) * now_kappa) - A0(now_kappa)) / now_kappa
-        target = (
-            np.hypot(x - N * D * np.cos(now_mu), y - N * D * np.sin(now_mu)) / w_sum
+
+        # 規格化された加重平均
+        w_norm = w / w_sum
+        y_norm = np.sum(w_norm * np.sin(data))
+        x_norm = np.sum(w_norm * np.cos(data))
+        next_mu = np.arctan2(y_norm, x_norm)
+
+        r_i0_base = ive(0, (1 + beta) * now_kappa) / ive(0, now_kappa)
+        D_base = r_i0_base * (A0((1 + beta) * now_kappa) - A0(now_kappa)) / now_kappa
+
+        # N * D / sum(w_i) の計算 (exp_diff が大きい場合のオーバーフローを防ぐ)
+        exp_diff = np.minimum(700.0, beta * now_kappa - max_exp)
+        coeff = (N * D_base / w_sum) * np.exp(exp_diff)
+
+        target = np.hypot(
+            x_norm - coeff * np.cos(now_mu), y_norm - coeff * np.sin(now_mu)
         )
         next_kappa = A0Inverse(target)
 
