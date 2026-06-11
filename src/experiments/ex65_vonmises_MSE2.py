@@ -16,7 +16,7 @@ from scipy import optimize
 from ..calc_semidiscrete_W_dist import method1, method2
 from ..distributions import vonmises
 
-bounds = ((-np.pi, np.pi), (0.1, 150.0))
+bounds = ((-np.pi, np.pi), (0.1, 750.0))
 initial_guess = (0, 3.5)
 
 
@@ -138,7 +138,7 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
 def _main():
     # 実験条件1
     true_mu = 0.3
-    kappas = [0.5, 1.0, 2.0, 5.0, 10.0, 20.0, 50.0, 100.0]
+    kappas = [0.5, 1.0, 2.0, 5.0, 10.0, 20.0, 50.0, 100.0, 200.0, 500.0]
     try_nums = [1000] * len(kappas)
     N = np.power(10, 5).astype(np.int64)
     print("N=", N, "true_mu=", true_mu)
