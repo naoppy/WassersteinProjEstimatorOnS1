@@ -97,15 +97,7 @@ def quantile_sampling(
     y = wrapcauchy.ppf(x, rho, loc=mu)
     y = np.remainder(y, 2 * np.pi)
     # sort
-    i = 0
-    if y[-1] <= y[0] + 0.5:  # y[i-1] <= y[i]
-        i += 1
-        while y[i - 1] <= y[i] + 0.5:
-            i += 1
-    # 既にソート済みならi=0, 全て同じ値(pdfがデルタ関数)ならi=sample_num, それ以外ならiは変曲点の奥のidx
-    y = np.roll(y, -i)
-    assert np.all((0 <= y) & (y <= 2 * np.pi))
-    assert np.all(np.diff(y) >= 0)
+    y = np.sort(y)
     return y
 
 

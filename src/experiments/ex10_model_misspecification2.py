@@ -16,7 +16,8 @@ from scipy import optimize
 from scipy.stats import vonmises as vonmises_scipy
 
 from ..calc_semidiscrete_W_dist import method1, method2
-from ..distributions import vonmises, wrapedcauchy
+from ..distributions import vonmises
+from ..misc import dist_utils
 
 bounds = ((-np.pi, np.pi), (0.1, 5))
 
@@ -112,47 +113,82 @@ def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
     sample = stats.wrapcauchy(loc=true_mu, c=true_rho).rvs(N)
     sample = np.remainder(sample, 2 * np.pi)
 
+    def p_pdf(theta):
+        return dist_utils.wrapcauchy_pdf(theta, true_mu, true_rho)
+
+    # MLE
     s_time = time.perf_counter()
     MLE = vonmises.MLE(vonmises.T(sample), N)
     e_time = time.perf_counter()
     MLE_mu = MLE[0]
-    MLE_CV = vonmises.circular_variance(MLE[1])
+    MLE_kappa = MLE[1]
     MLE_time = e_time - s_time
 
+    def q_pdf_mle(theta):
+        return dist_utils.vonmises_pdf(theta, MLE_mu, MLE_kappa)
+
+    mle_kl, mle_w1, mle_w2 = dist_utils.calculate_distances(p_pdf, q_pdf_mle)
+
+    # W1 method2
     s_time = time.perf_counter()
     est = est_W1_method2(sample)
     e_time = time.perf_counter()
     W1method2_mu = est.x[0]
-    W1method2_CV = vonmises.circular_variance(est.x[1])
+    W1method2_kappa = est.x[1]
     W1method2_time = e_time - s_time
 
+    def q_pdf_w1m2(theta):
+        return dist_utils.vonmises_pdf(theta, W1method2_mu, W1method2_kappa)
+
+    w1m2_kl, w1m2_w1, w1m2_w2 = dist_utils.calculate_distances(p_pdf, q_pdf_w1m2)
+
+    # W1 method3
     s_time = time.perf_counter()
     est = est_W1_method3(sample)
     e_time = time.perf_counter()
     W1method3_mu = est.x[0]
-    W1method3_CV = vonmises.circular_variance(est.x[1])
+    W1method3_kappa = est.x[1]
     W1method3_time = e_time - s_time
 
+    def q_pdf_w1m3(theta):
+        return dist_utils.vonmises_pdf(theta, W1method3_mu, W1method3_kappa)
+
+    w1m3_kl, w1m3_w1, w1m3_w2 = dist_utils.calculate_distances(p_pdf, q_pdf_w1m3)
+
+    # W2 method3
     s_time = time.perf_counter()
     est = est_W2_method3(sample)
     e_time = time.perf_counter()
     W2method3_mu = est.x[0]
-    W2method3_CV = vonmises.circular_variance(est.x[1])
+    W2method3_kappa = est.x[1]
     W2method3_time = e_time - s_time
+
+    def q_pdf_w2m3(theta):
+        return dist_utils.vonmises_pdf(theta, W2method3_mu, W2method3_kappa)
+
+    w2m3_kl, w2m3_w1, w2m3_w2 = dist_utils.calculate_distances(p_pdf, q_pdf_w2m3)
 
     return np.array(
         [
             MLE_mu,
-            MLE_CV,
+            mle_kl,
+            mle_w1,
+            mle_w2,
             MLE_time,
             W1method2_mu,
-            W1method2_CV,
+            w1m2_kl,
+            w1m2_w1,
+            w1m2_w2,
             W1method2_time,
             W1method3_mu,
-            W1method3_CV,
+            w1m3_kl,
+            w1m3_w1,
+            w1m3_w2,
             W1method3_time,
             W2method3_mu,
-            W2method3_CV,
+            w2m3_kl,
+            w2m3_w1,
+            w2m3_w2,
             W2method3_time,
         ]
     )
@@ -161,11 +197,9 @@ def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
 def main():
     # true distribution is wraped cauchy
     true_mu = np.pi / 8
-    # true_rho = 0.3
     true_rho = 0.75
-    true_CV = wrapedcauchy.circular_variance(true_rho)
-    print(f"true mu={true_mu}, true rho={true_rho}, true_CV={true_CV}")
-    print("(mu, CV, time)")
+    print(f"true mu={true_mu}, true rho={true_rho}")
+    print("(mu_mse, KL, W1, W2, time)")
 
     log10_Ns = [2, 2.5, 3, 3.5, 4, 4.5, 5]
     Ns = np.power(10, log10_Ns).astype(np.int64)
@@ -174,14 +208,22 @@ def main():
     df = pd.DataFrame(
         index=log10_Ns,
         columns=[
-            "MLE_mu",
-            "MLE_CV",
-            "W1(method2)_mu",
-            "W1(method2)_CV",
-            "W1(method3)_mu",
-            "W1(method3)_CV",
-            "W2(method3)_mu",
-            "W2(method3)_CV",
+            "MLE_mu_mse",
+            "MLE_KL",
+            "MLE_W1",
+            "MLE_W2",
+            "W1(method2)_mu_mse",
+            "W1(method2)_KL",
+            "W1(method2)_W1",
+            "W1(method2)_W2",
+            "W1(method3)_mu_mse",
+            "W1(method3)_KL",
+            "W1(method3)_W1",
+            "W1(method3)_W2",
+            "W2(method3)_mu_mse",
+            "W2(method3)_KL",
+            "W2(method3)_W1",
+            "W2(method3)_W2",
         ],
     )
 
@@ -190,16 +232,24 @@ def main():
     ):  # データ数Nを変える
         print(f"N={N}")
         MLE_mu = np.zeros(try_num)
-        MLE_CV = np.zeros(try_num)
+        MLE_kl = np.zeros(try_num)
+        MLE_w1 = np.zeros(try_num)
+        MLE_w2 = np.zeros(try_num)
         MLE_time = np.zeros(try_num)
         W1method2_mu = np.zeros(try_num)
-        W1method2_CV = np.zeros(try_num)
+        W1method2_kl = np.zeros(try_num)
+        W1method2_w1 = np.zeros(try_num)
+        W1method2_w2 = np.zeros(try_num)
         W1method2_time = np.zeros(try_num)
         W1method3_mu = np.zeros(try_num)
-        W1method3_CV = np.zeros(try_num)
+        W1method3_kl = np.zeros(try_num)
+        W1method3_w1 = np.zeros(try_num)
+        W1method3_w2 = np.zeros(try_num)
         W1method3_time = np.zeros(try_num)
         W2method3_mu = np.zeros(try_num)
-        W2method3_CV = np.zeros(try_num)
+        W2method3_kl = np.zeros(try_num)
+        W2method3_w1 = np.zeros(try_num)
+        W2method3_w2 = np.zeros(try_num)
         W2method3_time = np.zeros(try_num)
 
         # MSEをとるための試行回数
@@ -207,53 +257,96 @@ def main():
         for i in range(try_num):
             r = result[i]
             MLE_mu[i] = r[0]
-            MLE_CV[i] = r[1]
-            MLE_time[i] = r[2]
-            W1method2_mu[i] = r[3]
-            W1method2_CV[i] = r[4]
-            W1method2_time[i] = r[5]
-            W1method3_mu[i] = r[6]
-            W1method3_CV[i] = r[7]
-            W1method3_time[i] = r[8]
-            W2method3_mu[i] = r[9]
-            W2method3_CV[i] = r[10]
-            W2method3_time[i] = r[11]
+            MLE_kl[i] = r[1]
+            MLE_w1[i] = r[2]
+            MLE_w2[i] = r[3]
+            MLE_time[i] = r[4]
+            W1method2_mu[i] = r[5]
+            W1method2_kl[i] = r[6]
+            W1method2_w1[i] = r[7]
+            W1method2_w2[i] = r[8]
+            W1method2_time[i] = r[9]
+            W1method3_mu[i] = r[10]
+            W1method3_kl[i] = r[11]
+            W1method3_w1[i] = r[12]
+            W1method3_w2[i] = r[13]
+            W1method3_time[i] = r[14]
+            W2method3_mu[i] = r[15]
+            W2method3_kl[i] = r[16]
+            W2method3_w1[i] = r[17]
+            W2method3_w2[i] = r[18]
+            W2method3_time[i] = r[19]
 
         # MSEを計算する
-        MLE_mu_mse = np.mean((MLE_mu - true_mu) ** 2)
-        MLE_CV_mse = np.mean((MLE_CV - true_CV) ** 2)
+        MLE_mu_mse = np.mean(
+            (np.remainder(MLE_mu - true_mu + np.pi, 2 * np.pi) - np.pi) ** 2
+        )
+        MLE_kl_mean = np.mean(MLE_kl)
+        MLE_w1_mean = np.mean(MLE_w1)
+        MLE_w2_mean = np.mean(MLE_w2)
         MLE_time_mean = np.mean(MLE_time)
-        W1method2_mu_mse = np.mean((W1method2_mu - true_mu) ** 2)
-        W1method2_CV_mse = np.mean((W1method2_CV - true_CV) ** 2)
+
+        W1method2_mu_mse = np.mean(
+            (np.remainder(W1method2_mu - true_mu + np.pi, 2 * np.pi) - np.pi) ** 2
+        )
+        W1method2_kl_mean = np.mean(W1method2_kl)
+        W1method2_w1_mean = np.mean(W1method2_w1)
+        W1method2_w2_mean = np.mean(W1method2_w2)
         W1method2_time_mean = np.mean(W1method2_time)
-        W1method3_mu_mse = np.mean((W1method3_mu - true_mu) ** 2)
-        W1method3_CV_mse = np.mean((W1method3_CV - true_CV) ** 2)
+
+        W1method3_mu_mse = np.mean(
+            (np.remainder(W1method3_mu - true_mu + np.pi, 2 * np.pi) - np.pi) ** 2
+        )
+        W1method3_kl_mean = np.mean(W1method3_kl)
+        W1method3_w1_mean = np.mean(W1method3_w1)
+        W1method3_w2_mean = np.mean(W1method3_w2)
         W1method3_time_mean = np.mean(W1method3_time)
-        W2method3_mu_mse = np.mean((W2method3_mu - true_mu) ** 2)
-        W2method3_CV_mse = np.mean((W2method3_CV - true_CV) ** 2)
+
+        W2method3_mu_mse = np.mean(
+            (np.remainder(W2method3_mu - true_mu + np.pi, 2 * np.pi) - np.pi) ** 2
+        )
+        W2method3_kl_mean = np.mean(W2method3_kl)
+        W2method3_w1_mean = np.mean(W2method3_w1)
+        W2method3_w2_mean = np.mean(W2method3_w2)
         W2method3_time_mean = np.mean(W2method3_time)
+
         df.loc[log10_Ns[j]] = [
-            np.log10(MLE_mu_mse),
-            np.log10(MLE_CV_mse),
-            np.log10(W1method2_mu_mse),
-            np.log10(W1method2_CV_mse),
-            np.log10(W1method3_mu_mse),
-            np.log10(W1method3_CV_mse),
-            np.log10(W2method3_mu_mse),
-            np.log10(W2method3_CV_mse),
+            MLE_mu_mse,
+            MLE_kl_mean,
+            MLE_w1_mean,
+            MLE_w2_mean,
+            W1method2_mu_mse,
+            W1method2_kl_mean,
+            W1method2_w1_mean,
+            W1method2_w2_mean,
+            W1method3_mu_mse,
+            W1method3_kl_mean,
+            W1method3_w1_mean,
+            W1method3_w2_mean,
+            W2method3_mu_mse,
+            W2method3_kl_mean,
+            W2method3_w1_mean,
+            W2method3_w2_mean,
         ]
 
         print(
-            f"MLE: mu_mse={MLE_mu_mse}, CV_mse={MLE_CV_mse}, time={MLE_time_mean}"
+            f"MLE: mu_mse={MLE_mu_mse}, KL={MLE_kl_mean}, "
+            f"W1={MLE_w1_mean}, W2={MLE_w2_mean}, time={MLE_time_mean}"
         )
         print(
-            f"W1 method2: mu_mse={W1method2_mu_mse}, CV_mse={W1method2_CV_mse}, time={W1method2_time_mean}"
+            f"W1 method2: mu_mse={W1method2_mu_mse}, KL={W1method2_kl_mean}, "
+            f"W1={W1method2_w1_mean}, W2={W1method2_w2_mean}, "
+            f"time={W1method2_time_mean}"
         )
         print(
-            f"W1 method3: mu_mse={W1method3_mu_mse}, CV_mse={W1method3_CV_mse}, time={W1method3_time_mean}"
+            f"W1 method3: mu_mse={W1method3_mu_mse}, KL={W1method3_kl_mean}, "
+            f"W1={W1method3_w1_mean}, W2={W1method3_w2_mean}, "
+            f"time={W1method3_time_mean}"
         )
         print(
-            f"W2 method3: mu_mse={W2method3_mu_mse}, CV_mse={W2method3_CV_mse}, time={W2method3_time_mean}"
+            f"W2 method3: mu_mse={W2method3_mu_mse}, KL={W2method3_kl_mean}, "
+            f"W1={W2method3_w1_mean}, W2={W2method3_w2_mean}, "
+            f"time={W2method3_time_mean}"
         )
 
     print(df)
