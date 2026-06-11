@@ -3,18 +3,47 @@ from typing import List
 import numpy as np
 import numpy.typing as npt
 from matplotlib import pyplot as plt
-from scipy.special import i0, i1, iv
+from scipy.special import i0, i1, iv, ive
 from scipy.stats import vonmises
+
+
+def _bessel_ratio(v: int, kappa: float) -> float:
+    """I_v(kappa) / I_0(kappa) を安全に計算する。
+    オーバーフロー対策として、kappa >= 600 の場合は
+    指数スケーリングされた ive を使用する。
+    """
+    if kappa < 600:
+        if v == 0:
+            return 1.0
+        elif v == 1:
+            return i1(kappa) / i0(kappa)
+        else:
+            return iv(v, kappa) / i0(kappa)
+    else:
+        return ive(v, kappa) / ive(0, kappa)
+
+
+def _bessel_ratio_i0(kappa1: float, kappa0: float) -> float:
+    """I_0(kappa1) / I_0(kappa0) を安全に計算する。
+    オーバーフロー対策として、最大値が 600 以上の場合は
+    指数スケーリングされた ive を使用する。
+    """
+    if max(kappa1, kappa0) < 600:
+        return i0(kappa1) / i0(kappa0)
+    else:
+        return (ive(0, kappa1) / ive(0, kappa0)) * np.exp(kappa1 - kappa0)
 
 
 def fisher_info_2x2(kappa: float) -> npt.NDArray[np.float64]:
     """
     フォンミーゼス分布のフィッシャー情報量を計算する
     """
+    r1 = _bessel_ratio(1, kappa)
+    r2 = _bessel_ratio(2, kappa)
     return np.array(
         [
-            [kappa * i1(kappa) / i0(kappa), 0],
-            [0, (1 + iv(2, kappa) / i0(kappa)) / 2 - (i1(kappa) / i0(kappa)) ** 2],
+            [kappa * r1, 0],
+            [0, (1 + r2) / 2 - r1**2],
         ]
     )
 
@@ -56,11 +85,11 @@ def MLE(T_data, N: int):
     # ここから二分探索による数値計算で逆関数を求める
     EPS = 1e-6
     left = EPS
-    right = 1000  # これ以上大きくするとベッセル関数が発散(オーバーフロー)してしまう！
+    right = 100000.0  # オーバーフロー対策を行ったため、探索範囲を大きくできる
     while right - left > EPS:
         mid = (left + right) / 2
-        now_value = i1(mid) / i0(mid)
-        # print(mid, i0(mid), i1(mid), now_value) # for debug
+        now_value = _bessel_ratio(1, mid)
+        # print(mid, now_value) # for debug
         if np.abs(now_value - target_value) < EPS:
             break
         elif now_value - target_value > 0:
@@ -172,7 +201,7 @@ def circular_variance(kappa: float) -> float:
     Returns:
         float: 円周分散
     """
-    R = i1(kappa) / i0(kappa)
+    R = _bessel_ratio(1, kappa)
     return 1 - R
 
 
@@ -187,12 +216,13 @@ def A0(kappa: float) -> float:
     Returns:
         float: A0(kappa) の値
     """
-    return i1(kappa) / i0(kappa)
+    return _bessel_ratio(1, kappa)
 
 
 def A0Inverse(y: float) -> float:
     """A0の逆関数を数値的に求める
-    A0はA0(kappa) = I1(kappa) / I0(kappa) で定義される関数で、kappa >= 0 の単調増加関数。
+    A0はA0(kappa) = I1(kappa) / I0(kappa) で定義される関数で、
+    kappa >= 0 の単調増加関数。
     Ap(0)=0, Ap(inf)=1
 
     Args:
@@ -203,10 +233,10 @@ def A0Inverse(y: float) -> float:
     """
     EPS = 1e-6
     left = EPS
-    right = 1000  # これ以上大きくするとベッセル関数が発散(オーバーフロー)してしまう！
+    right = 100000.0  # オーバーフロー対策を行ったため、探索範囲を大きくできる
     while right - left > EPS:
         mid = (left + right) / 2
-        now_value = i1(mid) / i0(mid)
+        now_value = _bessel_ratio(1, mid)
         if np.abs(now_value - y) < EPS:
             break
         elif now_value - y > 0:
@@ -216,7 +246,9 @@ def A0Inverse(y: float) -> float:
     return mid
 
 
-def type0_estimate(data: npt.NDArray[np.float64], gamma: float, debug: bool=False) -> List[float]:
+def type0_estimate(
+    data: npt.NDArray[np.float64], gamma: float, debug: bool = False
+) -> List[float]:
     """type0推定量を計算する
     Kato and Eguchi (2016)
 
@@ -249,7 +281,7 @@ def type0_estimate(data: npt.NDArray[np.float64], gamma: float, debug: bool=Fals
         next_kappa = A0Inverse(target) / (1 + gamma)
 
         if (next_mu - now_mu) ** 2 + (next_kappa - now_kappa) ** 2 < 1e-16:
-            break   # 収束判定
+            break  # 収束判定
         now_mu = next_mu
         now_kappa = next_kappa
         if debug:
@@ -257,7 +289,9 @@ def type0_estimate(data: npt.NDArray[np.float64], gamma: float, debug: bool=Fals
     return [now_mu, now_kappa]
 
 
-def type1_estimate(data: npt.NDArray[np.float64], beta: float, debug: bool=False) -> List[float]:
+def type1_estimate(
+    data: npt.NDArray[np.float64], beta: float, debug: bool = False
+) -> List[float]:
     """type1推定量を計算する
     Kato and Eguchi (2016)
 
@@ -286,12 +320,15 @@ def type1_estimate(data: npt.NDArray[np.float64], beta: float, debug: bool=False
         y = np.sum(w * np.sin(data))
         x = np.sum(w * np.cos(data))
         next_mu = np.arctan2(y, x)
-        D = i0((1 + beta) * now_kappa) / i0(now_kappa) * (A0((1 + beta) * now_kappa) - A0(now_kappa)) / now_kappa
-        target = np.hypot(x - N * D * np.cos(now_mu), y - N * D * np.sin(now_mu)) / w_sum
+        r_i0 = _bessel_ratio_i0((1 + beta) * now_kappa, now_kappa)
+        D = r_i0 * (A0((1 + beta) * now_kappa) - A0(now_kappa)) / now_kappa
+        target = (
+            np.hypot(x - N * D * np.cos(now_mu), y - N * D * np.sin(now_mu)) / w_sum
+        )
         next_kappa = A0Inverse(target)
 
         if (next_mu - now_mu) ** 2 + (next_kappa - now_kappa) ** 2 < 1e-16:
-            break   # 収束判定
+            break  # 収束判定
         now_mu = next_mu
         now_kappa = next_kappa
         if debug:
