@@ -6,6 +6,7 @@
 \usepackage{caption}
 \usepackage{pgfplots}
 \usepackage{tikz}
+\usepackage{pgfplotstable}
 
 \pgfplotsset{compat=1.18}
 
@@ -34,9 +35,9 @@ col sep=comma,
 			legend pos=north east,
 			legend style={legend cell align=left,draw=none,fill=white,fill opacity=0.8,text opacity=1,},
 			]
-			\addplot[color=black, mark=square*, mark options={solid}] table [x=kappa, y={W1(method2)_mu / MLE_mu}] {\mycsv};
+			\addplot[color=black, mark=square*, mark options={solid}] table [x=kappa, y=W1(method2)_mu / MLE_mu] {\mycsv};
 			\addlegendentry{W1/MLE}
-			\addplot[color=black, dashed, mark=*, mark options={solid}] table [x=kappa, y={W2(method3)_mu / MLE_mu}] {\mycsv};
+			\addplot[color=black, dashed, mark=*, mark options={solid}] table [x=kappa, y=W2(method3)_mu / MLE_mu] {\mycsv};
 			\addlegendentry{W2/MLE}
 			\addplot[thin, color=black, dotted, domain=0.5:500] {1};
 		\end{axis}
@@ -60,9 +61,9 @@ col sep=comma,
 			legend pos=north east,
 			legend style={legend cell align=left,draw=none,fill=white,fill opacity=0.8,text opacity=1,},
 			]
-			\addplot[color=black, mark=square*, mark options={solid}] table [x=kappa, y={W1(method2)_kappa / MLE_kappa}] {\mycsv};
+			\addplot[color=black, mark=square*, mark options={solid}] table [x=kappa, y=W1(method2)_kappa / MLE_kappa] {\mycsv};
 			\addlegendentry{W1/MLE}
-			\addplot[color=black, dashed, mark=*, mark options={solid}] table [x=kappa, y={W2(method3)_kappa / MLE_kappa}] {\mycsv};
+			\addplot[color=black, dashed, mark=*, mark options={solid}] table [x=kappa, y=W2(method3)_kappa / MLE_kappa] {\mycsv};
 			\addlegendentry{W2/MLE}
 			\addplot[color=black, dotted, domain=0.5:500] {1};
 		\end{axis}

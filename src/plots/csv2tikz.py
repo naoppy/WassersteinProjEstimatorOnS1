@@ -42,16 +42,16 @@ def CompileLatex(tex_file_path: str) -> None:
         print(res.stderr)
         return
 
-    # 3. dvisvgm
-    print("Running dvisvgm...")
+    # 3. pdftocairo
+    print("Running pdftocairo...")
     res = subprocess.run(
-        ["dvisvgm", "--no-fonts", f"{base_name}.dvi"],
+        ["pdftocairo", "-svg", f"{base_name}.pdf", f"{base_name}.svg"],
         cwd=cwd,
         capture_output=True,
         text=True,
     )
     if res.returncode != 0:
-        print("dvisvgm failed!")
+        print("pdftocairo failed!")
         print(res.stdout)
         print(res.stderr)
         return
