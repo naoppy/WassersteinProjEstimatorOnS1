@@ -16,7 +16,7 @@ from scipy import optimize
 from ..calc_semidiscrete_W_dist import method1, method2
 from ..distributions import vonmises
 
-bounds = ((-np.pi, np.pi), (0.1, 7.0))
+bounds = ((-np.pi, np.pi), (0.1, 750.0))
 initial_guess = (0, 3.5)
 
 
@@ -27,8 +27,10 @@ def Wp_cost_func3(x, given_data_normed_sorted, p: int):
     return method1.method1(given_data_normed_sorted, sample, p=p, sorted=True)
 
 
-def est_W1_method3(given_data):
+def est_W1_method3(given_data, x0=None):
     """calc W1E by method3, given_data should be in [0, 2pi]"""
+    if x0 is None:
+        x0 = initial_guess
     given_data_norm = given_data / (2 * np.pi)
     given_data_norm_sorted = np.sort(given_data_norm)
     cost_func = partial(
@@ -36,19 +38,21 @@ def est_W1_method3(given_data):
     )
     return optimize.minimize(
         cost_func,
-        initial_guess,
+        x0,
         bounds=bounds,
         method="powell",
         options={"xtol": 1e-6, "ftol": 1e-6},
     )
 
 
-def est_W2_method3(given_data):
+def est_W2_method3(given_data, x0=None):
     """Calc W2-estimator using method3
 
     Args:
         given_data (np.ndarray): [0, 2*pi]のデータ
     """
+    if x0 is None:
+        x0 = initial_guess
     given_data_norm = given_data / (2 * np.pi)
     given_data_norm_sorted = np.sort(given_data_norm)
     cost_func = partial(
@@ -56,7 +60,7 @@ def est_W2_method3(given_data):
     )
     return optimize.minimize(
         cost_func,
-        initial_guess,
+        x0,
         bounds=bounds,
         method="powell",
         options={"xtol": 1e-6, "ftol": 1e-6},
@@ -69,12 +73,14 @@ def W1_cost_func2(x, bin_num, data_cumsum_hist):
     return method2.method2(data_cumsum_hist[1:], dist_cumsum_hist[1:])
 
 
-def est_W1_method2(given_data):
+def est_W1_method2(given_data, x0=None):
     """Calc W1-estimator using method2
 
     Args:
         given_data (np.ndarray): [0, 2*pi]のデータ
     """
+    if x0 is None:
+        x0 = initial_guess
     bin_num = len(given_data)
     data_cumsum_hist = vonmises.cumsum_hist_data(given_data, bin_num)
     cost_func = partial(
@@ -82,7 +88,7 @@ def est_W1_method2(given_data):
     )
     return optimize.minimize(
         cost_func,
-        initial_guess,
+        x0,
         bounds=bounds,
         method="powell",
         options={"xtol": 1e-6, "ftol": 1e-6},
@@ -101,14 +107,14 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
     MLE_time = e_time - s_time
 
     s_time = time.perf_counter()
-    est = est_W1_method2(sample)
+    est = est_W1_method2(sample, x0=MLE)
     e_time = time.perf_counter()
     W1method2_mu = est.x[0]
     W1method2_kappa = est.x[1]
     W1method2_time = e_time - s_time
 
     s_time = time.perf_counter()
-    est = est_W2_method3(sample)
+    est = est_W2_method3(sample, x0=MLE)
     e_time = time.perf_counter()
     W2method3_mu = est.x[0]
     W2method3_kappa = est.x[1]
@@ -132,7 +138,7 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
 def _main():
     # 実験条件1
     true_mu = 0.3
-    kappas = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]
+    kappas = [0.5, 1.0, 2.0, 5.0, 10.0, 20.0, 50.0, 100.0, 200.0, 500.0]
     try_nums = [1000] * len(kappas)
     N = np.power(10, 5).astype(np.int64)
     print("N=", N, "true_mu=", true_mu)
@@ -151,7 +157,7 @@ def _main():
     )
     df.index.name = "kappa"
 
-    for j, (true_kappa, try_num) in enumerate(
+    for _, (true_kappa, try_num) in enumerate(
         zip(kappas, try_nums, strict=True)
     ):  # データ数Nを変える
         print(f"kappa={true_kappa}")
@@ -204,10 +210,12 @@ def _main():
             f"MLE: mu_mse={MLE_mu_mse}, kappa_mse={MLE_kappa_mse}, time={MLE_time_mean}"
         )
         print(
-            f"W1 method2: mu_mse={W1method2_mu_mse}, kappa_mse={W1method2_kappa_mse}, time={W1method2_time_mean}"
+            f"W1 method2: mu_mse={W1method2_mu_mse}, "
+            f"kappa_mse={W1method2_kappa_mse}, time={W1method2_time_mean}"
         )
         print(
-            f"W2 method3: mu_mse={W2method3_mu_mse}, kappa_mse={W2method3_kappa_mse}, time={W2method3_time_mean}"
+            f"W2 method3: mu_mse={W2method3_mu_mse}, "
+            f"kappa_mse={W2method3_kappa_mse}, time={W2method3_time_mean}"
         )
         df.to_csv("./data/ex65_MSE_kappa_change.csv")
 

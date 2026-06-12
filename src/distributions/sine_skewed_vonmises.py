@@ -1,11 +1,26 @@
 from typing import List, Tuple
 
-import matplotlib
 import numpy as np
 import numpy.typing as npt
 from matplotlib import pyplot as plt
 from scipy import integrate, optimize, stats
-from scipy.special import i0, i1, iv
+from scipy.special import i0, i1, iv, ive
+
+
+def _bessel_ratio(v: int, kappa: float) -> float:
+    """I_v(kappa) / I_0(kappa) を安全に計算する。
+    オーバーフロー対策として、kappa >= 600 の場合は
+    指数スケーリングされた ive を使用する。
+    """
+    if kappa < 600:
+        if v == 0:
+            return 1.0
+        elif v == 1:
+            return i1(kappa) / i0(kappa)
+        else:
+            return iv(v, kappa) / i0(kappa)
+    else:
+        return ive(v, kappa) / ive(0, kappa)
 
 
 def pdf(
@@ -40,9 +55,14 @@ def cdf(
     Returns:
         npt.NDArray[np.float64]: 累積分布関数の値 in [0, 1]
     """
-    return stats.vonmises.cdf(x, loc=mu, kappa=kappa) + lambda_ / (
-        2 * np.pi * i0(kappa) * kappa
-    ) * (np.exp(-kappa) - np.exp(kappa * np.cos(x - mu)))
+    if kappa < 600:
+        return stats.vonmises.cdf(x, loc=mu, kappa=kappa) + lambda_ / (
+            2 * np.pi * i0(kappa) * kappa
+        ) * (np.exp(-kappa) - np.exp(kappa * np.cos(x - mu)))
+    else:
+        return stats.vonmises.cdf(x, loc=mu, kappa=kappa) + lambda_ / (
+            2 * np.pi * ive(0, kappa) * kappa
+        ) * (np.exp(-2 * kappa) - np.exp(kappa * (np.cos(x - mu) - 1)))
 
 
 def fisher_info_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
@@ -57,41 +77,88 @@ def fisher_info_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
     Returns:
         npt.NDArray[np.float64]: フィッシャー情報行列
     """
-    scale_factor = 2 * np.pi * i0(kappa)
+    r1 = _bessel_ratio(1, kappa)
+    r2 = _bessel_ratio(2, kappa)
 
-    i_mu_mu = (
-        kappa * i1(kappa) / i0(kappa)
-        + lambda_
-        * integrate.quad(
-            lambda x: np.exp(kappa * np.cos(x))
-            * (lambda_ + np.sin(x))
-            / (1 + lambda_ * np.sin(x)),
-            -np.pi,
-            np.pi,
-        )[0]
-        / scale_factor
-    )
-    i_kappa_kappa = (1 + (iv(2, kappa) / i0(kappa))) / 2 - (i1(kappa) / i0(kappa)) ** 2
-    i_lambda_lambda = (
-        integrate.quad(
-            lambda x: np.exp(kappa * np.cos(x))
-            * (np.sin(x) ** 2)
-            / (1 + lambda_ * np.sin(x)),
-            -np.pi,
-            np.pi,
-        )[0]
-        / scale_factor
-    )
-    i_mu_kappa = lambda_ * (iv(2, kappa) / i0(kappa) - 1) / 2
+    if kappa < 600:
+        scale_factor = 2 * np.pi * i0(kappa)
+        i_mu_mu = (
+            kappa * r1
+            + lambda_
+            * integrate.quad(
+                lambda x: np.exp(kappa * np.cos(x))
+                * (lambda_ + np.sin(x))
+                / (1 + lambda_ * np.sin(x)),
+                -np.pi,
+                np.pi,
+                points=[0.0],
+            )[0]
+            / scale_factor
+        )
+        i_lambda_lambda = (
+            integrate.quad(
+                lambda x: np.exp(kappa * np.cos(x))
+                * (np.sin(x) ** 2)
+                / (1 + lambda_ * np.sin(x)),
+                -np.pi,
+                np.pi,
+                points=[0.0],
+            )[0]
+            / scale_factor
+        )
+        i_mu_lambda = (
+            integrate.quad(
+                lambda x: np.exp(kappa * np.cos(x))
+                * np.cos(x)
+                / (1 + lambda_ * np.sin(x)),
+                -np.pi,
+                np.pi,
+                points=[0.0],
+            )[0]
+            / scale_factor
+        )
+    else:
+        scale_factor_ive = 2 * np.pi * ive(0, kappa)
+        i_mu_mu = (
+            kappa * r1
+            + lambda_
+            * integrate.quad(
+                lambda x: np.exp(kappa * (np.cos(x) - 1))
+                * (lambda_ + np.sin(x))
+                / (1 + lambda_ * np.sin(x)),
+                -np.pi,
+                np.pi,
+                points=[0.0],
+            )[0]
+            / scale_factor_ive
+        )
+        i_lambda_lambda = (
+            integrate.quad(
+                lambda x: np.exp(kappa * (np.cos(x) - 1))
+                * (np.sin(x) ** 2)
+                / (1 + lambda_ * np.sin(x)),
+                -np.pi,
+                np.pi,
+                points=[0.0],
+            )[0]
+            / scale_factor_ive
+        )
+        i_mu_lambda = (
+            integrate.quad(
+                lambda x: np.exp(kappa * (np.cos(x) - 1))
+                * np.cos(x)
+                / (1 + lambda_ * np.sin(x)),
+                -np.pi,
+                np.pi,
+                points=[0.0],
+            )[0]
+            / scale_factor_ive
+        )
+
+    i_kappa_kappa = (1 + r2) / 2 - r1**2
+    i_mu_kappa = lambda_ * (r2 - 1) / 2
     i_kappa_lambda = 0
-    i_mu_lambda = (
-        integrate.quad(
-            lambda x: np.exp(kappa * np.cos(x)) * np.cos(x) / (1 + lambda_ * np.sin(x)),
-            -np.pi,
-            np.pi,
-        )[0]
-        / scale_factor
-    )
+
     return np.array(
         [
             [i_mu_mu, i_mu_kappa, i_mu_lambda],
@@ -112,8 +179,14 @@ def neg_log_likelihood(params, data) -> float:
     eps = 1e-10
     data = data - mu
     n = len(data)
+
+    if kappa < 600:
+        log_i0 = np.log(np.maximum(eps, i0(kappa)))
+    else:
+        log_i0 = np.log(np.maximum(eps, ive(0, kappa))) + kappa
+
     log_likelihood = (
-        -n * np.log(np.maximum(eps, i0(kappa)))
+        -n * log_i0
         + kappa * np.sum(np.cos(data))
         + np.sum(np.log(np.maximum(eps, 1 + lambda_ * np.sin(data))))
     )
@@ -222,6 +295,7 @@ def cumsum_hist_data(
     assert abs(data_cumsum_hist[-1] - 1.0) < 1e-7
     return data_cumsum_hist
 
+
 def _plot_for_slide():
     """スライドに載せる分布の例の画像を作成する"""
     n = 100000
@@ -239,7 +313,7 @@ def _plot_for_slide():
     left.set_yticks(ticks)
     number_of_bins = int(np.sqrt(n))
     # left.hist(sample, density=True, bins=number_of_bins)
-    left.fill_between(x, ss_vM_pdf, color='tab:orange')
+    left.fill_between(x, ss_vM_pdf, color="tab:orange")
     left.set_title("Cartesian plot")
     left.set_xlim(-np.pi, np.pi)
     left.grid(True)
@@ -247,7 +321,7 @@ def _plot_for_slide():
     right.plot(x, ss_vM_pdf, label="PDF")
     right.set_yticks(ticks)
     # right.hist(sample, density=True, bins=number_of_bins, label="Histogram")
-    right.fill_between(x, ss_vM_pdf, color='tab:orange', label="Histogram")
+    right.fill_between(x, ss_vM_pdf, color="tab:orange", label="Histogram")
     right.set_title("Polar plot")
 
     right.legend(bbox_to_anchor=(0.15, 1.06))
