@@ -26,18 +26,20 @@ def W2_cost_func3(x, given_data_normed_sorted):
     return method1.method1(given_data_normed_sorted, sample, p=2, sorted=True)
 
 
-def est_W2_method3(given_data: npt.NDArray[np.float64]):
+def est_W2_method3(given_data: npt.NDArray[np.float64], x0=None):
     """Calc W2-estimator using method3
 
     Args:
         given_data (np.ndarray): [0, 2*pi]のデータ
     """
+    if x0 is None:
+        x0 = (0, 0.5)
     given_data_norm = given_data / (2 * np.pi)
     given_data_norm_sorted = np.sort(given_data_norm)
     cost_func = partial(W2_cost_func3, given_data_normed_sorted=given_data_norm_sorted)
     return optimize.minimize(
         cost_func,
-        (0, 0.5),
+        x0,
         bounds=bounds,
         method="powell",
         options={"xtol": 1e-6, "ftol": 1e-6},
@@ -50,12 +52,14 @@ def W1_method2_cost_func(x, bin_num, data_cumsum_hist):
     return method2.method2(data_cumsum_hist[1:], dist_cumsum_hist[1:])
 
 
-def est_W1_method2(given_data):
+def est_W1_method2(given_data, x0=None):
     """Calc W1-estimator using method1
 
     Args:
         given_data (np.ndarray): [0, 2*pi]のデータ
     """
+    if x0 is None:
+        x0 = (0, 0.5)
     bin_num = len(given_data)
     data_cumsum_hist = wrapedcauchy.cumsum_hist_data(given_data, bin_num)
     cost_func = partial(
@@ -63,7 +67,7 @@ def est_W1_method2(given_data):
     )
     return optimize.minimize(
         cost_func,
-        (0, 0.5),
+        x0,
         bounds=bounds,
         method="powell",
         options={"xtol": 1e-6, "ftol": 1e-6},
@@ -77,18 +81,20 @@ def W1_cost_func3(x, given_data_normed_sorted):
     return method1.method1(given_data_normed_sorted, sample, p=1, sorted=True)
 
 
-def est_W1_method3(given_data):
+def est_W1_method3(given_data, x0=None):
     """Calc W1-estimator using method3
 
     Args:
         given_data (np.ndarray): [0, 2*pi]のデータ
     """
+    if x0 is None:
+        x0 = (0, 0.5)
     given_data_norm = given_data / (2 * np.pi)
     given_data_norm_sorted = np.sort(given_data_norm)
     cost_func = partial(W1_cost_func3, given_data_normed_sorted=given_data_norm_sorted)
     return optimize.minimize(
         cost_func,
-        (0, 0.5),
+        x0,
         bounds=bounds,
         method="powell",
         options={"xtol": 1e-6, "ftol": 1e-6},
@@ -129,7 +135,7 @@ def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
     # method1_time[i] = e_time - s_time
 
     s_time = time.perf_counter()
-    est = est_W1_method2(sample)
+    est = est_W1_method2(sample, x0=MLE)
     e_time = time.perf_counter()
     W1method2_mu = est.x[0]
     W1method2_rho = est.x[1]
@@ -138,7 +144,7 @@ def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
     s_time = time.perf_counter()
     # profiler = cProfile.Profile()
     # profiler.enable()
-    est = est_W2_method3(sample)
+    est = est_W2_method3(sample, x0=MLE)
     # profiler.disable()
     # profiler.print_stats(sort="time")
     e_time = time.perf_counter()
@@ -190,7 +196,7 @@ def _main():
     )
     df.index.name = "rho"
 
-    for j, (true_rho, try_num) in enumerate(
+    for _j, (true_rho, try_num) in enumerate(
         zip(rhos, try_nums, strict=True)
     ):  # データ数Nを変える
         print(f"rho={true_rho}")
@@ -242,13 +248,16 @@ def _main():
         ]
 
         print(
-            f"MLE kent: mu_mse={MLE_mu_kent_mse}, rho_mse={MLE_rho_kent_mse}, time={MLE_time_kent_mean}"
+            f"MLE kent: mu_mse={MLE_mu_kent_mse}, "
+            f"rho_mse={MLE_rho_kent_mse}, time={MLE_time_kent_mean}"
         )
         print(
-            f"W1 method2: mu_mse={method2_mu_mse}, rho_mse={method2_rho_mse}, time={method2_time_mean}"
+            f"W1 method2: mu_mse={method2_mu_mse}, "
+            f"rho_mse={method2_rho_mse}, time={method2_time_mean}"
         )
         print(
-            f"W2 method3: mu_mse={method3_mu_mse}, rho_mse={method3_rho_mse}, time={method3_time_mean}"
+            f"W2 method3: mu_mse={method3_mu_mse}, "
+            f"rho_mse={method3_rho_mse}, time={method3_time_mean}"
         )
 
     print(df)
