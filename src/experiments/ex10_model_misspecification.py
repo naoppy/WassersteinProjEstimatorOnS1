@@ -105,6 +105,10 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
     def p_pdf(theta):
         return dist_utils.vonmises_pdf(theta, true_mu, true_kappa)
 
+    dist_p = stats.vonmises(loc=true_mu, kappa=true_kappa)
+    def p_cdf(theta):
+        return dist_p.cdf(theta) - dist_p.cdf(0)
+
     # MLE
     s_time = time.perf_counter()
     MLE = wrapedcauchy.MLE_Kent(sample)
@@ -116,7 +120,14 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
     def q_pdf_mle(theta):
         return dist_utils.wrapcauchy_pdf(theta, MLE_mu, MLE_rho)
 
-    mle_kl, mle_w1, mle_w2 = dist_utils.calculate_distances(p_pdf, q_pdf_mle)
+    def q_cdf_mle(theta):
+        return wrapedcauchy.wrapcauchy_periodic_cdf(
+            theta, MLE_rho, MLE_mu
+        ) - wrapedcauchy.wrapcauchy_periodic_cdf(0, MLE_rho, MLE_mu)
+
+    mle_kl, mle_w1, mle_w2 = dist_utils.calculate_distances(
+        p_pdf, q_pdf_mle, p_cdf=p_cdf, q_cdf=q_cdf_mle
+    )
 
     # W1 method2
     s_time = time.perf_counter()
@@ -129,7 +140,14 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
     def q_pdf_w1m2(theta):
         return dist_utils.wrapcauchy_pdf(theta, W1method2_mu, W1method2_rho)
 
-    w1m2_kl, w1m2_w1, w1m2_w2 = dist_utils.calculate_distances(p_pdf, q_pdf_w1m2)
+    def q_cdf_w1m2(theta):
+        return wrapedcauchy.wrapcauchy_periodic_cdf(
+            theta, W1method2_rho, W1method2_mu
+        ) - wrapedcauchy.wrapcauchy_periodic_cdf(0, W1method2_rho, W1method2_mu)
+
+    w1m2_kl, w1m2_w1, w1m2_w2 = dist_utils.calculate_distances(
+        p_pdf, q_pdf_w1m2, p_cdf=p_cdf, q_cdf=q_cdf_w1m2
+    )
 
     # W1 method3
     s_time = time.perf_counter()
@@ -142,7 +160,14 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
     def q_pdf_w1m3(theta):
         return dist_utils.wrapcauchy_pdf(theta, W1method3_mu, W1method3_rho)
 
-    w1m3_kl, w1m3_w1, w1m3_w2 = dist_utils.calculate_distances(p_pdf, q_pdf_w1m3)
+    def q_cdf_w1m3(theta):
+        return wrapedcauchy.wrapcauchy_periodic_cdf(
+            theta, W1method3_rho, W1method3_mu
+        ) - wrapedcauchy.wrapcauchy_periodic_cdf(0, W1method3_rho, W1method3_mu)
+
+    w1m3_kl, w1m3_w1, w1m3_w2 = dist_utils.calculate_distances(
+        p_pdf, q_pdf_w1m3, p_cdf=p_cdf, q_cdf=q_cdf_w1m3
+    )
 
     # W2 method3
     s_time = time.perf_counter()
@@ -155,7 +180,14 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
     def q_pdf_w2m3(theta):
         return dist_utils.wrapcauchy_pdf(theta, W2method3_mu, W2method3_rho)
 
-    w2m3_kl, w2m3_w1, w2m3_w2 = dist_utils.calculate_distances(p_pdf, q_pdf_w2m3)
+    def q_cdf_w2m3(theta):
+        return wrapedcauchy.wrapcauchy_periodic_cdf(
+            theta, W2method3_rho, W2method3_mu
+        ) - wrapedcauchy.wrapcauchy_periodic_cdf(0, W2method3_rho, W2method3_mu)
+
+    w2m3_kl, w2m3_w1, w2m3_w2 = dist_utils.calculate_distances(
+        p_pdf, q_pdf_w2m3, p_cdf=p_cdf, q_cdf=q_cdf_w2m3
+    )
 
     return np.array(
         [

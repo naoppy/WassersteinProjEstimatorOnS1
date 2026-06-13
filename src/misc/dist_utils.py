@@ -18,10 +18,10 @@ def vonmises_pdf(
 def wrapcauchy_pdf(
     theta: npt.NDArray[np.float64], mu: float, rho: float
 ) -> npt.NDArray[np.float64]:
-    """Wrapped Cauchy PDF."""
-    numerator = 1 - rho**2
-    denominator = 2 * np.pi * (1 + rho**2 - 2 * rho * np.cos(theta - mu))
-    return numerator / denominator
+    """Wrapped Cauchy PDF using stable wrapedcauchy module."""
+    from ..distributions import wrapedcauchy
+
+    return wrapedcauchy.wrapcauchy_true_pdf(theta, rho, mu)
 
 
 def get_interpolated_cdf(pdf_func, grid_size: int = 2000):
@@ -57,7 +57,7 @@ def get_interpolated_ppf(cdf_func, grid_size: int = 2000):
     )
 
 
-def calculate_distances(p_pdf, q_pdf):
+def calculate_distances(p_pdf, q_pdf, p_cdf=None, q_cdf=None):
     """Calculates KL, W1, and W2 distances between P and Q distributions on S1."""
 
     # KL divergence
@@ -72,8 +72,8 @@ def calculate_distances(p_pdf, q_pdf):
     kl_div, _ = quad(kl_integrand, 0, 2 * np.pi, limit=100)
 
     # CDF and PPF representations
-    cdf_P = get_interpolated_cdf(p_pdf)
-    cdf_Q = get_interpolated_cdf(q_pdf)
+    cdf_P = p_cdf if p_cdf is not None else get_interpolated_cdf(p_pdf)
+    cdf_Q = q_cdf if q_cdf is not None else get_interpolated_cdf(q_pdf)
 
     # W1 distance
     def g_p(t):
