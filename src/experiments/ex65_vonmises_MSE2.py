@@ -4,95 +4,14 @@ MSE, W1-estimator(method2), W2-estimator(method3)の比較
 """
 
 import time
-from functools import partial
 
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
 from numpy import typing as npt
 from parfor import pmap
-from scipy import optimize
 
-from ..calc_semidiscrete_W_dist import method1, method2
 from ..distributions import vonmises
-
-bounds = ((-np.pi, np.pi), (0.1, 750.0))
-initial_guess = (0, 3.5)
-
-
-def Wp_cost_func3(x, given_data_normed_sorted, p: int):
-    sample = vonmises.fast_quantile_sampling(x[0], x[1], len(given_data_normed_sorted))
-    sample = np.remainder(sample, 2 * np.pi) / (2 * np.pi)
-    sample = np.sort(sample)
-    return method1.method1(given_data_normed_sorted, sample, p=p, sorted=True)
-
-
-def est_W1_method3(given_data, x0=None):
-    """calc W1E by method3, given_data should be in [0, 2pi]"""
-    if x0 is None:
-        x0 = initial_guess
-    given_data_norm = given_data / (2 * np.pi)
-    given_data_norm_sorted = np.sort(given_data_norm)
-    cost_func = partial(
-        Wp_cost_func3, given_data_normed_sorted=given_data_norm_sorted, p=1
-    )
-    return optimize.minimize(
-        cost_func,
-        x0,
-        bounds=bounds,
-        method="powell",
-        options={"xtol": 1e-6, "ftol": 1e-6},
-    )
-
-
-def est_W2_method3(given_data, x0=None):
-    """Calc W2-estimator using method3
-
-    Args:
-        given_data (np.ndarray): [0, 2*pi]のデータ
-    """
-    if x0 is None:
-        x0 = initial_guess
-    given_data_norm = given_data / (2 * np.pi)
-    given_data_norm_sorted = np.sort(given_data_norm)
-    cost_func = partial(
-        Wp_cost_func3, given_data_normed_sorted=given_data_norm_sorted, p=2
-    )
-    return optimize.minimize(
-        cost_func,
-        x0,
-        bounds=bounds,
-        method="powell",
-        options={"xtol": 1e-6, "ftol": 1e-6},
-    )
-
-
-def W1_cost_func2(x, bin_num, data_cumsum_hist):
-    mu, kappa = x
-    dist_cumsum_hist = vonmises.cumsum_hist(mu, kappa, bin_num)
-    return method2.method2(data_cumsum_hist[1:], dist_cumsum_hist[1:])
-
-
-def est_W1_method2(given_data, x0=None):
-    """Calc W1-estimator using method2
-
-    Args:
-        given_data (np.ndarray): [0, 2*pi]のデータ
-    """
-    if x0 is None:
-        x0 = initial_guess
-    bin_num = len(given_data)
-    data_cumsum_hist = vonmises.cumsum_hist_data(given_data, bin_num)
-    cost_func = partial(
-        W1_cost_func2, bin_num=bin_num, data_cumsum_hist=data_cumsum_hist
-    )
-    return optimize.minimize(
-        cost_func,
-        x0,
-        bounds=bounds,
-        method="powell",
-        options={"xtol": 1e-6, "ftol": 1e-6},
-    )
 
 
 def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
@@ -100,21 +19,21 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
     sample = np.remainder(sample, 2 * np.pi)
 
     s_time = time.perf_counter()
-    MLE = vonmises.MLE(vonmises.T(sample), N)
+    MLE = vonmises.MLE_direct(sample)
     e_time = time.perf_counter()
     MLE_mu = MLE[0]
     MLE_kappa = MLE[1]
     MLE_time = e_time - s_time
 
     s_time = time.perf_counter()
-    est = est_W1_method2(sample, x0=MLE)
+    est = vonmises.W1_equal_div(sample, x0=MLE)
     e_time = time.perf_counter()
     W1method2_mu = est.x[0]
     W1method2_kappa = est.x[1]
     W1method2_time = e_time - s_time
 
     s_time = time.perf_counter()
-    est = est_W2_method3(sample, x0=MLE)
+    est = vonmises.W2_quantile_sampling(sample, x0=MLE)
     e_time = time.perf_counter()
     W2method3_mu = est.x[0]
     W2method3_kappa = est.x[1]

@@ -169,24 +169,27 @@ def W1_equal_div_cost_func(
 
 
 def W1_equal_div(
-    given_data: npt.NDArray[np.float64], x0=None
+    given_data: npt.NDArray[np.float64], x0=None, method="powell"
 ) -> optimize.OptimizeResult:
     """1-Wasserstein 距離（等分割ヒストグラム）を最小化するパラメータ推定"""
-    if x0 is None:
-        x0 = (0, 1.0)
     given_data = to_2pi_range(given_data)
     bin_num = len(given_data)
     data_cumsum_hist = cumsum_hist_data(given_data, bin_num)
     cost_func = partial(
         W1_equal_div_cost_func, bin_num=bin_num, data_cumsum_hist=data_cumsum_hist
     )
-    return optimize.minimize(
-        cost_func,
-        x0,
-        bounds=bounds,
-        method="powell",
-        options={"xtol": 1e-6, "ftol": 1e-6},
-    )
+    if method == "differential_evolution":
+        return optimize.differential_evolution(cost_func, bounds=bounds)
+    else:
+        if x0 is None:
+            x0 = (0, 1.0)
+        return optimize.minimize(
+            cost_func,
+            x0,
+            bounds=bounds,
+            method=method,
+            options={"xtol": 1e-6, "ftol": 1e-6},
+        )
 
 
 def W1_quantile_sampling_cost_func(
@@ -204,24 +207,27 @@ def W1_quantile_sampling_cost_func(
 
 
 def W1_quantile_sampling(
-    given_data: npt.NDArray[np.float64], x0=None
+    given_data: npt.NDArray[np.float64], x0=None, method="powell"
 ) -> optimize.OptimizeResult:
     """1-Wasserstein 距離（分位点サンプリング）を最小化するパラメータ推定"""
-    if x0 is None:
-        x0 = (0, 1.0)
     given_data = to_2pi_range(given_data)
     given_data_norm = given_data / (2 * np.pi)
     given_data_norm_sorted = np.sort(given_data_norm)
     cost_func = partial(
         W1_quantile_sampling_cost_func, given_data_normed_sorted=given_data_norm_sorted
     )
-    return optimize.minimize(
-        cost_func,
-        x0,
-        bounds=bounds,
-        method="powell",
-        options={"xtol": 1e-6, "ftol": 1e-6},
-    )
+    if method == "differential_evolution":
+        return optimize.differential_evolution(cost_func, bounds=bounds)
+    else:
+        if x0 is None:
+            x0 = (0, 1.0)
+        return optimize.minimize(
+            cost_func,
+            x0,
+            bounds=bounds,
+            method=method,
+            options={"xtol": 1e-6, "ftol": 1e-6},
+        )
 
 
 def W2_quantile_sampling_cost_func(
@@ -239,24 +245,27 @@ def W2_quantile_sampling_cost_func(
 
 
 def W2_quantile_sampling(
-    given_data: npt.NDArray[np.float64], x0=None
+    given_data: npt.NDArray[np.float64], x0=None, method="powell"
 ) -> optimize.OptimizeResult:
     """2-Wasserstein 距離（分位点サンプリング）を最小化するパラメータ推定"""
-    if x0 is None:
-        x0 = (0, 1.0)
     given_data = to_2pi_range(given_data)
     given_data_norm = given_data / (2 * np.pi)
     given_data_norm_sorted = np.sort(given_data_norm)
     cost_func = partial(
         W2_quantile_sampling_cost_func, given_data_normed_sorted=given_data_norm_sorted
     )
-    return optimize.minimize(
-        cost_func,
-        x0,
-        bounds=bounds,
-        method="powell",
-        options={"xtol": 1e-6, "ftol": 1e-6},
-    )
+    if method == "differential_evolution":
+        return optimize.differential_evolution(cost_func, bounds=bounds)
+    else:
+        if x0 is None:
+            x0 = (0, 1.0)
+        return optimize.minimize(
+            cost_func,
+            x0,
+            bounds=bounds,
+            method=method,
+            options={"xtol": 1e-6, "ftol": 1e-6},
+        )
 
 
 def type0_estimate(
