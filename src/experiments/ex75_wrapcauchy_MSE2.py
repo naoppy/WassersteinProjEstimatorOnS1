@@ -4,114 +4,20 @@ MSE, W2-estimator(method1), W1-estimator(method2)の比較
 """
 
 import time
-from functools import partial
 
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
 from numpy import typing as npt
 from parfor import pmap
-from scipy import optimize
 
-from ..calc_semidiscrete_W_dist import method1, method2
 from ..distributions import wrapedcauchy
-
-bounds = ((-np.pi, np.pi), (0.01, 0.99))
-
-
-def W2_cost_func3(x, given_data_normed_sorted):
-    sample = wrapedcauchy.quantile_sampling(
-        x[0], x[1], len(given_data_normed_sorted)
-    ) / (2 * np.pi)
-    return method1.method1(given_data_normed_sorted, sample, p=2, sorted=True)
-
-
-def est_W2_method3(given_data: npt.NDArray[np.float64], x0=None):
-    """Calc W2-estimator using method3
-
-    Args:
-        given_data (np.ndarray): [0, 2*pi]のデータ
-    """
-    if x0 is None:
-        x0 = (0, 0.5)
-    given_data_norm = given_data / (2 * np.pi)
-    given_data_norm_sorted = np.sort(given_data_norm)
-    cost_func = partial(W2_cost_func3, given_data_normed_sorted=given_data_norm_sorted)
-    return optimize.minimize(
-        cost_func,
-        x0,
-        bounds=bounds,
-        method="powell",
-        options={"xtol": 1e-6, "ftol": 1e-6},
-    )
-
-
-def W1_method2_cost_func(x, bin_num, data_cumsum_hist):
-    mu, rho = x
-    dist_cumsum_hist = wrapedcauchy.cumsum_hist(mu, rho, bin_num)
-    return method2.method2(data_cumsum_hist[1:], dist_cumsum_hist[1:])
-
-
-def est_W1_method2(given_data, x0=None):
-    """Calc W1-estimator using method1
-
-    Args:
-        given_data (np.ndarray): [0, 2*pi]のデータ
-    """
-    if x0 is None:
-        x0 = (0, 0.5)
-    bin_num = len(given_data)
-    data_cumsum_hist = wrapedcauchy.cumsum_hist_data(given_data, bin_num)
-    cost_func = partial(
-        W1_method2_cost_func, bin_num=bin_num, data_cumsum_hist=data_cumsum_hist
-    )
-    return optimize.minimize(
-        cost_func,
-        x0,
-        bounds=bounds,
-        method="powell",
-        options={"xtol": 1e-6, "ftol": 1e-6},
-    )
-
-
-def W1_cost_func3(x, given_data_normed_sorted):
-    sample = wrapedcauchy.quantile_sampling(
-        x[0], x[1], len(given_data_normed_sorted)
-    ) / (2 * np.pi)
-    return method1.method1(given_data_normed_sorted, sample, p=1, sorted=True)
-
-
-def est_W1_method3(given_data, x0=None):
-    """Calc W1-estimator using method3
-
-    Args:
-        given_data (np.ndarray): [0, 2*pi]のデータ
-    """
-    if x0 is None:
-        x0 = (0, 0.5)
-    given_data_norm = given_data / (2 * np.pi)
-    given_data_norm_sorted = np.sort(given_data_norm)
-    cost_func = partial(W1_cost_func3, given_data_normed_sorted=given_data_norm_sorted)
-    return optimize.minimize(
-        cost_func,
-        x0,
-        bounds=bounds,
-        method="powell",
-        options={"xtol": 1e-6, "ftol": 1e-6},
-    )
 
 
 def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
     # [0, 2*pi] の範囲でサンプリングしたいが、[mu, mu + 2*pi] の範囲になっているので修正
     sample = stats.wrapcauchy(loc=true_mu, c=true_rho).rvs(N)
     sample = np.remainder(sample, 2 * np.pi)
-
-    # s_time = time.perf_counter()
-    # MLE = wrapedcauchy.MLE_OKAMURA(sample, N, iter_num=10000)
-    # e_time = time.perf_counter()
-    # MLE_mu_okamura[i] = MLE[0]
-    # MLE_rho_okamura[i] = MLE[1]
-    # MLE_time_okamura[i] = e_time - s_time
 
     s_time = time.perf_counter()
     MLE = wrapedcauchy.MLE_Kent(sample, tol=1e-15)
@@ -120,44 +26,19 @@ def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
     MLE_rho_kent = MLE[1]
     MLE_time_kent = e_time - s_time
 
-    # s_time = time.perf_counter()
-    # MLE = wrapedcauchy.MLE_direct_opt(sample)
-    # e_time = time.perf_counter()
-    # MLE_mu_direct[i] = MLE[0]
-    # MLE_rho_direct[i] = MLE[1]
-    # MLE_time_direct[i] = e_time - s_time
-
-    # s_time = time.perf_counter()
-    # est = est_W2_method1(sample)
-    # e_time = time.perf_counter()
-    # method1_mu[i] = est[0][0]
-    # method1_rho[i] = est[0][1]
-    # method1_time[i] = e_time - s_time
-
     s_time = time.perf_counter()
-    est = est_W1_method2(sample, x0=MLE)
+    est = wrapedcauchy.W1_equal_div(sample, x0=MLE)
     e_time = time.perf_counter()
     W1method2_mu = est.x[0]
     W1method2_rho = est.x[1]
     W1method2_time = e_time - s_time
 
     s_time = time.perf_counter()
-    # profiler = cProfile.Profile()
-    # profiler.enable()
-    est = est_W2_method3(sample, x0=MLE)
-    # profiler.disable()
-    # profiler.print_stats(sort="time")
+    est = wrapedcauchy.W2_quantile_sampling(sample, x0=MLE)
     e_time = time.perf_counter()
     W2method3_mu = est.x[0]
     W2method3_rho = est.x[1]
     W2method3_time = e_time - s_time
-
-    # s_time = time.perf_counter()
-    # est = est_W1_method3(sample)
-    # e_time = time.perf_counter()
-    # method4_mu[i] = est.x[0]
-    # method4_rho[i] = est.x[1]
-    # method4_time[i] = e_time - s_time
 
     return np.array(
         [

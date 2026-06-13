@@ -1,17 +1,25 @@
+from functools import partial
 from typing import List
 
 import numpy as np
 import numpy.typing as npt
 from matplotlib import pyplot as plt
+from scipy import optimize
 from scipy.special import i0, i1, iv, ive
 from scipy.stats import vonmises
 
+from ..calc_semidiscrete_W_dist import method1, method2
+from ..misc.circular_utils import (
+    circular_quantile_sampling,
+    cumsum_hist_data,
+    to_2pi_range,
+)
+
+bounds = ((-np.pi, np.pi), (0.01, 100.0))
+
 
 def _bessel_ratio(v: int, kappa: float) -> float:
-    """I_v(kappa) / I_0(kappa) を安全に計算する。
-    オーバーフロー対策として、kappa >= 600 の場合は
-    指数スケーリングされた ive を使用する。
-    """
+    """I_v(kappa) / I_0(kappa) を安全に計算する。"""
     if kappa < 600:
         if v == 0:
             return 1.0
@@ -24,10 +32,7 @@ def _bessel_ratio(v: int, kappa: float) -> float:
 
 
 def _bessel_ratio_i0(kappa1: float, kappa0: float) -> float:
-    """I_0(kappa1) / I_0(kappa0) を安全に計算する。
-    オーバーフロー対策として、最大値が 600 以上の場合は
-    指数スケーリングされた ive を使用する。
-    """
+    """I_0(kappa1) / I_0(kappa0) を安全に計算する。"""
     if max(kappa1, kappa0) < 600:
         return i0(kappa1) / i0(kappa0)
     else:
@@ -35,9 +40,7 @@ def _bessel_ratio_i0(kappa1: float, kappa0: float) -> float:
 
 
 def fisher_info_2x2(kappa: float) -> npt.NDArray[np.float64]:
-    """
-    フォンミーゼス分布のフィッシャー情報量を計算する
-    """
+    """フォンミーゼス分布のフィッシャー情報量を計算する"""
     r1 = _bessel_ratio(1, kappa)
     r2 = _bessel_ratio(2, kappa)
     return np.array(
@@ -49,47 +52,26 @@ def fisher_info_2x2(kappa: float) -> npt.NDArray[np.float64]:
 
 
 def fisher_mat_inv_diag(kappa: float) -> List[float]:
-    """フィッシャー情報行列の逆行列の対角成分のリストを返す。
-
-    Returns:
-        List[float]: [mu, kappa] の順
-    """
-    mat = fisher_info_2x2(kappa)  # 対角行列なので逆数が逆行列
+    """フィッシャー情報行列の逆行列の対角成分のリストを返す。"""
+    mat = fisher_info_2x2(kappa)
     return [1 / mat[0][0], 1 / mat[1][1]]
 
 
-def T(x):
-    """フォンミーゼス分布の十分統計量を返す
-
-    Args:
-        x: フォンミーゼス分布からのサンプル。2pi周期。
-
-    Returns:
-        List[float, float]: 十分統計量、[cos, sin] の順
-    """
+def T(x: npt.NDArray[np.float64]) -> List[float]:
+    """フォンミーゼス分布の十分統計量を返す"""
     return [np.sum(np.cos(x)), np.sum(np.sin(x))]
 
 
-def MLE(T_data, N: int):
-    """最尤推定を行う
-
-    Args:
-        T_data: 十分統計量
-        N(int): サンプル数
-
-    Returns:
-        Tuple[float, float]: 最尤推定値、[mu_MLE, kappa_MLE] の順
-    """
+def MLE(T_data, N: int) -> List[float]:
+    """十分統計量を用いた最尤推定"""
     mu_MLE = np.arctan2(T_data[1], T_data[0])
     target_value = (T_data[0] * np.cos(mu_MLE) + T_data[1] * np.sin(mu_MLE)) / N
-    # ここから二分探索による数値計算で逆関数を求める
     EPS = 1e-6
     left = EPS
-    right = 100000.0  # オーバーフロー対策を行ったため、探索範囲を大きくできる
+    right = 100000.0
     while right - left > EPS:
         mid = (left + right) / 2
         now_value = _bessel_ratio(1, mid)
-        # print(mid, now_value) # for debug
         if np.abs(now_value - target_value) < EPS:
             break
         elif now_value - target_value > 0:
@@ -100,140 +82,65 @@ def MLE(T_data, N: int):
     return [mu_MLE, kappa_MLE]
 
 
-def cumsum_hist(mu: float, kappa: float, bin_num: int) -> npt.NDArray[np.float64]:
-    """[-pi, pi] の間を bin_num (=D) 等分した区間でのcdfの値を返す
-    [F(i/D)] i=0,1,...,D
+def vonmises_pdf_stable(
+    theta: npt.NDArray[np.float64], mu: float, kappa: float
+) -> npt.NDArray[np.float64]:
+    """Stable von Mises PDF using ive to prevent overflow."""
+    return np.exp(kappa * (np.cos(theta - mu) - 1)) / (2 * np.pi * ive(0, kappa))
+
+
+def vonmises_periodic_cdf_numerical(
+    x: npt.NDArray[np.float64], mu: float, kappa: float
+) -> npt.NDArray[np.float64]:
+    """Numerical periodic CDF for von Mises distribution.
+
+    Normalized to start at 0 on [0, 2*pi].
     """
     dist = vonmises(loc=mu, kappa=kappa)
-    x = np.linspace(-np.pi, np.pi, bin_num + 1)
-    y = dist.cdf(x) - dist.cdf(-np.pi)
+    # Scipy's vonmises.cdf is monotonic on the real line: cdf(x + 2*pi) = cdf(x) + 1.
+    # Therefore, to normalize it to start at 0 at x=0, we simply compute:
+    return dist.cdf(x) - dist.cdf(0)
+
+
+def cumsum_hist(mu: float, kappa: float, bin_num: int) -> npt.NDArray[np.float64]:
+    """[0, 2pi] を bin_num 等分した区間でのcdfの値を返す"""
+    x = np.linspace(0, 2 * np.pi, bin_num + 1)
+    y = vonmises_periodic_cdf_numerical(x, mu, kappa)
 
     assert len(y) == bin_num + 1
-    assert abs(y[0] - 0.0) < 1e-7, print(f"{mu}, {kappa}, {y}")
+    assert abs(y[0] - 0.0) < 1e-7
     assert abs(y[-1] - 1.0) < 1e-7
     return y
-
-
-def cumsum_hist_data(data: npt.NDArray[np.float64], bin_num) -> npt.NDArray[np.float64]:
-    """[-pi, pi] の間を bin_num (=D) 等分した区間でのデータのcdfの値を返す
-    [F(i/D)] i=0,1,...,D
-    """
-    n = len(data)
-    data_hist = np.zeros(bin_num + 1)
-    for x in data:
-        data_hist[
-            np.clip(
-                int(np.remainder(bin_num * (x + np.pi) / (2 * np.pi), bin_num)) + 1,
-                1,
-                bin_num,
-            )
-        ] += 1
-    data_cumsum_hist = np.cumsum(data_hist) / n
-
-    assert abs(data_cumsum_hist[0] - 0.0) < 1e-7
-    assert abs(data_cumsum_hist[-1] - 1.0) < 1e-7
-    return data_cumsum_hist
 
 
 def quantile_sampling(
     mu: float, kappa: float, sample_num: int
 ) -> npt.NDArray[np.float64]:
-    """フォンミーゼス分布から分位点サンプリングする
-
-    Args:
-        mu (float): 分布のパラメータ
-        kappa (float): 分布のパラメータ
-        sample_num (int): サンプルする数
-
-    Returns:
-        npt.NDArray[np.float64]: [-pi, pi] の範囲のサンプル。F^(-1)(i/D) (i=0, 1, ..., D)
-    """
-    eps = 1e-7
-    x = np.linspace(
-        eps, 1 - eps, sample_num
-    )  # なぜか0, 1のppfを計算するとinfになるので避ける。
-    dist = vonmises(loc=mu, kappa=kappa)
-    y = dist.ppf(x)
-    y2 = np.remainder(y + np.pi, 2 * np.pi) - np.pi
-    assert np.all((-np.pi <= y2) & (y2 <= np.pi))
-    return y2
-
-
-def fast_quantile_sampling(
-    mu: float, kappa: float, sample_num: int
-) -> npt.NDArray[np.float64]:
-    """フォンミーゼス分布から簡易的な分位点サンプリングする
-
-    Args:
-        mu (float): 分布のパラメータ
-        kappa (float): 分布のパラメータ
-        sample_num (int): サンプルする数
-
-    Returns:
-        npt.NDArray[np.float64]: [mu-pi, mu+pi] の範囲のサンプル。F^(-1)(i/D) (i=0, 1, ..., D)
-    """
-    x, step = np.linspace(0, 1, sample_num, endpoint=False, retstep=True)
-    x = x + step / 2
+    """von Mises 分布から分位点サンプリングする"""
     dist = vonmises(loc=mu, kappa=kappa)
 
-    # cdfを一気に計算しておく
-    y, step = np.linspace(mu - np.pi, mu + np.pi, 1048576, retstep=True)  # 2^20
-    z = dist.cdf(y)
-    lefts = np.zeros(len(x))
-    i = 0
-    for j, xi in enumerate(x):
-        while i < len(z) and z[i] < xi:
-            i += 1
-        if i == 0:
-            lefts[j] = mu - np.pi
-        else:
-            lefts[j] = mu - np.pi + (i - 1) * step
-    # now (lefts, lefts + step) に xi がある。中点で代表。
-    return lefts + step / 2
+    def ppf_func(q):
+        return dist.ppf(q)
+
+    return circular_quantile_sampling(ppf_func, sample_num)
 
 
 def circular_variance(kappa: float) -> float:
-    """フォンミーゼス分布の円周分散を計算する
-
-    Args:
-        kappa (float): 分布のパラメータ
-
-    Returns:
-        float: 円周分散
-    """
+    """円周分散"""
     R = _bessel_ratio(1, kappa)
     return 1 - R
 
 
 def A0(kappa: float) -> float:
-    """A0関数を計算する。
-    A0(0)=0, A0(inf)=1 の単調増加関数。
-    大きな値だとオーバーフローするので注意。
-
-    Args:
-        kappa (float): 分布のパラメータ
-
-    Returns:
-        float: A0(kappa) の値
-    """
+    """A0関数を計算する"""
     return _bessel_ratio(1, kappa)
 
 
 def A0Inverse(y: float) -> float:
-    """A0の逆関数を数値的に求める
-    A0はA0(kappa) = I1(kappa) / I0(kappa) で定義される関数で、
-    kappa >= 0 の単調増加関数。
-    Ap(0)=0, Ap(inf)=1
-
-    Args:
-        y (float): A0(kappa) の値. 0 <= y < 1
-
-    Returns:
-        float: kappa の値
-    """
+    """A0の逆関数を数値的に求める"""
     EPS = 1e-6
     left = EPS
-    right = 100000.0  # オーバーフロー対策を行ったため、探索範囲を大きくできる
+    right = 100000.0
     while right - left > EPS:
         mid = (left + right) / 2
         now_value = _bessel_ratio(1, mid)
@@ -246,29 +153,125 @@ def A0Inverse(y: float) -> float:
     return mid
 
 
+def MLE_direct(sample: npt.NDArray[np.float64]) -> List[float]:
+    """十分統計量を用いた標準的な最尤推定"""
+    sample = to_2pi_range(sample)
+    T_data = T(sample)
+    return MLE(T_data, len(sample))
+
+
+def W1_equal_div_cost_func(
+    x, bin_num: int, data_cumsum_hist: npt.NDArray[np.float64]
+) -> float:
+    mu, kappa = x
+    dist_cumsum_hist = cumsum_hist(mu, kappa, bin_num)
+    return method2.method2(data_cumsum_hist[1:], dist_cumsum_hist[1:])
+
+
+def W1_equal_div(
+    given_data: npt.NDArray[np.float64], x0=None
+) -> optimize.OptimizeResult:
+    """1-Wasserstein 距離（等分割ヒストグラム）を最小化するパラメータ推定"""
+    if x0 is None:
+        x0 = (0, 1.0)
+    given_data = to_2pi_range(given_data)
+    bin_num = len(given_data)
+    data_cumsum_hist = cumsum_hist_data(given_data, bin_num)
+    cost_func = partial(
+        W1_equal_div_cost_func, bin_num=bin_num, data_cumsum_hist=data_cumsum_hist
+    )
+    return optimize.minimize(
+        cost_func,
+        x0,
+        bounds=bounds,
+        method="powell",
+        options={"xtol": 1e-6, "ftol": 1e-6},
+    )
+
+
+def W1_quantile_sampling_cost_func(
+    x, given_data_normed_sorted: npt.NDArray[np.float64]
+) -> float:
+    dist = vonmises(loc=x[0], kappa=x[1])
+
+    def ppf_func(q):
+        return dist.ppf(q)
+
+    sample = circular_quantile_sampling(ppf_func, len(given_data_normed_sorted)) / (
+        2 * np.pi
+    )
+    return method1.method1(given_data_normed_sorted, sample, p=1, sorted=True)
+
+
+def W1_quantile_sampling(
+    given_data: npt.NDArray[np.float64], x0=None
+) -> optimize.OptimizeResult:
+    """1-Wasserstein 距離（分位点サンプリング）を最小化するパラメータ推定"""
+    if x0 is None:
+        x0 = (0, 1.0)
+    given_data = to_2pi_range(given_data)
+    given_data_norm = given_data / (2 * np.pi)
+    given_data_norm_sorted = np.sort(given_data_norm)
+    cost_func = partial(
+        W1_quantile_sampling_cost_func, given_data_normed_sorted=given_data_norm_sorted
+    )
+    return optimize.minimize(
+        cost_func,
+        x0,
+        bounds=bounds,
+        method="powell",
+        options={"xtol": 1e-6, "ftol": 1e-6},
+    )
+
+
+def W2_quantile_sampling_cost_func(
+    x, given_data_normed_sorted: npt.NDArray[np.float64]
+) -> float:
+    dist = vonmises(loc=x[0], kappa=x[1])
+
+    def ppf_func(q):
+        return dist.ppf(q)
+
+    sample = circular_quantile_sampling(ppf_func, len(given_data_normed_sorted)) / (
+        2 * np.pi
+    )
+    return method1.method1(given_data_normed_sorted, sample, p=2, sorted=True)
+
+
+def W2_quantile_sampling(
+    given_data: npt.NDArray[np.float64], x0=None
+) -> optimize.OptimizeResult:
+    """2-Wasserstein 距離（分位点サンプリング）を最小化するパラメータ推定"""
+    if x0 is None:
+        x0 = (0, 1.0)
+    given_data = to_2pi_range(given_data)
+    given_data_norm = given_data / (2 * np.pi)
+    given_data_norm_sorted = np.sort(given_data_norm)
+    cost_func = partial(
+        W2_quantile_sampling_cost_func, given_data_normed_sorted=given_data_norm_sorted
+    )
+    return optimize.minimize(
+        cost_func,
+        x0,
+        bounds=bounds,
+        method="powell",
+        options={"xtol": 1e-6, "ftol": 1e-6},
+    )
+
+
 def type0_estimate(
     data: npt.NDArray[np.float64], gamma: float, debug: bool = False
 ) -> List[float]:
-    """type0推定量を計算する
-    Kato and Eguchi (2016)
-
-    Args:
-        data (npt.NDArray[np.float64]): サンプルデータ
-        gamma (float): ハイパーパラメータ
-        debug (bool): デバッグ用のフラグ。Trueのとき、更新ごとに推定値を出力する。
-
-    Returns:
-        List[float]: 推定値 [mu, kappa] の順
-    """
+    """Kato and Eguchi (2016) の type0 推定量"""
+    data = to_2pi_range(data)
     T_data = T(data)
     N = len(data)
-    initial_guess = MLE(T_data, N)  # 最尤推定値を初期値として使用
+    initial_guess = MLE(T_data, N)
 
     now_mu: float = initial_guess[0]
     now_kappa: float = initial_guess[1]
 
-    for i in range(1000):  # 最大1000回の更新
-        # 更新式
+    for i in range(1000):
         next_mu = now_mu
         next_kappa = now_kappa
 
@@ -283,7 +286,7 @@ def type0_estimate(
         next_kappa = A0Inverse(target) / (1 + gamma)
 
         if (next_mu - now_mu) ** 2 + (next_kappa - now_kappa) ** 2 < 1e-16:
-            break  # 収束判定
+            break
         now_mu = next_mu
         now_kappa = next_kappa
         if debug:
@@ -294,26 +297,16 @@ def type0_estimate(
 def type1_estimate(
     data: npt.NDArray[np.float64], beta: float, debug: bool = False
 ) -> List[float]:
-    """type1推定量を計算する
-    Kato and Eguchi (2016)
-
-    Args:
-        data (npt.NDArray[np.float64]): サンプルデータ
-        beta (float): ハイパーパラメータ
-        debug (bool): デバッグ用のフラグ。Trueのとき、更新ごとに推定値を出力する。
-
-    Returns:
-        List[float]: 推定値 [mu, kappa] の順
-    """
+    """Kato and Eguchi (2016) の type1 推定量"""
+    data = to_2pi_range(data)
     T_data = T(data)
     N = len(data)
-    initial_guess = MLE(T_data, N)  # 最尤推定値を初期値として使用
+    initial_guess = MLE(T_data, N)
 
     now_mu: float = initial_guess[0]
     now_kappa: float = initial_guess[1]
 
-    for i in range(1000):  # 最大1000回の更新
-        # 更新式
+    for i in range(1000):
         next_mu = now_mu
         next_kappa = now_kappa
 
@@ -322,7 +315,6 @@ def type1_estimate(
         w = np.exp(exponents - max_exp)
         w_sum = np.sum(w)
 
-        # 規格化された加重平均
         w_norm = w / w_sum
         y_norm = np.sum(w_norm * np.sin(data))
         x_norm = np.sum(w_norm * np.cos(data))
@@ -331,7 +323,6 @@ def type1_estimate(
         r_i0_base = ive(0, (1 + beta) * now_kappa) / ive(0, now_kappa)
         D_base = r_i0_base * (A0((1 + beta) * now_kappa) - A0(now_kappa)) / now_kappa
 
-        # N * D / sum(w_i) の計算 (exp_diff が大きい場合のオーバーフローを防ぐ)
         exp_diff = np.minimum(700.0, beta * now_kappa - max_exp)
         coeff = (N * D_base / w_sum) * np.exp(exp_diff)
 
@@ -341,7 +332,7 @@ def type1_estimate(
         next_kappa = A0Inverse(target)
 
         if (next_mu - now_mu) ** 2 + (next_kappa - now_kappa) ** 2 < 1e-16:
-            break  # 収束判定
+            break
         now_mu = next_mu
         now_kappa = next_kappa
         if debug:
@@ -350,19 +341,26 @@ def type1_estimate(
 
 
 def _plot_for_slide():
-    """スライドに載せる分布の例の画像を作成する"""
+    """スライド用の分布描画"""
     n = 100000
     mu = 0
-    kappa = 2
-    fig = plt.figure(figsize=(12, 6))
+    kappa = 1
+    plt.figure(figsize=(12, 6))
     left = plt.subplot(121)
     right = plt.subplot(122, projection="polar")
     x = np.linspace(-np.pi, np.pi, 1000)
-    vonmises_pdf = vonmises.pdf(x, loc=mu, kappa=kappa)
-    sample = fast_quantile_sampling(mu, kappa, n)
+    pdf_vals = vonmises_pdf_stable(x, mu, kappa)
+
+    dist = vonmises(loc=mu, kappa=kappa)
+
+    def ppf_func(q):
+        return dist.ppf(q)
+
+    sample = circular_quantile_sampling(ppf_func, n)
+    sample = np.remainder(sample + np.pi, 2 * np.pi) - np.pi
     ticks = [0, 0.15, 0.3]
 
-    left.plot(x, vonmises_pdf)
+    left.plot(x, pdf_vals)
     left.set_yticks(ticks)
     number_of_bins = int(np.sqrt(n))
     left.hist(sample, density=True, bins=number_of_bins)
@@ -370,86 +368,10 @@ def _plot_for_slide():
     left.set_xlim(-np.pi, np.pi)
     left.grid(True)
 
-    right.plot(x, vonmises_pdf, label="PDF")
+    right.plot(x, pdf_vals, label="PDF")
     right.set_yticks(ticks)
     right.hist(sample, density=True, bins=number_of_bins, label="Histogram")
     right.set_title("Polar plot")
 
     right.legend(bbox_to_anchor=(0.15, 1.06))
     plt.show()
-
-
-def _estimate():
-    """
-    いろんな推定量を計算してみる
-    """
-    mu = 0.5 * np.pi + 2 * np.pi  # circular mean
-    kappa = 1.3  # concentration
-    N = 10000
-    dist = vonmises(loc=mu, kappa=kappa)
-    sample = dist.rvs(N)
-    T_data = T(sample)
-    mu_MLE, kappa_MLE = MLE(T_data, N)
-    print(f"MLE: mu={mu_MLE}, kappa={kappa_MLE}")
-    mu_type0, kappa_type0 = type0_estimate(sample, gamma=0, debug=True)
-    print(f"type0 estimator: mu={mu_type0}, kappa={kappa_type0}")
-    mu_type1, kappa_type1 = type1_estimate(sample, beta=0, debug=True)
-    print(f"type1 estimator: mu={mu_type1}, kappa={kappa_type1}")
-    mu_type0, kappa_type0 = type0_estimate(sample, gamma=0.5, debug=True)
-    print(f"type0 estimator: mu={mu_type0}, kappa={kappa_type0}")
-    mu_type1, kappa_type1 = type1_estimate(sample, beta=0.5, debug=True)
-    print(f"type1 estimator: mu={mu_type1}, kappa={kappa_type1}")
-
-
-def _main():
-    mu = 0.5 * np.pi + 2 * np.pi  # circular mean
-    kappa = 1.3  # concentration
-    N = 10000
-    dist = vonmises(loc=mu, kappa=kappa)
-
-    # calc Fisher info matrix
-    print("Fisher info:")
-    print(fisher_info_2x2(kappa))
-
-    sample = dist.rvs(N)
-    print(f"min: {np.min(sample)}, max: {np.max(sample)}")  # [-pi, pi]
-
-    sample2 = np.remainder(sample, 2 * np.pi)
-    print(f"min: {np.min(sample2)}, max: {np.max(sample2)}")  # [0, 2pi]
-
-    # calc MLE
-    T_data = T(sample)
-    mu_MLE, kappa_MLE = MLE(T_data, N)
-    print(f"MLE: mu={mu_MLE}, kappa={kappa_MLE}")
-
-    sample2 = quantile_sampling(mu, kappa, N)
-    print(f"min: {np.min(sample2)}, max: {np.max(sample2)}")
-
-    # plots
-    # 普通のCDFは周期拡張されていて、平均で0.5になるようになっている。
-    # 不便なので、-piで0、piで1になるようなCDFに変換する。
-    print(dist.cdf(mu))  # 0.5
-    x = np.linspace(-np.pi, np.pi, 1001)
-    plt.plot(x, dist.pdf(x), label="pdf")
-    plt.plot(x, dist.cdf(x), label="cdf")
-    plt.plot(x, dist.cdf(x) - dist.cdf(-np.pi), label="normalized cdf")
-    plt.legend()
-    plt.show()
-
-    # 普通のPPFは周期拡張されていて、0で平均-pi, 1で平均+piになるようになっている。
-    # つまり、普通のCDFの逆関数になるようになっている。
-    # 0で-pi、1でpiになるようなPPFにすることもできるが、多くの場合する必要はない。
-    eps = 1e-7
-    x = np.linspace(eps, 1 - eps, 1001)
-    y = dist.ppf(x)
-    plt.plot(x, y, label="ppf")
-    # y2 = dist.ppf(x + dist.cdf(-np.pi))
-    # plt.plot(x, y2, label="normalized ppf")
-    plt.legend()
-    plt.show()
-
-
-if __name__ == "__main__":
-    _estimate()
-    # _main()
-    # _plot_for_slide()

@@ -5,96 +5,15 @@ MLE, W1, W2で比較。
 """
 
 import time
-from functools import partial
 
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
 from numpy import typing as npt
 from parfor import pmap
-from scipy import optimize
 
-from ..calc_semidiscrete_W_dist import method1, method2
 from ..distributions import wrapedcauchy
 from ..misc import dist_utils
-
-bounds = ((-np.pi, np.pi), (0.01, 0.99))
-
-
-def W2_cost_func3(x, given_data_normed_sorted):
-    sample = wrapedcauchy.quantile_sampling(
-        x[0], x[1], len(given_data_normed_sorted)
-    ) / (2 * np.pi)
-    return method1.method1(given_data_normed_sorted, sample, p=2, sorted=True)
-
-
-def est_W2_method3(given_data: npt.NDArray[np.float64]):
-    """Calc W2-estimator using method3
-
-    Args:
-        given_data (np.ndarray): [0, 2*pi]のデータ
-    """
-    given_data_norm = given_data / (2 * np.pi)
-    given_data_norm_sorted = np.sort(given_data_norm)
-    cost_func = partial(W2_cost_func3, given_data_normed_sorted=given_data_norm_sorted)
-    return optimize.minimize(
-        cost_func,
-        (0, 0.5),
-        bounds=bounds,
-        method="powell",
-        options={"xtol": 1e-6, "ftol": 1e-6},
-    )
-
-
-def W1_method2_cost_func(x, bin_num, data_cumsum_hist):
-    mu, rho = x
-    dist_cumsum_hist = wrapedcauchy.cumsum_hist(mu, rho, bin_num)
-    return method2.method2(data_cumsum_hist[1:], dist_cumsum_hist[1:])
-
-
-def est_W1_method2(given_data):
-    """Calc W1-estimator using method1
-
-    Args:
-        given_data (np.ndarray): [0, 2*pi]のデータ
-    """
-    bin_num = len(given_data)
-    data_cumsum_hist = wrapedcauchy.cumsum_hist_data(given_data, bin_num)
-    cost_func = partial(
-        W1_method2_cost_func, bin_num=bin_num, data_cumsum_hist=data_cumsum_hist
-    )
-    return optimize.minimize(
-        cost_func,
-        (0, 0.5),
-        bounds=bounds,
-        method="powell",
-        options={"xtol": 1e-6, "ftol": 1e-6},
-    )
-
-
-def W1_cost_func3(x, given_data_normed_sorted):
-    sample = wrapedcauchy.quantile_sampling(
-        x[0], x[1], len(given_data_normed_sorted)
-    ) / (2 * np.pi)
-    return method1.method1(given_data_normed_sorted, sample, p=1, sorted=True)
-
-
-def est_W1_method3(given_data):
-    """Calc W1-estimator using method3
-
-    Args:
-        given_data (np.ndarray): [0, 2*pi]のデータ
-    """
-    given_data_norm = given_data / (2 * np.pi)
-    given_data_norm_sorted = np.sort(given_data_norm)
-    cost_func = partial(W1_cost_func3, given_data_normed_sorted=given_data_norm_sorted)
-    return optimize.minimize(
-        cost_func,
-        (0, 0.5),
-        bounds=bounds,
-        method="powell",
-        options={"xtol": 1e-6, "ftol": 1e-6},
-    )
 
 
 def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
@@ -106,6 +25,7 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
         return dist_utils.vonmises_pdf(theta, true_mu, true_kappa)
 
     dist_p = stats.vonmises(loc=true_mu, kappa=true_kappa)
+
     def p_cdf(theta):
         return dist_p.cdf(theta) - dist_p.cdf(0)
 
@@ -121,17 +41,17 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
         return dist_utils.wrapcauchy_pdf(theta, MLE_mu, MLE_rho)
 
     def q_cdf_mle(theta):
-        return wrapedcauchy.wrapcauchy_periodic_cdf(
+        return wrapedcauchy.wrapcauchy_periodic_cdf_analytical(
             theta, MLE_rho, MLE_mu
-        ) - wrapedcauchy.wrapcauchy_periodic_cdf(0, MLE_rho, MLE_mu)
+        ) - wrapedcauchy.wrapcauchy_periodic_cdf_analytical(0, MLE_rho, MLE_mu)
 
     mle_kl, mle_w1, mle_w2 = dist_utils.calculate_distances(
         p_pdf, q_pdf_mle, p_cdf=p_cdf, q_cdf=q_cdf_mle
     )
 
-    # W1 method2
+    # W1 method2 (equal division)
     s_time = time.perf_counter()
-    est = est_W1_method2(sample)
+    est = wrapedcauchy.W1_equal_div(sample)
     e_time = time.perf_counter()
     W1method2_mu = est.x[0]
     W1method2_rho = est.x[1]
@@ -141,17 +61,19 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
         return dist_utils.wrapcauchy_pdf(theta, W1method2_mu, W1method2_rho)
 
     def q_cdf_w1m2(theta):
-        return wrapedcauchy.wrapcauchy_periodic_cdf(
+        return wrapedcauchy.wrapcauchy_periodic_cdf_analytical(
             theta, W1method2_rho, W1method2_mu
-        ) - wrapedcauchy.wrapcauchy_periodic_cdf(0, W1method2_rho, W1method2_mu)
+        ) - wrapedcauchy.wrapcauchy_periodic_cdf_analytical(
+            0, W1method2_rho, W1method2_mu
+        )
 
     w1m2_kl, w1m2_w1, w1m2_w2 = dist_utils.calculate_distances(
         p_pdf, q_pdf_w1m2, p_cdf=p_cdf, q_cdf=q_cdf_w1m2
     )
 
-    # W1 method3
+    # W1 method3 (quantile sampling)
     s_time = time.perf_counter()
-    est = est_W1_method3(sample)
+    est = wrapedcauchy.W1_quantile_sampling(sample)
     e_time = time.perf_counter()
     W1method3_mu = est.x[0]
     W1method3_rho = est.x[1]
@@ -161,17 +83,19 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
         return dist_utils.wrapcauchy_pdf(theta, W1method3_mu, W1method3_rho)
 
     def q_cdf_w1m3(theta):
-        return wrapedcauchy.wrapcauchy_periodic_cdf(
+        return wrapedcauchy.wrapcauchy_periodic_cdf_analytical(
             theta, W1method3_rho, W1method3_mu
-        ) - wrapedcauchy.wrapcauchy_periodic_cdf(0, W1method3_rho, W1method3_mu)
+        ) - wrapedcauchy.wrapcauchy_periodic_cdf_analytical(
+            0, W1method3_rho, W1method3_mu
+        )
 
     w1m3_kl, w1m3_w1, w1m3_w2 = dist_utils.calculate_distances(
         p_pdf, q_pdf_w1m3, p_cdf=p_cdf, q_cdf=q_cdf_w1m3
     )
 
-    # W2 method3
+    # W2 method3 (quantile sampling)
     s_time = time.perf_counter()
-    est = est_W2_method3(sample)
+    est = wrapedcauchy.W2_quantile_sampling(sample)
     e_time = time.perf_counter()
     W2method3_mu = est.x[0]
     W2method3_rho = est.x[1]
@@ -181,9 +105,11 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
         return dist_utils.wrapcauchy_pdf(theta, W2method3_mu, W2method3_rho)
 
     def q_cdf_w2m3(theta):
-        return wrapedcauchy.wrapcauchy_periodic_cdf(
+        return wrapedcauchy.wrapcauchy_periodic_cdf_analytical(
             theta, W2method3_rho, W2method3_mu
-        ) - wrapedcauchy.wrapcauchy_periodic_cdf(0, W2method3_rho, W2method3_mu)
+        ) - wrapedcauchy.wrapcauchy_periodic_cdf_analytical(
+            0, W2method3_rho, W2method3_mu
+        )
 
     w2m3_kl, w2m3_w1, w2m3_w2 = dist_utils.calculate_distances(
         p_pdf, q_pdf_w2m3, p_cdf=p_cdf, q_cdf=q_cdf_w2m3

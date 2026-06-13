@@ -5,13 +5,19 @@ import numpy as np
 import numpy.typing as npt
 from matplotlib import pyplot as plt
 from scipy import optimize
-from scipy.stats import wrapcauchy
+
+from ..calc_semidiscrete_W_dist import method1, method2
+from ..misc.circular_utils import (
+    circular_quantile_sampling,
+    cumsum_hist_data,
+    to_2pi_range,
+)
+
+bounds = ((-np.pi, np.pi), (0.01, 0.99))
 
 
 def fisher_info_2x2(rho: float) -> npt.NDArray[np.float64]:
-    """
-    巻き込みコーシー分布のフィッシャー情報量を計算する
-    """
+    """巻き込みコーシー分布のフィッシャー情報量を計算する"""
     rho_p2 = rho * rho
     bunbo = (1 - rho_p2) ** 2
     return np.array(
@@ -23,15 +29,13 @@ def fisher_info_2x2(rho: float) -> npt.NDArray[np.float64]:
 
 
 def fisher_mat_inv_diag(rho: float) -> List[float]:
-    """
-    巻き込みコーシー分布のフィッシャー情報量の逆行列の対角成分を計算する
-    """
+    """巻き込みコーシー分布のフィッシャー情報量の逆行列の対角成分を計算する"""
     rho_p2 = rho * rho
     bunbo = (1 - rho_p2) ** 2
     return [bunbo / (2 * rho_p2), bunbo / 2]
 
 
-def wrapcauchy_pdf_raw(
+def wrapcauchy_pdf_analytical(
     theta: npt.NDArray[np.float64], c: float, loc: float = 0.0, scale: float = 1.0
 ) -> npt.NDArray[np.float64]:
     """巻き込みコーシー分布のPDF値を計算する。数値的に安定な式を使用。"""
@@ -41,11 +45,11 @@ def wrapcauchy_pdf_raw(
     return (1.0 - c**2) / (2.0 * np.pi * scale * denom)
 
 
-def wrapcauchy_cdf_raw(
-    theta: npt.NDArray[np.float64], c: float, loc: float = 0.0, scale: float = 1.0
+def wrapcauchy_periodic_cdf_analytical(
+    x: npt.NDArray[np.float64], c: float, loc: float = 0.0, scale: float = 1.0
 ) -> npt.NDArray[np.float64]:
-    """[loc, loc + 2*pi*scale] の範囲のCDFの値を返す"""
-    norm_x = np.remainder(theta - loc, 2.0 * np.pi * scale) / scale
+    """[loc, loc + 2*pi*scale] で定義されている CDF を R 全体に拡張"""
+    norm_x = np.remainder(x - loc, 2.0 * np.pi * scale) / scale
     factor = (1.0 + c) / (1.0 - c)
     res = np.empty_like(norm_x, dtype=np.float64)
 
@@ -60,10 +64,10 @@ def wrapcauchy_cdf_raw(
         factor * np.tan((2.0 * np.pi - norm_x[mask3]) / 2.0)
     )
 
-    return res
+    return res + np.floor_divide(x - loc, 2.0 * np.pi * scale)
 
 
-def wrapcauchy_ppf_raw(
+def wrapcauchy_ppf_analytical(
     q: npt.NDArray[np.float64], c: float, loc: float = 0.0, scale: float = 1.0
 ) -> npt.NDArray[np.float64]:
     """巻き込みコーシー分布の分位関数を計算する。数値的に安定な式を使用。"""
@@ -85,28 +89,12 @@ def wrapcauchy_ppf_raw(
     return loc + res * scale
 
 
-def wrapcauchy_true_pdf(
-    x: npt.NDArray[np.float64], c: float, loc: float = 0.0, scale: float = 1.0
-) -> npt.NDArray[np.float64]:
-    """[loc, loc+2*pi*scale] で定義されている pdf を R 全体に拡張"""
-    return wrapcauchy_pdf_raw(x, c, loc, scale)
-
-
-def wrapcauchy_periodic_cdf(
-    x: npt.NDArray[np.float64], c: float, loc: float = 0.0, scale: float = 1.0
-) -> npt.NDArray[np.float64]:
-    """[loc, loc+2*pi*scale] で定義されている cdf を R 全体に拡張"""
-    return wrapcauchy_cdf_raw(x, c, loc, scale) + np.floor_divide(
-        x - loc, 2.0 * np.pi * scale
-    )
-
-
-def cumsum_hist(mu: float, rho: float, bin_num) -> npt.NDArray[np.float64]:
-    """[0, 2pi] を bin_num 等分した区間でのcdfの値を返す
-    [F(i/D)] i=0,1,...,D
-    """
+def cumsum_hist(mu: float, rho: float, bin_num: int) -> npt.NDArray[np.float64]:
+    """[0, 2pi] を bin_num 等分した区間でのcdfの値を返す"""
     x = np.linspace(0, 2 * np.pi, bin_num + 1)
-    y = wrapcauchy_periodic_cdf(x, rho, mu, 1) - wrapcauchy_periodic_cdf(0, rho, mu, 1)
+    y = wrapcauchy_periodic_cdf_analytical(
+        x, rho, mu, 1
+    ) - wrapcauchy_periodic_cdf_analytical(0, rho, mu, 1)
 
     assert len(y) == bin_num + 1
     assert abs(y[0] - 0.0) < 1e-7
@@ -114,132 +102,42 @@ def cumsum_hist(mu: float, rho: float, bin_num) -> npt.NDArray[np.float64]:
     return y
 
 
-def cumsum_hist_data(sample, bin_Num) -> npt.NDArray[np.float64]:
-    """[0, 2pi] を bin_num 等分した区間でのデータのcdfの値を返す
-    [F(i/D)] i=0,1,...,D
-    """
-    n = len(sample)
-    data_hist = np.zeros(bin_Num + 1)
-    for x in sample:
-        data_hist[np.clip(int(x / (2 * np.pi) * bin_Num) + 1, 1, bin_Num)] += 1
-    data_cumsum_hist = np.cumsum(data_hist) / n
-
-    assert abs(data_cumsum_hist[0] - 0.0) < 1e-7
-    assert abs(data_cumsum_hist[-1] - 1.0) < 1e-7
-    return data_cumsum_hist
-
-
-def quantile_sampling(
-    mu: float, rho: float, sample_num: int
-) -> npt.NDArray[np.float64]:
-    """巻き込みコーシー分布から分位点サンプリングする。
-    ソート済みの点列を返す。O(n)。
-
-    Args:
-        mu (float): 分布のパラメータ
-        rho (float): 分布のパラメータ
-        sample_num (int): サンプルする数
-
-    Returns:
-        npt.NDArray[np.float64]: [0, 2pi] の範囲のサンプル。F^(-1)(i/D) (i=0, 1, ..., D)
-    """
-    x, step = np.linspace(0, 1, sample_num, endpoint=False, retstep=True)
-    x = x + step / 2
-    assert len(x) == sample_num
-    y = wrapcauchy_ppf_raw(x, rho, loc=mu)
-    y = np.remainder(y, 2 * np.pi)
-
-    if sample_num > 1:
-        diffs = np.diff(y)
-        min_idx = np.argmin(diffs)
-        if diffs[min_idx] < 0:
-            i = min_idx + 1
-        else:
-            i = 0
-        y = np.roll(y, -i)
-
-    assert np.all((0 <= y) & (y <= 2 * np.pi))
-    assert np.all(np.diff(y) >= 0)
-    return y
-
-
-# see section 3.2
-def _q(w, n, x) -> complex:
-    return n / (np.sum(1 / (np.exp(1j * x) - 1 / w))) + 1 / w
-
-
-def MLE_OKAMURA(x, N: int, iter_num=100) -> npt.NDArray[np.float64]:
-    """[mu, rho] で返す
-
-    CHARACTERIZATIONS OF THE MAXIMUM LIKELIHOOD ESTIMATOR OF THE CAUCHY DISTRIBUTION
-    https://arxiv.org/abs/2104.06130
-    で提案されているコーシー分布に対する最尤推定法を実装する
-    指数的に収束する反復法で、MLEに必ず収束する
-
-    Args:
-        x (npt.NDArray[np.float64]): 0~2piの角度データ
-        N (int): データ数
-        iter_num (int, optional): 反復回数. Defaults to 100.
-
-    Returns:
-        npt.NDArray[np.float64]: [mu, rho]。muは [-pi, pi] の範囲。rhoは [0, 1] の範囲
-    """
+def MLE_OKAMURA(x, N: int, iter_num: int = 100) -> npt.NDArray[np.float64]:
+    """Okamura et al. (2021) のアルゴリズムによる最尤推定"""
     if len(x) != N:
         raise ValueError("The length of x must be equal to N")
     if N < 3:
         raise ValueError("N must be greater than or equal to 3")
     x = np.array(x)
-    my_q = partial(_q, n=N, x=x)
+
+    def _q(w, n, x_val):
+        return n / (np.sum(1 / (np.exp(1j * x_val) - 1 / w))) + 1 / w
+
+    my_q = partial(_q, n=N, x_val=x)
 
     def my_Q(theta):
         return my_q(my_q(theta))
 
-    # 計算が面倒なので適当な初期値を設定
     v = 1 / 2 + 1j / 2
     for _ in range(iter_num):
-        # print(v)
         v = my_Q(v)
-    # v = rho e^(j mu) になっている
     return np.array([np.angle(v), np.abs(v)])
 
 
-def _cossin(x: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
-    """(cos(x), sin(x))を返す
-
-    Args:
-        x (npt.NDArray[np.float64]): 0~2piの角度データ
-
-    Returns:
-        npt.NDArray[np.float64]:
-            [[cos(x[0]), cos(x[1]), ...], [sin(x[0]), sin(x[1]), ...]]
-    """
-    return np.array([np.cos(x), np.sin(x)])
-
-
-def MLE_Kent(x, tol=1e-6, max_iter=10000, debug=False) -> npt.NDArray[np.float64]:
-    """
-    巻き込みコーシー分布の最尤推定をケントの方法で行う
-    Maximum Likelihood Estimation for Wrapped Cauchy Distribution, Kent and Tyler, 1988
-
-    Args:
-        x (npt.NDArray[np.float64]): 0~2piの角度データ
-        tol (float, optional): 収束判定の閾値. Defaults to 1e-6.
-        max_iter (int, optional): 最大反復回数. Defaults to 10000.
-        debug (bool, optional): デバッグモード. Defaults to False.
-
-    Returns:
-        npt.NDArray[np.float64]: [mu_MLE, rho_MLE]。
-            muは [-pi, pi] の範囲。rhoは [0, 1] の範囲
-    """
-    N = len(x)
-    x = np.array(x)  # (N,)
-    y = _cossin(x)  # (2, N)
-    eta = np.array([0.5, 0.5])  # (2,) 適当なノルム1未満の初期点
+def MLE_Kent(
+    x: npt.NDArray[np.float64],
+    tol: float = 1e-15,
+    max_iter: int = 10000,
+    debug: bool = False,
+) -> npt.NDArray[np.float64]:
+    """Kent and Tyler (1988) の固定点反復法による最尤推定"""
+    len(x)
+    x = to_2pi_range(x)
+    y = np.array([np.cos(x), np.sin(x)])  # (2, N)
+    eta = np.array([0.5, 0.5])  # (2,) 初期値
     for i in range(max_iter):
         w = 1 / (1 - eta @ y)  # (N,)
-        assert w.shape == (N,)
         eta_new = np.sum(w * y, axis=1) / np.sum(w)  # (2,)
-        assert eta_new.shape == (2,)
         if np.linalg.norm(eta_new - eta) < tol:
             if debug:
                 print(f"wrapcauchy kent MLE: Converged at {i}th iteration")
@@ -256,46 +154,131 @@ def MLE_Kent(x, tol=1e-6, max_iter=10000, debug=False) -> npt.NDArray[np.float64
     return np.array([mu, rho])
 
 
-def _pdf_scale2pi(theta, mu, rho):
-    return (1 - rho * rho) / (1 + rho * rho - 2 * rho * np.cos(theta - mu))
-
-
-# 負の対数尤度関数の定義
-def neg_log_likelihood(params, data):
+def neg_log_likelihood(params, data: npt.NDArray[np.float64]) -> float:
+    """負の対数尤度関数"""
     mu, rho = params
-    pdf_vals = _pdf_scale2pi(data, mu, rho)
-    # 小さな値を避けるためにクリッピング
+    pdf_vals = wrapcauchy_pdf_analytical(data, rho, mu)
     eps = 1e-10
     log_likelihood = np.sum(np.log(np.clip(pdf_vals, eps, None)))
-    return -log_likelihood  # 最小化関数用にマイナスを返す
+    return -log_likelihood
 
 
-def MLE_direct_opt(x: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+def MLE_direct(x: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+    """最適化による最尤推定"""
+    x = to_2pi_range(x)
     result = optimize.minimize(
         neg_log_likelihood,
         (0, 0.5),
         args=(x,),
-        bounds=((-np.pi, np.pi), (0.01, 0.99)),
+        bounds=bounds,
         method="powell",
         options={"xtol": 1e-6, "ftol": 1e-6},
     )
     return np.array([result.x[0], result.x[1]])
 
 
+def W1_equal_div_cost_func(
+    x, bin_num: int, data_cumsum_hist: npt.NDArray[np.float64]
+) -> float:
+    mu, rho = x
+    dist_cumsum_hist = cumsum_hist(mu, rho, bin_num)
+    return method2.method2(data_cumsum_hist[1:], dist_cumsum_hist[1:])
+
+
+def W1_equal_div(
+    given_data: npt.NDArray[np.float64], x0=None
+) -> optimize.OptimizeResult:
+    """1-Wasserstein 距離（等分割ヒストグラム）を最小化するパラメータ推定"""
+    if x0 is None:
+        x0 = (0, 0.5)
+    given_data = to_2pi_range(given_data)
+    bin_num = len(given_data)
+    data_cumsum_hist = cumsum_hist_data(given_data, bin_num)
+    cost_func = partial(
+        W1_equal_div_cost_func, bin_num=bin_num, data_cumsum_hist=data_cumsum_hist
+    )
+    return optimize.minimize(
+        cost_func,
+        x0,
+        bounds=bounds,
+        method="powell",
+        options={"xtol": 1e-6, "ftol": 1e-6},
+    )
+
+
+def W1_quantile_sampling_cost_func(
+    x, given_data_normed_sorted: npt.NDArray[np.float64]
+) -> float:
+    def ppf_func(q):
+        return wrapcauchy_ppf_analytical(q, x[1], loc=x[0])
+
+    sample = circular_quantile_sampling(ppf_func, len(given_data_normed_sorted)) / (
+        2 * np.pi
+    )
+    return method1.method1(given_data_normed_sorted, sample, p=1, sorted=True)
+
+
+def W1_quantile_sampling(
+    given_data: npt.NDArray[np.float64], x0=None
+) -> optimize.OptimizeResult:
+    """1-Wasserstein 距離（分位点サンプリング）を最小化するパラメータ推定"""
+    if x0 is None:
+        x0 = (0, 0.5)
+    given_data = to_2pi_range(given_data)
+    given_data_norm = given_data / (2 * np.pi)
+    given_data_norm_sorted = np.sort(given_data_norm)
+    cost_func = partial(
+        W1_quantile_sampling_cost_func, given_data_normed_sorted=given_data_norm_sorted
+    )
+    return optimize.minimize(
+        cost_func,
+        x0,
+        bounds=bounds,
+        method="powell",
+        options={"xtol": 1e-6, "ftol": 1e-6},
+    )
+
+
+def W2_quantile_sampling_cost_func(
+    x, given_data_normed_sorted: npt.NDArray[np.float64]
+) -> float:
+    def ppf_func(q):
+        return wrapcauchy_ppf_analytical(q, x[1], loc=x[0])
+
+    sample = circular_quantile_sampling(ppf_func, len(given_data_normed_sorted)) / (
+        2 * np.pi
+    )
+    return method1.method1(given_data_normed_sorted, sample, p=2, sorted=True)
+
+
+def W2_quantile_sampling(
+    given_data: npt.NDArray[np.float64], x0=None
+) -> optimize.OptimizeResult:
+    """2-Wasserstein 距離（分位点サンプリング）を最小化するパラメータ推定"""
+    if x0 is None:
+        x0 = (0, 0.5)
+    given_data = to_2pi_range(given_data)
+    given_data_norm = given_data / (2 * np.pi)
+    given_data_norm_sorted = np.sort(given_data_norm)
+    cost_func = partial(
+        W2_quantile_sampling_cost_func, given_data_normed_sorted=given_data_norm_sorted
+    )
+    return optimize.minimize(
+        cost_func,
+        x0,
+        bounds=bounds,
+        method="powell",
+        options={"xtol": 1e-6, "ftol": 1e-6},
+    )
+
+
 def circular_variance(rho: float) -> float:
-    """巻き込みコーシー分布の円周分散を計算する
-
-    Args:
-        rho (float): 分布のパラメータ
-
-    Returns:
-        float: 円周分散
-    """
+    """円周分散"""
     return 1 - rho
 
 
 def _plot_for_slide():
-    """スライドに載せる分布の例の画像を作成する"""
+    """スライド用の分布描画"""
     n = 100000
     mu = 0
     rho = 0.4
@@ -303,11 +286,16 @@ def _plot_for_slide():
     left = plt.subplot(121)
     right = plt.subplot(122, projection="polar")
     x = np.linspace(-np.pi, np.pi, 1000)
-    wrapedcauchy_pdf = wrapcauchy_true_pdf(x, loc=mu, c=rho)
-    sample = np.remainder(quantile_sampling(mu, rho, n) + np.pi, 2 * np.pi) - np.pi
+    pdf_vals = wrapcauchy_pdf_analytical(x, rho, mu)
+
+    def ppf_func(q):
+        return wrapcauchy_ppf_analytical(q, rho, loc=mu)
+
+    sample = circular_quantile_sampling(ppf_func, n)
+    sample = np.remainder(sample + np.pi, 2 * np.pi) - np.pi
     ticks = [0, 0.15, 0.3]
 
-    left.plot(x, wrapedcauchy_pdf)
+    left.plot(x, pdf_vals)
     left.set_yticks(ticks)
     number_of_bins = int(np.sqrt(n))
     left.hist(sample, density=True, bins=number_of_bins)
@@ -315,72 +303,10 @@ def _plot_for_slide():
     left.set_xlim(-np.pi, np.pi)
     left.grid(True)
 
-    right.plot(x, wrapedcauchy_pdf, label="PDF")
+    right.plot(x, pdf_vals, label="PDF")
     right.set_yticks(ticks)
     right.hist(sample, density=True, bins=number_of_bins, label="Histogram")
     right.set_title("Polar plot")
 
     right.legend(bbox_to_anchor=(0.15, 1.06))
     plt.show()
-
-
-def _main():
-    mu = np.pi / 2  # circular mean
-    rho = 0.7  # concentration
-    N = 10000
-    dist = wrapcauchy(loc=mu, c=rho)
-
-    # calc Fisher info matrix
-    print("Fisher info:")
-    print(fisher_info_2x2(rho))
-
-    sample = dist.rvs(N)
-    print(f"min: {np.min(sample)}, max: {np.max(sample)}")  # [mu, mu + 2pi]
-
-    sample2 = np.remainder(sample, 2 * np.pi)
-    print(f"min: {np.min(sample2)}, max: {np.max(sample2)}")  # [0, 2pi]
-
-    # calc MLE
-    result = MLE_OKAMURA(sample, N, iter_num=100)
-    print(f"mu  MLE: {result[0]}")
-    print(f"rho MLE: {result[1]}")
-    result2 = MLE_Kent(sample, debug=True, tol=1e-9)
-    print(f"mu MLE by Kent: {result2[0]}")
-    print(f"rho MLE by Kent: {result2[1]}")
-    result3 = MLE_direct_opt(sample)
-    print(f"mu MLE by direct: {result3[0]}")
-    print(f"rho MLE by direct: {result3[1]}")
-
-    sample2 = quantile_sampling(mu, rho, N)
-    print(f"min: {np.min(sample2)}, max: {np.max(sample2)}")  # [0, 2pi]
-
-    # plots
-    # ライブラリのCDFはmuからmu+2piで定義されている。
-    x = np.linspace(-2 * np.pi, 2 * np.pi, 1001)
-    plt.plot(x, wrapcauchy.cdf(x, rho, mu), label="cdf of scipy")
-    plt.plot(x, wrapcauchy_true_pdf(x, rho, mu), label="periodic pdf")
-    plt.plot(x, wrapcauchy_periodic_cdf(x, rho, mu), label="periodic cdf")
-    plt.plot(
-        x,
-        wrapcauchy_periodic_cdf(x, rho, mu) - wrapcauchy_periodic_cdf(0, rho, mu),
-        label="normalized cdf",
-    )
-    plt.legend()
-    plt.show()
-
-    # 普通のPPFは0でmu、1でmu+2piになる
-    # つまり、普通のCDFの逆関数になるようになっている。
-    # 0で0、1で2piになるようなPPFにすることもできるが、多くの場合する必要はない。
-    x = np.linspace(0, 1, 1001)
-    y = dist.ppf(x)
-    print("min:", np.min(y), "max:", np.max(y))  # [mu, mu + 2pi]
-    plt.plot(x, y, label="ppf")
-    y2 = np.remainder(y, 2 * np.pi)
-    plt.plot(x, y2, label="ppf mod 2pi")
-    plt.legend()
-    plt.show()
-
-
-if __name__ == "__main__":
-    # _main()
-    _plot_for_slide()

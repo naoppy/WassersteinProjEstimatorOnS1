@@ -21,7 +21,7 @@ def wrapcauchy_pdf(
     """Wrapped Cauchy PDF using stable wrapedcauchy module."""
     from ..distributions import wrapedcauchy
 
-    return wrapedcauchy.wrapcauchy_true_pdf(theta, rho, mu)
+    return wrapedcauchy.wrapcauchy_pdf_analytical(theta, rho, mu)
 
 
 def get_interpolated_cdf(pdf_func, grid_size: int = 2000):
