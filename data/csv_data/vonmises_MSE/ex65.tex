@@ -6,6 +6,7 @@
 \usepackage{caption}
 \usepackage{pgfplots}
 \usepackage{tikz}
+\usepackage{pgfplotstable}
 
 \pgfplotsset{compat=1.18}
 
@@ -19,7 +20,8 @@ col sep=comma,
 		\tikzset{every node/.style={}}
 		\begin{axis}
 			[
-			xmax=5,xmin=0.5,
+			xmode=log,
+			xmax=500,xmin=0.5,
 			%width=6cm,
 			xlabel={$\kappa$},
 			ylabel={$\mu$ MSE ratio w.r.t. MLE},
@@ -37,14 +39,15 @@ col sep=comma,
 			\addlegendentry{W1/MLE}
 			\addplot[color=black, dashed, mark=*, mark options={solid}] table [x=kappa, y=W2(method3)_mu / MLE_mu] {\mycsv};
 			\addlegendentry{W2/MLE}
-			\addplot[thin, color=black, dotted,] {1};
+			\addplot[thin, color=black, dotted, domain=0.5:500] {1};
 		\end{axis}
 	\end{tikzpicture}
 	\begin{tikzpicture}
 		\tikzset{every node/.style={}}
 		\begin{axis}
 			[
-			xmax=5,xmin=0.5,
+			xmode=log,
+			xmax=500,xmin=0.5,
 			%width=6cm,
 			xlabel={$\kappa$},
 			ylabel={$\kappa$ MSE ratio w.r.t. MLE},
@@ -62,7 +65,7 @@ col sep=comma,
 			\addlegendentry{W1/MLE}
 			\addplot[color=black, dashed, mark=*, mark options={solid}] table [x=kappa, y=W2(method3)_kappa / MLE_kappa] {\mycsv};
 			\addlegendentry{W2/MLE}
-			\addplot[color=black, dotted,] {1};
+			\addplot[color=black, dotted, domain=0.5:500] {1};
 		\end{axis}
 	\end{tikzpicture}
 \end{document}

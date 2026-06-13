@@ -31,21 +31,73 @@ def fisher_mat_inv_diag(rho: float) -> List[float]:
     return [bunbo / (2 * rho_p2), bunbo / 2]
 
 
+def wrapcauchy_pdf_raw(
+    theta: npt.NDArray[np.float64], c: float, loc: float = 0.0, scale: float = 1.0
+) -> npt.NDArray[np.float64]:
+    """巻き込みコーシー分布のPDF値を計算する。数値的に安定な式を使用。"""
+    d = (theta - loc) / scale
+    denom = (1.0 - c) ** 2 + 4.0 * c * np.sin(d / 2.0) ** 2
+    denom = np.clip(denom, 1e-30, None)
+    return (1.0 - c**2) / (2.0 * np.pi * scale * denom)
+
+
+def wrapcauchy_cdf_raw(
+    theta: npt.NDArray[np.float64], c: float, loc: float = 0.0, scale: float = 1.0
+) -> npt.NDArray[np.float64]:
+    """[loc, loc + 2*pi*scale] の範囲のCDFの値を返す"""
+    norm_x = np.remainder(theta - loc, 2.0 * np.pi * scale) / scale
+    factor = (1.0 + c) / (1.0 - c)
+    res = np.empty_like(norm_x, dtype=np.float64)
+
+    mask1 = norm_x < np.pi
+    res[mask1] = (1.0 / np.pi) * np.arctan(factor * np.tan(norm_x[mask1] / 2.0))
+
+    mask2 = norm_x == np.pi
+    res[mask2] = 0.5
+
+    mask3 = norm_x > np.pi
+    res[mask3] = 1.0 - (1.0 / np.pi) * np.arctan(
+        factor * np.tan((2.0 * np.pi - norm_x[mask3]) / 2.0)
+    )
+
+    return res
+
+
+def wrapcauchy_ppf_raw(
+    q: npt.NDArray[np.float64], c: float, loc: float = 0.0, scale: float = 1.0
+) -> npt.NDArray[np.float64]:
+    """巻き込みコーシー分布の分位関数を計算する。数値的に安定な式を使用。"""
+    q = np.asarray(q)
+    factor = (1.0 - c) / (1.0 + c)
+    res = np.empty_like(q, dtype=np.float64)
+
+    mask1 = q < 0.5
+    res[mask1] = 2.0 * np.arctan(factor * np.tan(np.pi * q[mask1]))
+
+    mask2 = q == 0.5
+    res[mask2] = np.pi
+
+    mask3 = q > 0.5
+    res[mask3] = 2.0 * np.pi - 2.0 * np.arctan(
+        factor * np.tan(np.pi * (1.0 - q[mask3]))
+    )
+
+    return loc + res * scale
+
+
 def wrapcauchy_true_pdf(
     x: npt.NDArray[np.float64], c: float, loc: float = 0.0, scale: float = 1.0
 ) -> npt.NDArray[np.float64]:
     """[loc, loc+2*pi*scale] で定義されている pdf を R 全体に拡張"""
-    norm_x = loc + np.remainder(x - loc, 2 * np.pi * scale)
-    return wrapcauchy.pdf(norm_x, c, loc, scale)
+    return wrapcauchy_pdf_raw(x, c, loc, scale)
 
 
 def wrapcauchy_periodic_cdf(
     x: npt.NDArray[np.float64], c: float, loc: float = 0.0, scale: float = 1.0
 ) -> npt.NDArray[np.float64]:
     """[loc, loc+2*pi*scale] で定義されている cdf を R 全体に拡張"""
-    norm_x = loc + np.remainder(x - loc, 2 * np.pi * scale)
-    return wrapcauchy.cdf(norm_x, c, loc, scale) + np.floor_divide(
-        x - loc, 2 * np.pi * scale
+    return wrapcauchy_cdf_raw(x, c, loc, scale) + np.floor_divide(
+        x - loc, 2.0 * np.pi * scale
     )
 
 
@@ -94,10 +146,20 @@ def quantile_sampling(
     x, step = np.linspace(0, 1, sample_num, endpoint=False, retstep=True)
     x = x + step / 2
     assert len(x) == sample_num
-    y = wrapcauchy.ppf(x, rho, loc=mu)
+    y = wrapcauchy_ppf_raw(x, rho, loc=mu)
     y = np.remainder(y, 2 * np.pi)
-    # sort
-    y = np.sort(y)
+
+    if sample_num > 1:
+        diffs = np.diff(y)
+        min_idx = np.argmin(diffs)
+        if diffs[min_idx] < 0:
+            i = min_idx + 1
+        else:
+            i = 0
+        y = np.roll(y, -i)
+
+    assert np.all((0 <= y) & (y <= 2 * np.pi))
+    assert np.all(np.diff(y) >= 0)
     return y
 
 
@@ -148,7 +210,8 @@ def _cossin(x: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
         x (npt.NDArray[np.float64]): 0~2piの角度データ
 
     Returns:
-        npt.NDArray[np.float64]: [[cos(x[0]), cos(x[1]), ...], [sin(x[0]), sin(x[1]), ...]]
+        npt.NDArray[np.float64]:
+            [[cos(x[0]), cos(x[1]), ...], [sin(x[0]), sin(x[1]), ...]]
     """
     return np.array([np.cos(x), np.sin(x)])
 
@@ -165,7 +228,8 @@ def MLE_Kent(x, tol=1e-6, max_iter=10000, debug=False) -> npt.NDArray[np.float64
         debug (bool, optional): デバッグモード. Defaults to False.
 
     Returns:
-        npt.NDArray[np.float64]: [mu_MLE, rho_MLE]。muは [-pi, pi] の範囲。rhoは [0, 1] の範囲
+        npt.NDArray[np.float64]: [mu_MLE, rho_MLE]。
+            muは [-pi, pi] の範囲。rhoは [0, 1] の範囲
     """
     N = len(x)
     x = np.array(x)  # (N,)
@@ -184,7 +248,11 @@ def MLE_Kent(x, tol=1e-6, max_iter=10000, debug=False) -> npt.NDArray[np.float64
         eta = eta_new
     mu = np.arctan2(eta[1], eta[0])
     eta_norm_pow2 = eta @ eta
-    rho = (1 - np.sqrt(1 - eta_norm_pow2)) / np.sqrt(eta_norm_pow2)
+    if eta_norm_pow2 < 1e-20:
+        rho = 0.0
+    else:
+        eta_norm_pow2 = np.clip(eta_norm_pow2, 0.0, 1.0 - 1e-15)
+        rho = (1.0 - np.sqrt(1.0 - eta_norm_pow2)) / np.sqrt(eta_norm_pow2)
     return np.array([mu, rho])
 
 
@@ -231,7 +299,7 @@ def _plot_for_slide():
     n = 100000
     mu = 0
     rho = 0.4
-    fig = plt.figure(figsize=(12, 6))
+    plt.figure(figsize=(12, 6))
     left = plt.subplot(121)
     right = plt.subplot(122, projection="polar")
     x = np.linspace(-np.pi, np.pi, 1000)
