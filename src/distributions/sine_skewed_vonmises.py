@@ -3,7 +3,6 @@ from typing import List, Tuple
 
 import numpy as np
 import numpy.typing as npt
-from matplotlib import pyplot as plt
 from scipy import integrate, optimize, stats
 from scipy.special import i0, i1, iv, ive
 
@@ -323,86 +322,3 @@ def W1_equal_div(
         tol=tol,
         bounds=bounds,
     )
-
-
-def _plot_for_slide():
-    """スライドに載せる分布の例の画像を作成する"""
-    n = 100000
-    mu = 0
-    kappa = 1
-    lambda_ = 0.7
-    plt.figure(figsize=(12, 6))
-    left = plt.subplot(121)
-    right = plt.subplot(122, projection="polar")
-    x = np.linspace(-np.pi, np.pi, 1000)
-    ss_vM_pdf = pdf(x, mu, kappa, lambda_)
-    ticks = [0, 0.15, 0.3]
-    rejection_sampling(n, mu, kappa, lambda_)
-    left.plot(x, ss_vM_pdf)
-    left.set_yticks(ticks)
-    int(np.sqrt(n))
-    # left.hist(sample, density=True, bins=number_of_bins)
-    left.fill_between(x, ss_vM_pdf, color="tab:orange")
-    left.set_title("Cartesian plot")
-    left.set_xlim(-np.pi, np.pi)
-    left.grid(True)
-
-    right.plot(x, ss_vM_pdf, label="PDF")
-    right.set_yticks(ticks)
-    # right.hist(sample, density=True, bins=number_of_bins, label="Histogram")
-    right.fill_between(x, ss_vM_pdf, color="tab:orange", label="Histogram")
-    right.set_title("Polar plot")
-
-    right.legend(bbox_to_anchor=(0.15, 1.06))
-    plt.show()
-
-
-def _main():
-    n = 100000
-    kappa = 1
-    lambda_ = 0.7
-    mu = 0
-    sample = rejection_sampling(n, mu, kappa, lambda_, debug=True)
-    print(f"min: {np.min(sample)}, max: {np.max(sample)}")  # [-pi, pi]
-
-    plt.figure(figsize=(12, 6))
-    left = plt.subplot(121)
-    right = plt.subplot(122, projection="polar")
-    x = np.linspace(-np.pi, np.pi, 1000)
-    ss_vonmises_pdf = pdf(x, mu, kappa, lambda_)
-    ticks = [0, 0.15, 0.3]
-
-    left.plot(x, ss_vonmises_pdf)
-    left.set_yticks(ticks)
-    number_of_bins = int(np.sqrt(n))
-    left.hist(sample, density=True, bins=number_of_bins)
-    left.set_title("Cartesian plot")
-    left.set_xlim(-np.pi, np.pi)
-    left.grid(True)
-
-    right.plot(x, ss_vonmises_pdf, label="PDF")
-    right.set_yticks(ticks)
-    right.hist(sample, density=True, bins=number_of_bins, label="Histogram")
-    right.set_title("Polar plot")
-
-    # param estimation
-    est_param = MLE_direct_opt(sample, debug=True)
-    print(est_param)
-    ss_vonmises_est_pdf = pdf(x, est_param[0], est_param[1], est_param[2])
-    left.plot(x, ss_vonmises_est_pdf, label="Estimated PDF")
-    right.plot(x, ss_vonmises_est_pdf, label="Estimated PDF")
-
-    right.legend(bbox_to_anchor=(0.15, 1.06))
-    plt.show()
-
-    mat = fisher_info_3x3(kappa, lambda_)
-    print("Fisher info:")
-    print(mat)
-    mat_inv_diag = fisher_mat_inv_diag(kappa, lambda_)
-    print("Fisher info inverse diagonal:")
-    print(mat_inv_diag)
-
-
-if __name__ == "__main__":
-    # _main()
-    _plot_for_slide()

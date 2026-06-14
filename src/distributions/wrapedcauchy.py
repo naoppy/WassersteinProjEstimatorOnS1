@@ -3,7 +3,6 @@ from typing import List
 
 import numpy as np
 import numpy.typing as npt
-from matplotlib import pyplot as plt
 from scipy import optimize
 
 from ..calc_semidiscrete_W_dist import method1, method2
@@ -311,38 +310,3 @@ def W2_quantile_sampling(
 def circular_variance(rho: float) -> float:
     """円周分散"""
     return 1 - rho
-
-
-def _plot_for_slide():
-    """スライド用の分布描画"""
-    n = 100000
-    mu = 0
-    rho = 0.4
-    plt.figure(figsize=(12, 6))
-    left = plt.subplot(121)
-    right = plt.subplot(122, projection="polar")
-    x = np.linspace(-np.pi, np.pi, 1000)
-    pdf_vals = wrapcauchy_pdf_analytical(x, rho, mu)
-
-    def ppf_func(q):
-        return wrapcauchy_ppf_analytical(q, rho, loc=mu)
-
-    sample = circular_quantile_sampling(ppf_func, n)
-    sample = np.remainder(sample + np.pi, 2 * np.pi) - np.pi
-    ticks = [0, 0.15, 0.3]
-
-    left.plot(x, pdf_vals)
-    left.set_yticks(ticks)
-    number_of_bins = int(np.sqrt(n))
-    left.hist(sample, density=True, bins=number_of_bins)
-    left.set_title("Cartesian plot")
-    left.set_xlim(-np.pi, np.pi)
-    left.grid(True)
-
-    right.plot(x, pdf_vals, label="PDF")
-    right.set_yticks(ticks)
-    right.hist(sample, density=True, bins=number_of_bins, label="Histogram")
-    right.set_title("Polar plot")
-
-    right.legend(bbox_to_anchor=(0.15, 1.06))
-    plt.show()

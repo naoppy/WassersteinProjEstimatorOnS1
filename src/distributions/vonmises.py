@@ -3,7 +3,6 @@ from typing import List
 
 import numpy as np
 import numpy.typing as npt
-from matplotlib import pyplot as plt
 from scipy import optimize
 from scipy.special import i0, i1, iv, ive
 from scipy.stats import vonmises
@@ -427,40 +426,3 @@ def type1_estimate(
         if debug:
             print(f"debug: i={i}, mu={now_mu}, kappa={now_kappa}")
     return [now_mu, now_kappa]
-
-
-def _plot_for_slide():
-    """スライド用の分布描画"""
-    n = 100000
-    mu = 0
-    kappa = 1
-    plt.figure(figsize=(12, 6))
-    left = plt.subplot(121)
-    right = plt.subplot(122, projection="polar")
-    x = np.linspace(-np.pi, np.pi, 1000)
-    pdf_vals = vonmises_pdf_stable(x, mu, kappa)
-
-    dist = vonmises(loc=mu, kappa=kappa)
-
-    def ppf_func(q):
-        return dist.ppf(q)
-
-    sample = circular_quantile_sampling(ppf_func, n)
-    sample = np.remainder(sample + np.pi, 2 * np.pi) - np.pi
-    ticks = [0, 0.15, 0.3]
-
-    left.plot(x, pdf_vals)
-    left.set_yticks(ticks)
-    number_of_bins = int(np.sqrt(n))
-    left.hist(sample, density=True, bins=number_of_bins)
-    left.set_title("Cartesian plot")
-    left.set_xlim(-np.pi, np.pi)
-    left.grid(True)
-
-    right.plot(x, pdf_vals, label="PDF")
-    right.set_yticks(ticks)
-    right.hist(sample, density=True, bins=number_of_bins, label="Histogram")
-    right.set_title("Polar plot")
-
-    right.legend(bbox_to_anchor=(0.15, 1.06))
-    plt.show()
