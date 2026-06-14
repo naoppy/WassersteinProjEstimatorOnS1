@@ -162,6 +162,52 @@ def quantile_sampling(
     return circular_quantile_sampling(ppf_func, sample_num)
 
 
+def fast_quantile_sampling(
+    mu: float, kappa: float, sample_num: int
+) -> npt.NDArray[np.float64]:
+    """フォンミーゼス分布から高速な分位点サンプリングを行う（[0, 2*pi] 範囲）。
+
+    Args:
+        mu (float): 分布のパラメータ
+        kappa (float): 分布のパラメータ
+        sample_num (int): サンプルする数
+
+    Returns:
+        npt.NDArray[np.float64]: [0, 2*pi] の範囲のソート済みサンプル配列。
+            F^(-1)(i/D) (i=0, 1, ..., D)
+    """
+    x, step = np.linspace(0, 1, sample_num, endpoint=False, retstep=True)
+    x = x + step / 2
+    dist = vonmises(loc=mu, kappa=kappa)
+
+    # cdfを一気に計算しておく
+    y, step_grid = np.linspace(mu - np.pi, mu + np.pi, 1048576, retstep=True)  # 2^20
+    z = dist.cdf(y)
+    lefts = np.zeros(len(x))
+    i = 0
+    for j, xi in enumerate(x):
+        while i < len(z) and z[i] < xi:
+            i += 1
+        if i == 0:
+            lefts[j] = mu - np.pi
+        else:
+            lefts[j] = mu - np.pi + (i - 1) * step_grid
+    samples = lefts + step_grid / 2
+
+    # [0, 2*pi] へのマッピングおよびソート順のトポロジー補正
+    samples = to_2pi_range(samples)
+    if sample_num > 1:
+        diffs = np.diff(samples)
+        min_idx = np.argmin(diffs)
+        if diffs[min_idx] < 0:
+            shift = min_idx + 1
+        else:
+            shift = 0
+        samples = np.roll(samples, -shift)
+
+    return samples
+
+
 def circular_variance(kappa: float) -> float:
     """円周分散"""
     R = _bessel_ratio(1, kappa)
@@ -251,12 +297,7 @@ def W1_equal_div(
 def W1_quantile_sampling_cost_func(
     x, given_data_normed_sorted: npt.NDArray[np.float64]
 ) -> float:
-    dist = vonmises(loc=x[0], kappa=x[1])
-
-    def ppf_func(q):
-        return dist.ppf(q)
-
-    sample = circular_quantile_sampling(ppf_func, len(given_data_normed_sorted)) / (
+    sample = fast_quantile_sampling(x[0], x[1], len(given_data_normed_sorted)) / (
         2 * np.pi
     )
     return method1.method1(given_data_normed_sorted, sample, p=1, sorted=True)
@@ -289,12 +330,7 @@ def W1_quantile_sampling(
 def W2_quantile_sampling_cost_func(
     x, given_data_normed_sorted: npt.NDArray[np.float64]
 ) -> float:
-    dist = vonmises(loc=x[0], kappa=x[1])
-
-    def ppf_func(q):
-        return dist.ppf(q)
-
-    sample = circular_quantile_sampling(ppf_func, len(given_data_normed_sorted)) / (
+    sample = fast_quantile_sampling(x[0], x[1], len(given_data_normed_sorted)) / (
         2 * np.pi
     )
     return method1.method1(given_data_normed_sorted, sample, p=2, sorted=True)

@@ -4,6 +4,7 @@ from scipy.stats import vonmises
 
 from src.distributions.vonmises import (
     MLE_direct,
+    fast_quantile_sampling,
     fisher_info_2x2,
     quantile_sampling,
     type0_estimate,
@@ -107,6 +108,14 @@ def test_main() -> None:
 
     sample2 = quantile_sampling(mu, kappa, N)
     print(f"Quantile Sample range: min={np.min(sample2)}, max={np.max(sample2)}")
+
+    sample_fast = fast_quantile_sampling(mu, kappa, N)
+    print(
+        f"Fast Quantile range: "
+        f"min={np.min(sample_fast):.4f}, max={np.max(sample_fast):.4f}"
+    )
+    diff_val = np.mean(np.abs(sample2 - sample_fast))
+    print(f"Mean abs diff (std vs fast): {diff_val:.6f}")
 
     # Plot verification
     x = np.linspace(0, 2 * np.pi, 1001)
