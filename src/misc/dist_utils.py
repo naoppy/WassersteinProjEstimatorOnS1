@@ -1,6 +1,5 @@
 import numpy as np
 import numpy.typing as npt
-import scipy.special as special
 from scipy import optimize
 from scipy.integrate import cumulative_trapezoid, quad
 from scipy.interpolate import interp1d
@@ -9,10 +8,10 @@ from scipy.interpolate import interp1d
 def vonmises_pdf(
     theta: npt.NDArray[np.float64], mu: float, kappa: float
 ) -> npt.NDArray[np.float64]:
-    """Stable von Mises PDF using ive to prevent overflow."""
-    return np.exp(kappa * (np.cos(theta - mu) - 1)) / (
-        2 * np.pi * special.ive(0, kappa)
-    )
+    """Stable von Mises PDF using stable vonmises module."""
+    from ..distributions import vonmises
+
+    return vonmises.vonmises_pdf_stable(theta, mu, kappa)
 
 
 def wrapcauchy_pdf(
