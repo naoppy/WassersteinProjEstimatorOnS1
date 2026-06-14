@@ -47,23 +47,33 @@ def wrapcauchy_pdf_analytical(
 def wrapcauchy_periodic_cdf_analytical(
     x: npt.NDArray[np.float64], c: float, loc: float = 0.0, scale: float = 1.0
 ) -> npt.NDArray[np.float64]:
-    """[loc, loc + 2*pi*scale] で定義されている CDF を R 全体に拡張"""
-    norm_x = np.remainder(x - loc, 2.0 * np.pi * scale) / scale
-    factor = (1.0 + c) / (1.0 - c)
-    res = np.empty_like(norm_x, dtype=np.float64)
+    """巻き込みコーシー分布の累積分布関数を計算する。
+    R全体で単調増加し、F(x + 2*pi*scale) = F(x) + 1 かつ F(0) = 0 となるように定義。
+    """
+    x = np.asarray(x)
 
-    mask1 = norm_x < np.pi
-    res[mask1] = (1.0 / np.pi) * np.arctan(factor * np.tan(norm_x[mask1] / 2.0))
+    def cdf_raw(val):
+        norm_val = np.remainder(val - loc, 2.0 * np.pi * scale) / scale
+        factor = (1.0 + c) / (1.0 - c)
+        res = np.empty_like(norm_val, dtype=np.float64)
 
-    mask2 = norm_x == np.pi
-    res[mask2] = 0.5
+        mask1 = norm_val < np.pi
+        res[mask1] = (1.0 / np.pi) * np.arctan(factor * np.tan(norm_val[mask1] / 2.0))
 
-    mask3 = norm_x > np.pi
-    res[mask3] = 1.0 - (1.0 / np.pi) * np.arctan(
-        factor * np.tan((2.0 * np.pi - norm_x[mask3]) / 2.0)
-    )
+        mask2 = norm_val == np.pi
+        res[mask2] = 0.5
 
-    return res + np.floor_divide(x - loc, 2.0 * np.pi * scale)
+        mask3 = norm_val > np.pi
+        res[mask3] = 1.0 - (1.0 / np.pi) * np.arctan(
+            factor * np.tan((2.0 * np.pi - norm_val[mask3]) / 2.0)
+        )
+
+        return res + np.floor_divide(val - loc, 2.0 * np.pi * scale)
+
+    val_mod = np.remainder(x, 2.0 * np.pi * scale)
+    raw_val = cdf_raw(val_mod) - cdf_raw(0.0)
+    periods = np.floor_divide(x, 2.0 * np.pi * scale)
+    return raw_val + periods
 
 
 def wrapcauchy_ppf_analytical(

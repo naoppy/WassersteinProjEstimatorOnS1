@@ -52,18 +52,18 @@ def sine_skewed_vonmises_periodic_cdf_analytical(
     x: npt.NDArray[np.float64], mu: float, kappa: float, lambda_: float
 ) -> npt.NDArray[np.float64]:
     """Sine-Skewed von Mises分布の累積分布関数を計算する。
-    cdf(0) = 0, cdf(2*pi) = 1 となるように定義。
+    R全体で単調増加し、F(x + 2*pi) = F(x) + 1 かつ F(0) = 0 となるように定義。
 
     Args:
-        x (npt.NDArray[np.float64]): 累積分布関数を計算する点 in [0, 2pi]
+        x (npt.NDArray[np.float64]): 累積分布関数を計算する点
         mu (float): 歪める前の分布の平均 in [0, 2pi]
         kappa (float): 分布のパラメータ (>0)
         lambda_ (float): 摂動項のパラメータ in [-1, 1]
 
     Returns:
-        npt.NDArray[np.float64]: 累積分布関数の値 in [0, 1]
+        npt.NDArray[np.float64]: 累積分布関数の値
     """
-    x = to_2pi_range(x)
+    x = np.asarray(x)
     mu = to_2pi_range(mu)
 
     def cdf_raw(val):
@@ -76,7 +76,10 @@ def sine_skewed_vonmises_periodic_cdf_analytical(
                 2 * np.pi * ive(0, kappa) * kappa
             ) * (np.exp(-2 * kappa) - np.exp(kappa * (np.cos(val - mu) - 1)))
 
-    return cdf_raw(x) - cdf_raw(0)
+    val_mod = np.remainder(x, 2 * np.pi)
+    raw_val = cdf_raw(val_mod) - cdf_raw(0)
+    periods = np.floor_divide(x, 2 * np.pi)
+    return raw_val + periods
 
 
 pdf = sine_skewed_vonmises_pdf_analytical
