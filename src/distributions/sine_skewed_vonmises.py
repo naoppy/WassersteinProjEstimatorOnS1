@@ -33,7 +33,17 @@ def _bessel_ratio(v: int, kappa: float) -> float:
 def sine_skewed_vonmises_pdf_analytical(
     x: npt.NDArray[np.float64], mu: float, kappa: float, lambda_: float
 ) -> npt.NDArray[np.float64]:
-    """Sine-skewed von Mises分布の確率密度関数を計算する"""
+    """Sine-skewed von Mises分布の確率密度関数を計算する。
+
+    Args:
+        x (npt.NDArray[np.float64]): 確率密度関数を計算する点 in [0, 2pi]
+        mu (float): 歪める前の分布の平均 in [0, 2pi]
+        kappa (float): 分布のパラメータ (>0)
+        lambda_ (float): 摂動項のパラメータ in [-1, 1]
+
+    Returns:
+        npt.NDArray[np.float64]: 確率密度関数の値 in [0, 1]
+    """
     x = to_2pi_range(x)
     mu = to_2pi_range(mu)
     return stats.vonmises.pdf(x, loc=mu, kappa=kappa) * (1 + lambda_ * np.sin(x - mu))
@@ -42,8 +52,17 @@ def sine_skewed_vonmises_pdf_analytical(
 def sine_skewed_vonmises_periodic_cdf_analytical(
     x: npt.NDArray[np.float64], mu: float, kappa: float, lambda_: float
 ) -> npt.NDArray[np.float64]:
-    """Sine-Skewed von Mises分布の累積分布関数を計算する
+    """Sine-Skewed von Mises分布の累積分布関数を計算する。
     cdf(0) = 0, cdf(2*pi) = 1 となるように定義。
+
+    Args:
+        x (npt.NDArray[np.float64]): 累積分布関数を計算する点 in [0, 2pi]
+        mu (float): 歪める前の分布の平均 in [0, 2pi]
+        kappa (float): 分布のパラメータ (>0)
+        lambda_ (float): 摂動項のパラメータ in [-1, 1]
+
+    Returns:
+        npt.NDArray[np.float64]: 累積分布関数の値 in [0, 1]
     """
     x = to_2pi_range(x)
     mu = to_2pi_range(mu)
@@ -199,7 +218,18 @@ def MLE_direct(
     tol: float = 0.001,
     debug: bool = False,
 ) -> Tuple[float, float, float]:
-    """SS-von MisesのMLEでのパラメータ推定を行う"""
+    """SS-von MisesのMLEでのパラメータ推定を行う。
+
+    Args:
+        x (npt.NDArray[np.float64]): データ in [0, 2pi]
+        bounds (tuple, optional): パラメータの探索範囲。
+            デフォルトは ((0, 2*pi), (0.01, 10.0), (-1.0, 1.0))
+        tol (float, optional): 最適化の収束判定閾値
+        debug (bool, optional): 最適化の途中経過を出力するかどうか
+
+    Returns:
+        Tuple[float, float, float]: 推定値 (mu, kappa, lambda_) の順
+    """
     x = to_2pi_range(x)
     result = optimize.differential_evolution(
         neg_log_likelihood,
@@ -218,7 +248,19 @@ MLE_direct_opt = MLE_direct
 def rejection_sampling(
     n: int, mu: float, kappa: float, lambda_: float, debug: bool = False
 ) -> npt.NDArray[np.float64]:
-    """棄却サンプリングによってSine-Skewed von Misesからサンプリングする"""
+    """棄却サンプリングによってSine-Skewed von Misesからサンプリングする。
+    提案分布としては 2倍のフォンミーゼス分布を用いる。
+
+    Args:
+        n (int): サンプル数
+        mu (float): 歪める前の分布の平均 in [0, 2pi]
+        kappa (float): 分布のパラメータ (>0)
+        lambda_ (float): 摂動項のパラメータ in [-1, 1]
+        debug (bool, optional): 棄却率を出力するか
+
+    Returns:
+        npt.NDArray[np.float64]: [0, 2pi] の範囲のサンプル配列
+    """
     rng = np.random.default_rng()
     mu = to_2pi_range(mu)
 
@@ -244,7 +286,9 @@ def rejection_sampling(
 def cumsum_hist(
     mu: float, kappa: float, lambda_: float, bin_num: int
 ) -> npt.NDArray[np.float64]:
-    """[0, 2pi] の間を bin_num (=D) 等分した区間でのcdfの値を返す"""
+    """[0, 2pi] の間を bin_num (=D) 等分した区間でのcdfの値を返す。
+    [F(i/D)] i=0,1,...,D を返す。
+    """
     x = np.linspace(0, 2 * np.pi, bin_num + 1)
     y = sine_skewed_vonmises_periodic_cdf_analytical(x, mu, kappa, lambda_)
 

@@ -103,7 +103,21 @@ def cumsum_hist(mu: float, rho: float, bin_num: int) -> npt.NDArray[np.float64]:
 
 
 def MLE_OKAMURA(x, N: int, iter_num: int = 100) -> npt.NDArray[np.float64]:
-    """Okamura et al. (2021) のアルゴリズムによる最尤推定"""
+    """Okamura et al. (2021) のアルゴリズムによる最尤推定。
+
+    CHARACTERIZATIONS OF THE MAXIMUM LIKELIHOOD ESTIMATOR OF THE CAUCHY DISTRIBUTION
+    https://arxiv.org/abs/2104.06130
+    で提案されているコーシー分布に対する最尤推定法を実装する。
+    指数的に収束する反復法で、MLEに必ず収束する。
+
+    Args:
+        x: 0~2piの角度データ
+        N (int): データ数
+        iter_num (int, optional): 反復回数. Defaults to 100.
+
+    Returns:
+        npt.NDArray[np.float64]: [mu, rho]。muは [-pi, pi] の範囲。rhoは [0, 1] の範囲。
+    """
     if len(x) != N:
         raise ValueError("The length of x must be equal to N")
     if N < 3:
@@ -130,7 +144,20 @@ def MLE_Kent(
     max_iter: int = 10000,
     debug: bool = False,
 ) -> npt.NDArray[np.float64]:
-    """Kent and Tyler (1988) の固定点反復法による最尤推定"""
+    """Kent and Tyler (1988) の固定点反復法による最尤推定。
+
+    Maximum Likelihood Estimation for Wrapped Cauchy Distribution, Kent and Tyler, 1988
+
+    Args:
+        x (npt.NDArray[np.float64]): 0~2piの角度データ
+        tol (float, optional): 収束判定の閾値. Defaults to 1e-15.
+        max_iter (int, optional): 最大反復回数. Defaults to 10000.
+        debug (bool, optional): デバッグモード. Defaults to False.
+
+    Returns:
+        npt.NDArray[np.float64]: [mu_MLE, rho_MLE]。
+            muは [-pi, pi] の範囲。rhoは [0, 1] の範囲。
+    """
     len(x)
     x = to_2pi_range(x)
     y = np.array([np.cos(x), np.sin(x)])  # (2, N)
@@ -160,7 +187,7 @@ def neg_log_likelihood(params, data: npt.NDArray[np.float64]) -> float:
     pdf_vals = wrapcauchy_pdf_analytical(data, rho, mu)
     eps = 1e-10
     log_likelihood = np.sum(np.log(np.clip(pdf_vals, eps, None)))
-    return -log_likelihood
+    return -log_likelihood  # 最小化関数用にマイナスを返す
 
 
 def MLE_direct(x: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:

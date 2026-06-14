@@ -19,7 +19,10 @@ bounds = ((-np.pi, np.pi), (0.01, 100.0))
 
 
 def _bessel_ratio(v: int, kappa: float) -> float:
-    """I_v(kappa) / I_0(kappa) を安全に計算する。"""
+    """I_v(kappa) / I_0(kappa) を安全に計算する。
+    オーバーフロー対策として、kappa >= 600 の場合は
+    指数スケーリングされた ive を使用する。
+    """
     if kappa < 600:
         if v == 0:
             return 1.0
@@ -32,7 +35,10 @@ def _bessel_ratio(v: int, kappa: float) -> float:
 
 
 def _bessel_ratio_i0(kappa1: float, kappa0: float) -> float:
-    """I_0(kappa1) / I_0(kappa0) を安全に計算する。"""
+    """I_0(kappa1) / I_0(kappa0) を安全に計算する。
+    オーバーフロー対策として、最大値が 600 以上の場合は
+    指数スケーリングされた ive を使用する。
+    """
     if max(kappa1, kappa0) < 600:
         return i0(kappa1) / i0(kappa0)
     else:
@@ -52,23 +58,43 @@ def fisher_info_2x2(kappa: float) -> npt.NDArray[np.float64]:
 
 
 def fisher_mat_inv_diag(kappa: float) -> List[float]:
-    """フィッシャー情報行列の逆行列の対角成分のリストを返す。"""
+    """フィッシャー情報行列の逆行列の対角成分のリストを返す。
+
+    Returns:
+        List[float]: [mu, kappa] の順
+    """
     mat = fisher_info_2x2(kappa)
     return [1 / mat[0][0], 1 / mat[1][1]]
 
 
 def T(x: npt.NDArray[np.float64]) -> List[float]:
-    """フォンミーゼス分布の十分統計量を返す"""
+    """フォンミーゼス分布の十分統計量を返す
+
+    Args:
+        x: フォンミーゼス分布からのサンプル。2pi周期。
+
+    Returns:
+        List[float, float]: 十分統計量、[cos, sin] の順
+    """
     return [np.sum(np.cos(x)), np.sum(np.sin(x))]
 
 
 def MLE(T_data, N: int) -> List[float]:
-    """十分統計量を用いた最尤推定"""
+    """最尤推定を行う
+
+    Args:
+        T_data: 十分統計量
+        N (int): サンプル数
+
+    Returns:
+        List[float]: 最尤推定値、[mu_MLE, kappa_MLE] の順
+    """
     mu_MLE = np.arctan2(T_data[1], T_data[0])
     target_value = (T_data[0] * np.cos(mu_MLE) + T_data[1] * np.sin(mu_MLE)) / N
+    # ここから二分探索による数値計算で逆関数を求める
     EPS = 1e-6
     left = EPS
-    right = 100000.0
+    right = 100000.0  # オーバーフロー対策を行ったため、探索範囲を大きくできる
     while right - left > EPS:
         mid = (left + right) / 2
         now_value = _bessel_ratio(1, mid)
@@ -103,7 +129,9 @@ def vonmises_periodic_cdf_numerical(
 
 
 def cumsum_hist(mu: float, kappa: float, bin_num: int) -> npt.NDArray[np.float64]:
-    """[0, 2pi] を bin_num 等分した区間でのcdfの値を返す"""
+    """[0, 2pi] の間を bin_num (=D) 等分した区間でのcdfの値を返す
+    [F(i/D)] i=0,1,...,D
+    """
     x = np.linspace(0, 2 * np.pi, bin_num + 1)
     y = vonmises_periodic_cdf_numerical(x, mu, kappa)
 
@@ -116,7 +144,17 @@ def cumsum_hist(mu: float, kappa: float, bin_num: int) -> npt.NDArray[np.float64
 def quantile_sampling(
     mu: float, kappa: float, sample_num: int
 ) -> npt.NDArray[np.float64]:
-    """von Mises 分布から分位点サンプリングする"""
+    """フォンミーゼス分布から分位点サンプリングする
+
+    Args:
+        mu (float): 分布のパラメータ
+        kappa (float): 分布のパラメータ
+        sample_num (int): サンプルする数
+
+    Returns:
+        npt.NDArray[np.float64]: [0, 2*pi] の範囲のサンプル。
+            F^(-1)(i/D) (i=0, 1, ..., D)
+    """
     dist = vonmises(loc=mu, kappa=kappa)
 
     def ppf_func(q):
@@ -132,15 +170,34 @@ def circular_variance(kappa: float) -> float:
 
 
 def A0(kappa: float) -> float:
-    """A0関数を計算する"""
+    """A0関数を計算する。
+    A0(0)=0, A0(inf)=1 の単調増加関数。
+    大きな値だとオーバーフローするので注意。
+
+    Args:
+        kappa (float): 分布のパラメータ
+
+    Returns:
+        float: A0(kappa) の値
+    """
     return _bessel_ratio(1, kappa)
 
 
 def A0Inverse(y: float) -> float:
-    """A0の逆関数を数値的に求める"""
+    """A0の逆関数を数値的に求める。
+    A0はA0(kappa) = I1(kappa) / I0(kappa) で定義される関数で、
+    kappa >= 0 の単調増加関数。
+    Ap(0)=0, Ap(inf)=1
+
+    Args:
+        y (float): A0(kappa) の値. 0 <= y < 1
+
+    Returns:
+        float: kappa の値
+    """
     EPS = 1e-6
     left = EPS
-    right = 100000.0
+    right = 100000.0  # オーバーフロー対策を行ったため、探索範囲を大きくできる
     while right - left > EPS:
         mid = (left + right) / 2
         now_value = _bessel_ratio(1, mid)
@@ -271,16 +328,27 @@ def W2_quantile_sampling(
 def type0_estimate(
     data: npt.NDArray[np.float64], gamma: float, debug: bool = False
 ) -> List[float]:
-    """Kato and Eguchi (2016) の type0 推定量"""
+    """type0推定量を計算する
+    Kato and Eguchi (2016)
+
+    Args:
+        data (npt.NDArray[np.float64]): サンプルデータ
+        gamma (float): ハイパーパラメータ
+        debug (bool): デバッグ用のフラグ。Trueのとき、更新ごとに推定値を出力する。
+
+    Returns:
+        List[float]: 推定値 [mu, kappa] の順
+    """
     data = to_2pi_range(data)
     T_data = T(data)
     N = len(data)
-    initial_guess = MLE(T_data, N)
+    initial_guess = MLE(T_data, N)  # 最尤推定値を初期値として使用
 
     now_mu: float = initial_guess[0]
     now_kappa: float = initial_guess[1]
 
-    for i in range(1000):
+    for i in range(1000):  # 最大1000回の更新
+        # 更新式
         next_mu = now_mu
         next_kappa = now_kappa
 
@@ -295,7 +363,7 @@ def type0_estimate(
         next_kappa = A0Inverse(target) / (1 + gamma)
 
         if (next_mu - now_mu) ** 2 + (next_kappa - now_kappa) ** 2 < 1e-16:
-            break
+            break  # 収束判定
         now_mu = next_mu
         now_kappa = next_kappa
         if debug:
@@ -306,16 +374,27 @@ def type0_estimate(
 def type1_estimate(
     data: npt.NDArray[np.float64], beta: float, debug: bool = False
 ) -> List[float]:
-    """Kato and Eguchi (2016) の type1 推定量"""
+    """type1推定量を計算する
+    Kato and Eguchi (2016)
+
+    Args:
+        data (npt.NDArray[np.float64]): サンプルデータ
+        beta (float): ハイパーパラメータ
+        debug (bool): デバッグ用のフラグ。Trueのとき、更新ごとに推定値を出力する。
+
+    Returns:
+        List[float]: 推定値 [mu, kappa] の順
+    """
     data = to_2pi_range(data)
     T_data = T(data)
     N = len(data)
-    initial_guess = MLE(T_data, N)
+    initial_guess = MLE(T_data, N)  # 最尤推定値を初期値として使用
 
     now_mu: float = initial_guess[0]
     now_kappa: float = initial_guess[1]
 
-    for i in range(1000):
+    for i in range(1000):  # 最大1000回の更新
+        # 更新式
         next_mu = now_mu
         next_kappa = now_kappa
 
@@ -324,7 +403,7 @@ def type1_estimate(
         w = np.exp(exponents - max_exp)
         w_sum = np.sum(w)
 
-        w_norm = w / w_sum
+        w_norm = w / w_sum  # 規格化された加重平均
         y_norm = np.sum(w_norm * np.sin(data))
         x_norm = np.sum(w_norm * np.cos(data))
         next_mu = np.arctan2(y_norm, x_norm)
@@ -332,6 +411,7 @@ def type1_estimate(
         r_i0_base = ive(0, (1 + beta) * now_kappa) / ive(0, now_kappa)
         D_base = r_i0_base * (A0((1 + beta) * now_kappa) - A0(now_kappa)) / now_kappa
 
+        # N * D / sum(w_i) の計算 (exp_diff が大きい場合のオーバーフローを防ぐ)
         exp_diff = np.minimum(700.0, beta * now_kappa - max_exp)
         coeff = (N * D_base / w_sum) * np.exp(exp_diff)
 
@@ -341,7 +421,7 @@ def type1_estimate(
         next_kappa = A0Inverse(target)
 
         if (next_mu - now_mu) ** 2 + (next_kappa - now_kappa) ** 2 < 1e-16:
-            break
+            break  # 収束判定
         now_mu = next_mu
         now_kappa = next_kappa
         if debug:
