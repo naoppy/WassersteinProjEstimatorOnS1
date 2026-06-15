@@ -6,7 +6,7 @@ import numpy.typing as npt
 from scipy import integrate, optimize, stats
 from scipy.special import i0, i1, iv, ive
 
-from ..calc_semidiscrete_W_dist import method2
+from ..method import circular_w1_from_cumsums
 from ..misc.circular_utils import (
     cumsum_hist_data,
     to_2pi_range,
@@ -107,9 +107,11 @@ def fisher_info_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
             kappa * r1
             + lambda_
             * integrate.quad(
-                lambda x: np.exp(kappa * np.cos(x))
-                * (lambda_ + np.sin(x))
-                / (1 + lambda_ * np.sin(x)),
+                lambda x: (
+                    np.exp(kappa * np.cos(x))
+                    * (lambda_ + np.sin(x))
+                    / (1 + lambda_ * np.sin(x))
+                ),
                 -np.pi,
                 np.pi,
                 points=[0.0],
@@ -118,9 +120,11 @@ def fisher_info_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
         )
         i_lambda_lambda = (
             integrate.quad(
-                lambda x: np.exp(kappa * np.cos(x))
-                * (np.sin(x) ** 2)
-                / (1 + lambda_ * np.sin(x)),
+                lambda x: (
+                    np.exp(kappa * np.cos(x))
+                    * (np.sin(x) ** 2)
+                    / (1 + lambda_ * np.sin(x))
+                ),
                 -np.pi,
                 np.pi,
                 points=[0.0],
@@ -129,9 +133,9 @@ def fisher_info_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
         )
         i_mu_lambda = (
             integrate.quad(
-                lambda x: np.exp(kappa * np.cos(x))
-                * np.cos(x)
-                / (1 + lambda_ * np.sin(x)),
+                lambda x: (
+                    np.exp(kappa * np.cos(x)) * np.cos(x) / (1 + lambda_ * np.sin(x))
+                ),
                 -np.pi,
                 np.pi,
                 points=[0.0],
@@ -144,9 +148,11 @@ def fisher_info_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
             kappa * r1
             + lambda_
             * integrate.quad(
-                lambda x: np.exp(kappa * (np.cos(x) - 1))
-                * (lambda_ + np.sin(x))
-                / (1 + lambda_ * np.sin(x)),
+                lambda x: (
+                    np.exp(kappa * (np.cos(x) - 1))
+                    * (lambda_ + np.sin(x))
+                    / (1 + lambda_ * np.sin(x))
+                ),
                 -np.pi,
                 np.pi,
                 points=[0.0],
@@ -155,9 +161,11 @@ def fisher_info_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
         )
         i_lambda_lambda = (
             integrate.quad(
-                lambda x: np.exp(kappa * (np.cos(x) - 1))
-                * (np.sin(x) ** 2)
-                / (1 + lambda_ * np.sin(x)),
+                lambda x: (
+                    np.exp(kappa * (np.cos(x) - 1))
+                    * (np.sin(x) ** 2)
+                    / (1 + lambda_ * np.sin(x))
+                ),
                 -np.pi,
                 np.pi,
                 points=[0.0],
@@ -166,9 +174,11 @@ def fisher_info_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
         )
         i_mu_lambda = (
             integrate.quad(
-                lambda x: np.exp(kappa * (np.cos(x) - 1))
-                * np.cos(x)
-                / (1 + lambda_ * np.sin(x)),
+                lambda x: (
+                    np.exp(kappa * (np.cos(x) - 1))
+                    * np.cos(x)
+                    / (1 + lambda_ * np.sin(x))
+                ),
                 -np.pi,
                 np.pi,
                 points=[0.0],
@@ -305,7 +315,7 @@ def W1_equal_div_cost_func(
 ) -> float:
     mu, kappa, lambda_ = x
     dist_cumsum_hist = cumsum_hist(mu, kappa, lambda_, bin_num)
-    return method2.method2(data_cumsum_hist[1:], dist_cumsum_hist[1:])
+    return circular_w1_from_cumsums(data_cumsum_hist[1:], dist_cumsum_hist[1:])
 
 
 def W1_equal_div(

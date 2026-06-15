@@ -11,8 +11,8 @@ import numpy as np
 import scipy.stats as stats
 from scipy import optimize
 
-from ..calc_semidiscrete_W_dist import method2
 from ..distributions import wrapedcauchy
+from ..method import circular_w1_from_cumsums
 
 
 def estimate_param(given_data) -> Tuple[float, float]:
@@ -36,7 +36,7 @@ def estimate_param(given_data) -> Tuple[float, float]:
     def cost_func(x):
         mu, rho = x
         dist_cumsum_hist = wrapedcauchy.cumsum_hist(mu, rho, bin_num)
-        return method2.method2(data_cumsum_hist[1:], dist_cumsum_hist[1:])
+        return circular_w1_from_cumsums(data_cumsum_hist[1:], dist_cumsum_hist[1:])
 
     bounds = ((0, 2 * np.pi), (0.01, 0.99))
     finish_func = partial(optimize.minimize, method="powell", bounds=bounds)
@@ -65,12 +65,14 @@ def main():
     time1 = time.perf_counter()
     MLE = wrapedcauchy.MLE_OKAMURA(sample, N, iter_num=100)
     time2 = time.perf_counter()
-    print(f"MLE result: mu={np.angle(MLE)}, rho={np.abs(MLE)}, time={time2-time1}s")
+    print(f"MLE result: mu={np.angle(MLE)}, rho={np.abs(MLE)}, time={time2 - time1}s")
 
     time3 = time.perf_counter()
     mu_est, rho_est = estimate_param(sample)
     time4 = time.perf_counter()
-    print(f"Mehtod2 Estimation result: mu={mu_est}, rho={rho_est}, time={time4-time3}s")
+    print(
+        f"Mehtod2 Estimation result: mu={mu_est}, rho={rho_est}, time={time4 - time3}s"
+    )
 
 
 if __name__ == "__main__":

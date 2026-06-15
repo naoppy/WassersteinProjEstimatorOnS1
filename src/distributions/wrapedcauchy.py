@@ -5,7 +5,10 @@ import numpy as np
 import numpy.typing as npt
 from scipy import optimize
 
-from ..calc_semidiscrete_W_dist import method1, method2
+from ..method import (
+    circular_w1_from_cumsums,
+    circular_wasserstein_from_samples,
+)
 from ..misc.circular_utils import (
     circular_quantile_sampling,
     cumsum_hist_data,
@@ -218,7 +221,7 @@ def W1_equal_div_cost_func(
 ) -> float:
     mu, rho = x
     dist_cumsum_hist = cumsum_hist(mu, rho, bin_num)
-    return method2.method2(data_cumsum_hist[1:], dist_cumsum_hist[1:])
+    return circular_w1_from_cumsums(data_cumsum_hist[1:], dist_cumsum_hist[1:])
 
 
 def W1_equal_div(
@@ -254,7 +257,9 @@ def W1_quantile_sampling_cost_func(
     sample = circular_quantile_sampling(ppf_func, len(given_data_normed_sorted)) / (
         2 * np.pi
     )
-    return method1.method1(given_data_normed_sorted, sample, p=1, sorted=True)
+    return circular_wasserstein_from_samples(
+        given_data_normed_sorted, sample, p=1, sorted=True
+    )
 
 
 def W1_quantile_sampling(
@@ -290,7 +295,9 @@ def W2_quantile_sampling_cost_func(
     sample = circular_quantile_sampling(ppf_func, len(given_data_normed_sorted)) / (
         2 * np.pi
     )
-    return method1.method1(given_data_normed_sorted, sample, p=2, sorted=True)
+    return circular_wasserstein_from_samples(
+        given_data_normed_sorted, sample, p=2, sorted=True
+    )
 
 
 def W2_quantile_sampling(

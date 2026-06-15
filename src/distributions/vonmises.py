@@ -7,7 +7,10 @@ from scipy import optimize
 from scipy.special import i0, i1, iv, ive
 from scipy.stats import vonmises
 
-from ..calc_semidiscrete_W_dist import method1, method2
+from ..method import (
+    circular_w1_from_cumsums,
+    circular_wasserstein_from_samples,
+)
 from ..misc.circular_utils import (
     circular_quantile_sampling,
     cumsum_hist_data,
@@ -267,7 +270,7 @@ def W1_equal_div_cost_func(
 ) -> float:
     mu, kappa = x
     dist_cumsum_hist = cumsum_hist(mu, kappa, bin_num)
-    return method2.method2(data_cumsum_hist[1:], dist_cumsum_hist[1:])
+    return circular_w1_from_cumsums(data_cumsum_hist[1:], dist_cumsum_hist[1:])
 
 
 def W1_equal_div(
@@ -300,7 +303,9 @@ def W1_quantile_sampling_cost_func(
     sample = fast_quantile_sampling(x[0], x[1], len(given_data_normed_sorted)) / (
         2 * np.pi
     )
-    return method1.method1(given_data_normed_sorted, sample, p=1, sorted=True)
+    return circular_wasserstein_from_samples(
+        given_data_normed_sorted, sample, p=1, sorted=True
+    )
 
 
 def W1_quantile_sampling(
@@ -333,7 +338,9 @@ def W2_quantile_sampling_cost_func(
     sample = fast_quantile_sampling(x[0], x[1], len(given_data_normed_sorted)) / (
         2 * np.pi
     )
-    return method1.method1(given_data_normed_sorted, sample, p=2, sorted=True)
+    return circular_wasserstein_from_samples(
+        given_data_normed_sorted, sample, p=2, sorted=True
+    )
 
 
 def W2_quantile_sampling(
