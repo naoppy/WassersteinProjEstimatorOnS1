@@ -1,17 +1,17 @@
 from functools import partial
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 import numpy.typing as npt
 from scipy import optimize
 from scipy.special import i0, i1, iv, ive
-from scipy.stats import vonmises
+from scipy.stats import vonmises as sp_vonmises
 
-from ..method import (
+from src.method.wasserstein import (
     circular_w1_from_cumsums,
     circular_wasserstein_from_samples,
 )
-from ..misc.circular_utils import (
+from src.misc.circular_utils import (
     circular_quantile_sampling,
     cumsum_hist_data,
     to_2pi_range,
@@ -124,7 +124,7 @@ def vonmises_periodic_cdf_numerical(
 
     Normalized to start at 0 on [0, 2*pi].
     """
-    dist = vonmises(loc=mu, kappa=kappa)
+    dist = sp_vonmises(loc=mu, kappa=kappa)
     # Scipy's vonmises.cdf is monotonic on the real line: cdf(x + 2*pi) = cdf(x) + 1.
     # Therefore, to normalize it to start at 0 at x=0, we simply compute:
     return dist.cdf(x) - dist.cdf(0)
@@ -157,7 +157,7 @@ def quantile_sampling(
         npt.NDArray[np.float64]: [0, 2*pi] の範囲のサンプル。
             F^(-1)(i/D) (i=0, 1, ..., D)
     """
-    dist = vonmises(loc=mu, kappa=kappa)
+    dist = sp_vonmises(loc=mu, kappa=kappa)
 
     def ppf_func(q):
         return dist.ppf(q)
@@ -181,7 +181,7 @@ def fast_quantile_sampling(
     """
     x, step = np.linspace(0, 1, sample_num, endpoint=False, retstep=True)
     x = x + step / 2
-    dist = vonmises(loc=mu, kappa=kappa)
+    dist = sp_vonmises(loc=mu, kappa=kappa)
 
     # cdfを一気に計算しておく
     y, step_grid = np.linspace(mu - np.pi, mu + np.pi, 1048576, retstep=True)  # 2^20
@@ -274,7 +274,9 @@ def W1_equal_div_cost_func(
 
 
 def W1_equal_div(
-    given_data: npt.NDArray[np.float64], x0=None, method="powell"
+    given_data: npt.NDArray[np.float64],
+    x0: Optional[npt.NDArray[np.float64]] = None,
+    method="powell",
 ) -> optimize.OptimizeResult:
     """1-Wasserstein 距離（等分割ヒストグラム）を最小化するパラメータ推定"""
     given_data = to_2pi_range(given_data)
@@ -287,7 +289,7 @@ def W1_equal_div(
         return optimize.differential_evolution(cost_func, bounds=bounds)
     else:
         if x0 is None:
-            x0 = (0, 1.0)
+            raise ValueError("x0 is required for local minimization")
         return optimize.minimize(
             cost_func,
             x0,
@@ -309,7 +311,9 @@ def W1_quantile_sampling_cost_func(
 
 
 def W1_quantile_sampling(
-    given_data: npt.NDArray[np.float64], x0=None, method="powell"
+    given_data: npt.NDArray[np.float64],
+    x0: Optional[npt.NDArray[np.float64]] = None,
+    method="powell",
 ) -> optimize.OptimizeResult:
     """1-Wasserstein 距離（分位点サンプリング）を最小化するパラメータ推定"""
     given_data = to_2pi_range(given_data)
@@ -322,7 +326,7 @@ def W1_quantile_sampling(
         return optimize.differential_evolution(cost_func, bounds=bounds)
     else:
         if x0 is None:
-            x0 = (0, 1.0)
+            raise ValueError("x0 is required for local minimization")
         return optimize.minimize(
             cost_func,
             x0,
@@ -344,7 +348,9 @@ def W2_quantile_sampling_cost_func(
 
 
 def W2_quantile_sampling(
-    given_data: npt.NDArray[np.float64], x0=None, method="powell"
+    given_data: npt.NDArray[np.float64],
+    x0: Optional[npt.NDArray[np.float64]] = None,
+    method="powell",
 ) -> optimize.OptimizeResult:
     """2-Wasserstein 距離（分位点サンプリング）を最小化するパラメータ推定"""
     given_data = to_2pi_range(given_data)
@@ -357,7 +363,7 @@ def W2_quantile_sampling(
         return optimize.differential_evolution(cost_func, bounds=bounds)
     else:
         if x0 is None:
-            x0 = (0, 1.0)
+            raise ValueError("x0 is required for local minimization")
         return optimize.minimize(
             cost_func,
             x0,

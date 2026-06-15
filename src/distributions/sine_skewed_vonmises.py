@@ -6,8 +6,8 @@ import numpy.typing as npt
 from scipy import integrate, optimize, stats
 from scipy.special import i0, i1, iv, ive
 
-from ..method import circular_w1_from_cumsums
-from ..misc.circular_utils import (
+from src.method.wasserstein import circular_w1_from_cumsums
+from src.misc.circular_utils import (
     cumsum_hist_data,
     to_2pi_range,
 )

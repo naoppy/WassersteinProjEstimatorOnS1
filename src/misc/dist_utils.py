@@ -9,7 +9,7 @@ def vonmises_pdf(
     theta: npt.NDArray[np.float64], mu: float, kappa: float
 ) -> npt.NDArray[np.float64]:
     """Stable von Mises PDF using stable vonmises module."""
-    from ..distributions import vonmises
+    from src.distributions import vonmises
 
     return vonmises.vonmises_pdf_stable(theta, mu, kappa)
 
@@ -17,10 +17,10 @@ def vonmises_pdf(
 def wrapcauchy_pdf(
     theta: npt.NDArray[np.float64], mu: float, rho: float
 ) -> npt.NDArray[np.float64]:
-    """Wrapped Cauchy PDF using stable wrapedcauchy module."""
-    from ..distributions import wrapedcauchy
+    """Wrapped Cauchy PDF using stable wrappedcauchy module."""
+    from src.distributions import wrappedcauchy
 
-    return wrapedcauchy.wrapcauchy_pdf_analytical(theta, rho, mu)
+    return wrappedcauchy.wrapcauchy_pdf_analytical(theta, rho, mu)
 
 
 def get_interpolated_cdf(pdf_func, grid_size: int = 2000):

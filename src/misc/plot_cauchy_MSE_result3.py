@@ -5,7 +5,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ..distributions import wrapedcauchy
+from src.distributions import wrappedcauchy
 
 
 def main():
@@ -110,7 +110,7 @@ def main():
         3.198603083061298e-05,
         1.6374893630331123e-05,
     ]
-    fisher_mat = wrapedcauchy.fisher_info_2x2(true_rho)
+    fisher_mat = wrappedcauchy.fisher_info_2x2(true_rho)
     plt.plot(
         np.log10(N),
         -np.log10(fisher_mat[0][0]) - np.log10(N),

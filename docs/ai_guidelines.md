@@ -19,7 +19,7 @@ Welcome! This document is designed for AI coding assistants working in this repo
 #### `src/distributions/`
 Contains Python implementations of circular probability distributions:
 - `vonmises.py`: von Mises distribution probability density function (PDF), cumulative distribution function (CDF), sampling, and fitting.
-- `wrapedcauchy.py`: Wrapped Cauchy distribution PDF, CDF, sampling, and fitting.
+- `wrappedcauchy.py`: Wrapped Cauchy distribution PDF, CDF, sampling, and fitting.
 - `cauchy.py`: Standard/Wrapped Cauchy distributions utilities.
 - `sine_skewed_vonmises.py`: Sine-skewed von Mises distribution.
 

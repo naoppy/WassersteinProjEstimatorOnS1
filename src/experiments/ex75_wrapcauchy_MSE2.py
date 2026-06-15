@@ -11,7 +11,7 @@ import scipy.stats as stats
 from numpy import typing as npt
 from parfor import pmap
 
-from ..distributions import wrapedcauchy
+from src.distributions import wrappedcauchy
 
 
 def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
@@ -20,21 +20,21 @@ def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
     sample = np.remainder(sample, 2 * np.pi)
 
     s_time = time.perf_counter()
-    MLE = wrapedcauchy.MLE_Kent(sample, tol=1e-15)
+    MLE = wrappedcauchy.MLE_Kent(sample, tol=1e-15)
     e_time = time.perf_counter()
     MLE_mu_kent = MLE[0]
     MLE_rho_kent = MLE[1]
     MLE_time_kent = e_time - s_time
 
     s_time = time.perf_counter()
-    est = wrapedcauchy.W1_equal_div(sample, x0=MLE)
+    est = wrappedcauchy.W1_equal_div(sample, x0=MLE)
     e_time = time.perf_counter()
     W1method2_mu = est.x[0]
     W1method2_rho = est.x[1]
     W1method2_time = e_time - s_time
 
     s_time = time.perf_counter()
-    est = wrapedcauchy.W2_quantile_sampling(sample, x0=MLE)
+    est = wrappedcauchy.W2_quantile_sampling(sample, x0=MLE)
     e_time = time.perf_counter()
     W2method3_mu = est.x[0]
     W2method3_rho = est.x[1]
@@ -115,7 +115,7 @@ def _main():
         method3_rho_mse = np.mean((W2method3_rho - true_rho) ** 2)
         method3_time_mean = np.mean(W2method3_time)
 
-        fisher_mat_inv_diag = wrapedcauchy.fisher_mat_inv_diag(true_rho)
+        fisher_mat_inv_diag = wrappedcauchy.fisher_mat_inv_diag(true_rho)
         CR_mu_mse_times_N = fisher_mat_inv_diag[0]
         CR_rho_mse_times_N = fisher_mat_inv_diag[1]
 

@@ -10,8 +10,8 @@ import numpy as np
 import scipy.stats as stats
 from scipy import optimize
 
-from ..distributions import vonmises
-from ..method import circular_w1_from_cumsums
+from src.distributions import vonmises
+from src.method import circular_w1_from_cumsums
 
 
 def estimate_param(given_data) -> Tuple[float, float]:

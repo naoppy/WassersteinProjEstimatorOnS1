@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ..vonmises.fisher import fisher_info_2x2
+from src.distributions.vonmises import fisher_info_2x2
 
 
 def main():

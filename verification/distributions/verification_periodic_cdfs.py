@@ -4,7 +4,7 @@ from src.distributions.sine_skewed_vonmises import (
     sine_skewed_vonmises_periodic_cdf_analytical,
 )
 from src.distributions.vonmises import vonmises_periodic_cdf_numerical
-from src.distributions.wrapedcauchy import wrapcauchy_periodic_cdf_analytical
+from src.distributions.wrappedcauchy import wrapcauchy_periodic_cdf_analytical
 
 
 def test_vonmises_cdf():

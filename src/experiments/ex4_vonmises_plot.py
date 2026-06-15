@@ -11,12 +11,12 @@ import numpy as np
 import scipy.stats as stats
 from scipy import optimize
 
-from ..distributions import vonmises
-from ..method import (
+from src.distributions import vonmises
+from src.method import (
     circular_w1_from_cumsums,
     circular_wasserstein_from_samples,
 )
-from ..plots import brute_heatmap
+from src.plots import brute_heatmap
 
 
 def est_W1_method2(given_data) -> Tuple[float, float]:

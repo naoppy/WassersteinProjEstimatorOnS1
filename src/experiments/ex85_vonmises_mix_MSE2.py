@@ -10,7 +10,7 @@ import pandas as pd
 import scipy.stats as stats
 from parfor import pmap
 
-from ..distributions import vonmises
+from src.distributions import vonmises
 
 
 def run_once(i, true_mu, true_kappa, uniform_noise_rate, N: int):
@@ -133,9 +133,7 @@ def main():
         ]
 
         print(
-            f"MLE: mu_mse={MLE_mu_mse}, "
-            f"kappa_mse={MLE_kappa_mse}, "
-            f"time={MLE_time_mean}"
+            f"MLE: mu_mse={MLE_mu_mse}, kappa_mse={MLE_kappa_mse}, time={MLE_time_mean}"
         )
         print(
             f"W1method2: mu_mse={W1method2_mu_mse}, "

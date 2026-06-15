@@ -11,8 +11,8 @@ import numpy as np
 import scipy.stats as stats
 from scipy import optimize
 
-from ..distributions import wrapedcauchy
-from ..method import circular_w1_from_cumsums
+from src.distributions import wrappedcauchy
+from src.method import circular_w1_from_cumsums
 
 
 def estimate_param(given_data) -> Tuple[float, float]:
@@ -35,7 +35,7 @@ def estimate_param(given_data) -> Tuple[float, float]:
 
     def cost_func(x):
         mu, rho = x
-        dist_cumsum_hist = wrapedcauchy.cumsum_hist(mu, rho, bin_num)
+        dist_cumsum_hist = wrappedcauchy.cumsum_hist(mu, rho, bin_num)
         return circular_w1_from_cumsums(data_cumsum_hist[1:], dist_cumsum_hist[1:])
 
     bounds = ((0, 2 * np.pi), (0.01, 0.99))
@@ -63,7 +63,7 @@ def main():
     sample = np.remainder(sample, 2 * np.pi)
 
     time1 = time.perf_counter()
-    MLE = wrapedcauchy.MLE_OKAMURA(sample, N, iter_num=100)
+    MLE = wrappedcauchy.MLE_OKAMURA(sample, N, iter_num=100)
     time2 = time.perf_counter()
     print(f"MLE result: mu={np.angle(MLE)}, rho={np.abs(MLE)}, time={time2 - time1}s")
 

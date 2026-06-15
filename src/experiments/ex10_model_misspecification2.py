@@ -12,8 +12,8 @@ import scipy.stats as stats
 from numpy import typing as npt
 from parfor import pmap
 
-from ..distributions import vonmises, wrapedcauchy
-from ..misc import dist_utils
+from src.distributions import vonmises, wrappedcauchy
+from src.misc import dist_utils
 
 
 def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
@@ -25,9 +25,9 @@ def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
         return dist_utils.wrapcauchy_pdf(theta, true_mu, true_rho)
 
     def p_cdf(theta):
-        return wrapedcauchy.wrapcauchy_periodic_cdf_analytical(
+        return wrappedcauchy.wrapcauchy_periodic_cdf_analytical(
             theta, true_rho, true_mu
-        ) - wrapedcauchy.wrapcauchy_periodic_cdf_analytical(0, true_rho, true_mu)
+        ) - wrappedcauchy.wrapcauchy_periodic_cdf_analytical(0, true_rho, true_mu)
 
     # MLE
     s_time = time.perf_counter()
@@ -51,7 +51,7 @@ def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
 
     # W1 method2 (equal division)
     s_time = time.perf_counter()
-    est = vonmises.W1_equal_div(sample)
+    est = vonmises.W1_equal_div(sample, x0=MLE)
     e_time = time.perf_counter()
     W1method2_mu = est.x[0]
     W1method2_kappa = est.x[1]
@@ -71,7 +71,7 @@ def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
 
     # W1 method3 (quantile sampling)
     s_time = time.perf_counter()
-    est = vonmises.W1_quantile_sampling(sample)
+    est = vonmises.W1_quantile_sampling(sample, x0=MLE)
     e_time = time.perf_counter()
     W1method3_mu = est.x[0]
     W1method3_kappa = est.x[1]
@@ -91,7 +91,7 @@ def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
 
     # W2 method3 (quantile sampling)
     s_time = time.perf_counter()
-    est = vonmises.W2_quantile_sampling(sample)
+    est = vonmises.W2_quantile_sampling(sample, x0=MLE)
     e_time = time.perf_counter()
     W2method3_mu = est.x[0]
     W2method3_kappa = est.x[1]

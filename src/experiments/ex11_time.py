@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-from ..distributions import vonmises, wrapedcauchy
+from src.distributions import vonmises, wrappedcauchy
 
 
 def main():
@@ -40,17 +40,17 @@ def main():
             sample = np.remainder(sample, 2 * np.pi)
 
             s_time = time.perf_counter()
-            _ = vonmises.MLE_direct(sample)
+            vM_MLE = vonmises.MLE_direct(sample)
             e_time = time.perf_counter()
             MLE_time[i] = e_time - s_time
 
             s_time = time.perf_counter()
-            _ = vonmises.W1_equal_div(sample)
+            _ = vonmises.W1_equal_div(sample, x0=vM_MLE)
             e_time = time.perf_counter()
             W1method2_time[i] = e_time - s_time
 
             s_time = time.perf_counter()
-            _ = vonmises.W2_quantile_sampling(sample)
+            _ = vonmises.W2_quantile_sampling(sample, x0=vM_MLE)
             e_time = time.perf_counter()
             W2method3_time[i] = e_time - s_time
 
@@ -82,17 +82,17 @@ def main():
             sample = np.remainder(sample, 2 * np.pi)
 
             s_time = time.perf_counter()
-            _ = wrapedcauchy.MLE_Kent(sample)
+            wc_MLE = wrappedcauchy.MLE_Kent(sample)
             e_time = time.perf_counter()
             MLE_time[i] = e_time - s_time
 
             s_time = time.perf_counter()
-            _ = wrapedcauchy.W1_equal_div(sample)
+            _ = wrappedcauchy.W1_equal_div(sample, x0=wc_MLE)
             e_time = time.perf_counter()
             W1method2_time[i] = e_time - s_time
 
             s_time = time.perf_counter()
-            _ = wrapedcauchy.W2_quantile_sampling(sample)
+            _ = wrappedcauchy.W2_quantile_sampling(sample, x0=wc_MLE)
             e_time = time.perf_counter()
             W2method3_time[i] = e_time - s_time
 

@@ -10,8 +10,8 @@ import numpy as np
 import scipy.stats as stats
 from scipy import optimize
 
-from ..distributions import vonmises
-from ..method import circular_wasserstein_from_samples
+from src.distributions import vonmises
+from src.method import circular_wasserstein_from_samples
 
 
 def estimate_param(given_data) -> Tuple[float, float]:

@@ -13,12 +13,12 @@ import numpy as np
 import scipy.stats as stats
 from scipy import optimize
 
-from ..distributions import wrapedcauchy
-from ..method import (
+from src.distributions import wrappedcauchy
+from src.method import (
     circular_w1_from_cumsums,
     circular_wasserstein_from_samples,
 )
-from ..plots import brute_heatmap
+from src.plots import brute_heatmap
 
 
 def est_W1_method2(given_data):
@@ -31,11 +31,11 @@ def est_W1_method2(given_data):
         Tuple[float, float]: [推定したmu、推定したrho]
     """
     bin_num = len(given_data)
-    data_cumsum_hist = wrapedcauchy.cumsum_hist_data(given_data, len(given_data))
+    data_cumsum_hist = wrappedcauchy.cumsum_hist_data(given_data, len(given_data))
 
     def cost_func(x):
         mu, rho = x
-        dist_cumsum_hist = wrapedcauchy.cumsum_hist(mu, rho, bin_num)
+        dist_cumsum_hist = wrappedcauchy.cumsum_hist(mu, rho, bin_num)
         return circular_w1_from_cumsums(data_cumsum_hist[1:], dist_cumsum_hist[1:])
 
     return optimize.brute(
@@ -49,11 +49,11 @@ def est_W1_method2(given_data):
 
 def est_W1_method2_justopt(given_data):
     bin_num = len(given_data)
-    data_cumsum_hist = wrapedcauchy.cumsum_hist_data(given_data, len(given_data))
+    data_cumsum_hist = wrappedcauchy.cumsum_hist_data(given_data, len(given_data))
 
     def cost_func(x):
         mu, rho = x
-        dist_cumsum_hist = wrapedcauchy.cumsum_hist(mu, rho, bin_num)
+        dist_cumsum_hist = wrappedcauchy.cumsum_hist(mu, rho, bin_num)
         return circular_w1_from_cumsums(data_cumsum_hist[1:], dist_cumsum_hist[1:])
 
     return optimize.minimize(
@@ -125,7 +125,7 @@ def est_W2_method3(given_data):
 
     def cost_func(x):
         mu, rho = x
-        sample = wrapedcauchy.quantile_sampling(mu, rho, len(given_data)) / (2 * np.pi)
+        sample = wrappedcauchy.quantile_sampling(mu, rho, len(given_data)) / (2 * np.pi)
         sample = np.sort(sample)
         return circular_wasserstein_from_samples(
             given_data_norm_sorted, sample, p=2, sorted=True
@@ -146,7 +146,7 @@ def est_W2_method3_justopt(given_data):
 
     def cost_func(x):
         mu, rho = x
-        sample = wrapedcauchy.quantile_sampling(mu, rho, len(given_data)) / (2 * np.pi)
+        sample = wrappedcauchy.quantile_sampling(mu, rho, len(given_data)) / (2 * np.pi)
         sample = np.sort(sample)
         return circular_wasserstein_from_samples(
             given_data_norm_sorted, sample, p=2, sorted=True
@@ -177,7 +177,7 @@ def main():
     sample = np.remainder(sample, 2 * np.pi)
 
     s_time = time.perf_counter()
-    MLE = wrapedcauchy.MLE_OKAMURA(sample, N, iter_num=100)
+    MLE = wrappedcauchy.MLE_OKAMURA(sample, N, iter_num=100)
     e_time = time.perf_counter()
     print(f"MLE result: mu={np.angle(MLE)}, rho={np.abs(MLE)}, time={e_time - s_time}s")
     print()

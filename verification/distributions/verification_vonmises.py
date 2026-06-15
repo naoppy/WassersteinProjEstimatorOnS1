@@ -1,6 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
-from scipy.stats import vonmises
+from scipy.stats import vonmises as sp_vonmises
 
 from src.distributions.vonmises import (
     MLE_direct,
@@ -20,7 +20,7 @@ def test_estimate() -> None:
     mu = to_2pi_range(0.5 * np.pi)  # 0.5 * pi
     kappa = 1.3  # concentration
     N = 10000
-    dist = vonmises(loc=mu, kappa=kappa)
+    dist = sp_vonmises(loc=mu, kappa=kappa)
     # scipy vonmises outputs samples in [mu - pi, mu + pi] by default.
     # Map them to [0, 2*pi] standard.
     sample = to_2pi_range(dist.rvs(N))
@@ -99,7 +99,7 @@ def test_main() -> None:
     print("Fisher info:")
     print(fisher_info_2x2(kappa))
 
-    dist = vonmises(loc=mu, kappa=kappa)
+    dist = sp_vonmises(loc=mu, kappa=kappa)
     sample = to_2pi_range(dist.rvs(N))
     print(f"Sample range: min={np.min(sample)}, max={np.max(sample)}")
 

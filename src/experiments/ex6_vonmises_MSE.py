@@ -11,7 +11,7 @@ import scipy.stats as stats
 from numpy import typing as npt
 from parfor import pmap
 
-from ..distributions import vonmises
+from src.distributions import vonmises
 
 
 def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
@@ -26,21 +26,21 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
     MLE_time = e_time - s_time
 
     s_time = time.perf_counter()
-    est = vonmises.W1_equal_div(sample)
+    est = vonmises.W1_equal_div(sample, x0=MLE)
     e_time = time.perf_counter()
     W1method2_mu = est.x[0]
     W1method2_kappa = est.x[1]
     W1method2_time = e_time - s_time
 
     s_time = time.perf_counter()
-    est = vonmises.W1_quantile_sampling(sample)
+    est = vonmises.W1_quantile_sampling(sample, x0=MLE)
     e_time = time.perf_counter()
     W1method3_mu = est.x[0]
     W1method3_kappa = est.x[1]
     W1method3_time = e_time - s_time
 
     s_time = time.perf_counter()
-    est = vonmises.W2_quantile_sampling(sample)
+    est = vonmises.W2_quantile_sampling(sample, x0=MLE)
     e_time = time.perf_counter()
     W2method3_mu = est.x[0]
     W2method3_kappa = est.x[1]
@@ -156,9 +156,7 @@ def main():
         ]
 
         print(
-            f"MLE: mu_mse={MLE_mu_mse}, "
-            f"kappa_mse={MLE_kappa_mse}, "
-            f"time={MLE_time_mean}"
+            f"MLE: mu_mse={MLE_mu_mse}, kappa_mse={MLE_kappa_mse}, time={MLE_time_mean}"
         )
         print(
             f"W1 method2: mu_mse={W1method2_mu_mse}, "

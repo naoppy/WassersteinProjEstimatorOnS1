@@ -10,7 +10,7 @@ import pandas as pd
 from numpy import typing as npt
 from parfor import pmap
 
-from ..distributions import sine_skewed_vonmises
+from src.distributions import sine_skewed_vonmises
 
 TOL = 1e-7
 bounds = ((0, 2 * np.pi), (0.01, 2), (-1, 1))

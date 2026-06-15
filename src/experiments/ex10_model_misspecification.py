@@ -12,8 +12,8 @@ import scipy.stats as stats
 from numpy import typing as npt
 from parfor import pmap
 
-from ..distributions import wrapedcauchy
-from ..misc import dist_utils
+from src.distributions import wrappedcauchy
+from src.misc import dist_utils
 
 
 def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
@@ -31,7 +31,7 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
 
     # MLE
     s_time = time.perf_counter()
-    MLE = wrapedcauchy.MLE_Kent(sample)
+    MLE = wrappedcauchy.MLE_Kent(sample)
     e_time = time.perf_counter()
     MLE_mu = MLE[0]
     MLE_rho = MLE[1]
@@ -41,9 +41,9 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
         return dist_utils.wrapcauchy_pdf(theta, MLE_mu, MLE_rho)
 
     def q_cdf_mle(theta):
-        return wrapedcauchy.wrapcauchy_periodic_cdf_analytical(
+        return wrappedcauchy.wrapcauchy_periodic_cdf_analytical(
             theta, MLE_rho, MLE_mu
-        ) - wrapedcauchy.wrapcauchy_periodic_cdf_analytical(0, MLE_rho, MLE_mu)
+        ) - wrappedcauchy.wrapcauchy_periodic_cdf_analytical(0, MLE_rho, MLE_mu)
 
     mle_kl, mle_w1, mle_w2 = dist_utils.calculate_distances(
         p_pdf, q_pdf_mle, p_cdf=p_cdf, q_cdf=q_cdf_mle
@@ -51,7 +51,7 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
 
     # W1 method2 (equal division)
     s_time = time.perf_counter()
-    est = wrapedcauchy.W1_equal_div(sample)
+    est = wrappedcauchy.W1_equal_div(sample, x0=MLE)
     e_time = time.perf_counter()
     W1method2_mu = est.x[0]
     W1method2_rho = est.x[1]
@@ -61,9 +61,9 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
         return dist_utils.wrapcauchy_pdf(theta, W1method2_mu, W1method2_rho)
 
     def q_cdf_w1m2(theta):
-        return wrapedcauchy.wrapcauchy_periodic_cdf_analytical(
+        return wrappedcauchy.wrapcauchy_periodic_cdf_analytical(
             theta, W1method2_rho, W1method2_mu
-        ) - wrapedcauchy.wrapcauchy_periodic_cdf_analytical(
+        ) - wrappedcauchy.wrapcauchy_periodic_cdf_analytical(
             0, W1method2_rho, W1method2_mu
         )
 
@@ -73,7 +73,7 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
 
     # W1 method3 (quantile sampling)
     s_time = time.perf_counter()
-    est = wrapedcauchy.W1_quantile_sampling(sample)
+    est = wrappedcauchy.W1_quantile_sampling(sample, x0=MLE)
     e_time = time.perf_counter()
     W1method3_mu = est.x[0]
     W1method3_rho = est.x[1]
@@ -83,9 +83,9 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
         return dist_utils.wrapcauchy_pdf(theta, W1method3_mu, W1method3_rho)
 
     def q_cdf_w1m3(theta):
-        return wrapedcauchy.wrapcauchy_periodic_cdf_analytical(
+        return wrappedcauchy.wrapcauchy_periodic_cdf_analytical(
             theta, W1method3_rho, W1method3_mu
-        ) - wrapedcauchy.wrapcauchy_periodic_cdf_analytical(
+        ) - wrappedcauchy.wrapcauchy_periodic_cdf_analytical(
             0, W1method3_rho, W1method3_mu
         )
 
@@ -95,7 +95,7 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
 
     # W2 method3 (quantile sampling)
     s_time = time.perf_counter()
-    est = wrapedcauchy.W2_quantile_sampling(sample)
+    est = wrappedcauchy.W2_quantile_sampling(sample, x0=MLE)
     e_time = time.perf_counter()
     W2method3_mu = est.x[0]
     W2method3_rho = est.x[1]
@@ -105,9 +105,9 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
         return dist_utils.wrapcauchy_pdf(theta, W2method3_mu, W2method3_rho)
 
     def q_cdf_w2m3(theta):
-        return wrapedcauchy.wrapcauchy_periodic_cdf_analytical(
+        return wrappedcauchy.wrapcauchy_periodic_cdf_analytical(
             theta, W2method3_rho, W2method3_mu
-        ) - wrapedcauchy.wrapcauchy_periodic_cdf_analytical(
+        ) - wrappedcauchy.wrapcauchy_periodic_cdf_analytical(
             0, W2method3_rho, W2method3_mu
         )
 

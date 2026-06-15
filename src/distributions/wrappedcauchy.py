@@ -1,15 +1,15 @@
 from functools import partial
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 import numpy.typing as npt
 from scipy import optimize
 
-from ..method import (
+from src.method.wasserstein import (
     circular_w1_from_cumsums,
     circular_wasserstein_from_samples,
 )
-from ..misc.circular_utils import (
+from src.misc.circular_utils import (
     circular_quantile_sampling,
     cumsum_hist_data,
     to_2pi_range,
@@ -225,7 +225,9 @@ def W1_equal_div_cost_func(
 
 
 def W1_equal_div(
-    given_data: npt.NDArray[np.float64], x0=None, method="powell"
+    given_data: npt.NDArray[np.float64],
+    x0: Optional[npt.NDArray[np.float64]] = None,
+    method="powell",
 ) -> optimize.OptimizeResult:
     """1-Wasserstein 距離（等分割ヒストグラム）を最小化するパラメータ推定"""
     given_data = to_2pi_range(given_data)
@@ -238,7 +240,7 @@ def W1_equal_div(
         return optimize.differential_evolution(cost_func, bounds=bounds)
     else:
         if x0 is None:
-            x0 = (0, 0.5)
+            raise ValueError("x0 is required for local minimization")
         return optimize.minimize(
             cost_func,
             x0,
@@ -263,7 +265,9 @@ def W1_quantile_sampling_cost_func(
 
 
 def W1_quantile_sampling(
-    given_data: npt.NDArray[np.float64], x0=None, method="powell"
+    given_data: npt.NDArray[np.float64],
+    x0: Optional[npt.NDArray[np.float64]] = None,
+    method="powell",
 ) -> optimize.OptimizeResult:
     """1-Wasserstein 距離（分位点サンプリング）を最小化するパラメータ推定"""
     given_data = to_2pi_range(given_data)
@@ -276,7 +280,7 @@ def W1_quantile_sampling(
         return optimize.differential_evolution(cost_func, bounds=bounds)
     else:
         if x0 is None:
-            x0 = (0, 0.5)
+            raise ValueError("x0 is required for local minimization")
         return optimize.minimize(
             cost_func,
             x0,
@@ -301,7 +305,9 @@ def W2_quantile_sampling_cost_func(
 
 
 def W2_quantile_sampling(
-    given_data: npt.NDArray[np.float64], x0=None, method="powell"
+    given_data: npt.NDArray[np.float64],
+    x0: Optional[npt.NDArray[np.float64]] = None,
+    method="powell",
 ) -> optimize.OptimizeResult:
     """2-Wasserstein 距離（分位点サンプリング）を最小化するパラメータ推定"""
     given_data = to_2pi_range(given_data)
@@ -314,7 +320,7 @@ def W2_quantile_sampling(
         return optimize.differential_evolution(cost_func, bounds=bounds)
     else:
         if x0 is None:
-            x0 = (0, 0.5)
+            raise ValueError("x0 is required for local minimization")
         return optimize.minimize(
             cost_func,
             x0,

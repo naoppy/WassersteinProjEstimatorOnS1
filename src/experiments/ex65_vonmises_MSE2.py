@@ -11,7 +11,7 @@ import scipy.stats as stats
 from numpy import typing as npt
 from parfor import pmap
 
-from ..distributions import vonmises
+from src.distributions import vonmises
 
 
 def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:

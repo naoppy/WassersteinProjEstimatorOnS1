@@ -1,8 +1,8 @@
 import numpy as np
 from matplotlib import pyplot as plt
-from scipy.stats import wrapcauchy
+from scipy.stats import wrapcauchy as sp_wrapcauchy
 
-from src.distributions.wrapedcauchy import (
+from src.distributions.wrappedcauchy import (
     MLE_OKAMURA,
     MLE_direct,
     MLE_Kent,
@@ -69,7 +69,7 @@ def test_main() -> None:
     mu = to_2pi_range(np.pi / 2)  # circular mean in [0, 2*pi]
     rho = 0.7  # concentration
     N = 10000
-    dist = wrapcauchy(loc=mu, c=rho)
+    dist = sp_wrapcauchy(loc=mu, c=rho)
 
     # calc Fisher info matrix
     print("Fisher info:")
