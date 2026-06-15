@@ -11,9 +11,12 @@ import numpy as np
 import scipy.stats as stats
 from scipy import optimize
 
-from ..calc_semidiscrete_W_dist import method1, method2
-from ..distributions import vonmises
-from ..plots import brute_heatmap
+from src.distributions import vonmises
+from src.method import (
+    circular_w1_from_cumsums,
+    circular_wasserstein_from_samples,
+)
+from src.plots import brute_heatmap
 
 
 def est_W1_method2(given_data) -> Tuple[float, float]:
@@ -31,7 +34,7 @@ def est_W1_method2(given_data) -> Tuple[float, float]:
     def cost_func(x):
         mu, kappa = x
         dist_cumsum_hist = vonmises.cumsum_hist.cumsum_hist(mu, kappa, bin_num)
-        return method2.method2(data_cumsum_hist[1:], dist_cumsum_hist[1:])
+        return circular_w1_from_cumsums(data_cumsum_hist[1:], dist_cumsum_hist[1:])
 
     return optimize.brute(
         cost_func,
@@ -50,7 +53,7 @@ def est_W1_method2_justopt(given_data) -> Tuple[float, float]:
     def cost_func(x):
         mu, kappa = x
         dist_cumsum_hist = vonmises.cumsum_hist.cumsum_hist(mu, kappa, bin_num)
-        return method2.method2(data_cumsum_hist[1:], dist_cumsum_hist[1:])
+        return circular_w1_from_cumsums(data_cumsum_hist[1:], dist_cumsum_hist[1:])
 
     return optimize.minimize(
         cost_func,
@@ -74,7 +77,9 @@ def est_W2_method1(given_data):
         sample = stats.vonmises(loc=x[0], kappa=x[1]).rvs(len(given_data))
         sample = np.remainder(sample, 2 * np.pi) / (2 * np.pi)
         sample = np.sort(sample)
-        return method1.method1(given_data_norm_sorted, sample, p=2, sorted=True)
+        return circular_wasserstein_from_samples(
+            given_data_norm_sorted, sample, p=2, sorted=True
+        )
 
     return optimize.brute(
         cost_func,
@@ -93,7 +98,7 @@ def est_W2_method1_justopt(given_data):
     def cost_func(x):
         sample = stats.vonmises(loc=x[0], kappa=x[1]).rvs(len(given_data))
         sample = np.remainder(sample, 2 * np.pi) / (2 * np.pi)
-        return method1.method1(given_data_norm, sample, p=2)
+        return circular_wasserstein_from_samples(given_data_norm, sample, p=2)
 
     return optimize.minimize(
         cost_func,

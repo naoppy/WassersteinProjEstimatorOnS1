@@ -10,8 +10,8 @@ import numpy as np
 import scipy.stats as stats
 from scipy import optimize
 
-from ..calc_semidiscrete_W_dist.method1 import method1
-from ..distributions import vonmises
+from src.distributions import vonmises
+from src.method import circular_wasserstein_from_samples
 
 
 def estimate_param(given_data) -> Tuple[float, float]:
@@ -27,7 +27,7 @@ def estimate_param(given_data) -> Tuple[float, float]:
 
     def cost_func(x):
         sample = stats.vonmises(loc=x[0], kappa=x[1]).rvs(len(given_data)) / (2 * np.pi)
-        return method1(given_data_norm, sample, p=2)
+        return circular_wasserstein_from_samples(given_data_norm, sample, p=2)
 
     return optimize.brute(
         cost_func,
@@ -53,7 +53,7 @@ def estimate_param2(given_data) -> Tuple[float, float]:
         sample = np.remainder(
             vonmises.quantile_sampling(x[0], x[1], len(given_data)), 2 * np.pi
         ) / (2 * np.pi)
-        return method1(given_data_norm, sample, p=2)
+        return circular_wasserstein_from_samples(given_data_norm, sample, p=2)
 
     return optimize.brute(
         cost_func,
@@ -78,17 +78,19 @@ def main():
     T_data = vonmises.T(sample)
     mu_MLE, kappa_MLE = vonmises.MLE(T_data, N)
     time2 = time.perf_counter()
-    print(f"MLE result: mu={mu_MLE}, kappa={kappa_MLE}, time={time2-time1}s")
+    print(f"MLE result: mu={mu_MLE}, kappa={kappa_MLE}, time={time2 - time1}s")
 
     time3 = time.perf_counter()
     mu_est, kappa_est = estimate_param(sample)
     time4 = time.perf_counter()
-    print(f"Estimation result: mu={mu_est}, kappa={kappa_est}, time={time4-time3}s")
+    print(f"Estimation result: mu={mu_est}, kappa={kappa_est}, time={time4 - time3}s")
 
     time5 = time.perf_counter()
     mu_est2, kappa_est2 = estimate_param2(sample)
     time6 = time.perf_counter()
-    print(f"Estimation result2: mu={mu_est2}, kappa={kappa_est2}, time={time6-time5}s")
+    print(
+        f"Estimation result2: mu={mu_est2}, kappa={kappa_est2}, time={time6 - time5}s"
+    )
 
 
 if __name__ == "__main__":

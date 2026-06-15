@@ -1,5 +1,4 @@
-
-from ..plots import txt2csv
+from src.plots import txt2csv
 
 
 def main():

@@ -1,10 +1,16 @@
+from functools import partial
 from typing import List, Tuple
 
 import numpy as np
 import numpy.typing as npt
-from matplotlib import pyplot as plt
 from scipy import integrate, optimize, stats
 from scipy.special import i0, i1, iv, ive
+
+from src.method.wasserstein import circular_w1_from_cumsums
+from src.misc.circular_utils import (
+    cumsum_hist_data,
+    to_2pi_range,
+)
 
 
 def _bessel_ratio(v: int, kappa: float) -> float:
@@ -23,46 +29,61 @@ def _bessel_ratio(v: int, kappa: float) -> float:
         return ive(v, kappa) / ive(0, kappa)
 
 
-def pdf(
+def sine_skewed_vonmises_pdf_analytical(
     x: npt.NDArray[np.float64], mu: float, kappa: float, lambda_: float
 ) -> npt.NDArray[np.float64]:
-    """Sine-skewed von Mises分布の確率密度関数を計算する
+    """Sine-skewed von Mises分布の確率密度関数を計算する。
 
     Args:
-        x (npt.NDArray[np.float64]): 確率密度関数を計算する点 in [-pi, pi]
-        mu (float): 歪める前の分布の平均 in [-pi, pi]
+        x (npt.NDArray[np.float64]): 確率密度関数を計算する点 in [0, 2pi]
+        mu (float): 歪める前の分布の平均 in [0, 2pi]
         kappa (float): 分布のパラメータ (>0)
         lambda_ (float): 摂動項のパラメータ in [-1, 1]
 
     Returns:
         npt.NDArray[np.float64]: 確率密度関数の値 in [0, 1]
     """
+    x = to_2pi_range(x)
+    mu = to_2pi_range(mu)
     return stats.vonmises.pdf(x, loc=mu, kappa=kappa) * (1 + lambda_ * np.sin(x - mu))
 
 
-def cdf(
+def sine_skewed_vonmises_periodic_cdf_analytical(
     x: npt.NDArray[np.float64], mu: float, kappa: float, lambda_: float
 ) -> npt.NDArray[np.float64]:
-    """Sine-Skewed von Mises分布の累積分布関数を計算する
-    cdf(mu-pi) = 0, cdf(mu+pi) = 1 となるように定義されている。
+    """Sine-Skewed von Mises分布の累積分布関数を計算する。
+    R全体で単調増加し、F(x + 2*pi) = F(x) + 1 かつ F(0) = 0 となるように定義。
 
     Args:
-        x (npt.NDArray[np.float64]): 累積分布関数を計算する点 in [-pi, pi]
-        mu (float): 歪める前の分布の平均 in [-pi, pi]
+        x (npt.NDArray[np.float64]): 累積分布関数を計算する点
+        mu (float): 歪める前の分布の平均 in [0, 2pi]
         kappa (float): 分布のパラメータ (>0)
         lambda_ (float): 摂動項のパラメータ in [-1, 1]
 
     Returns:
-        npt.NDArray[np.float64]: 累積分布関数の値 in [0, 1]
+        npt.NDArray[np.float64]: 累積分布関数の値
     """
-    if kappa < 600:
-        return stats.vonmises.cdf(x, loc=mu, kappa=kappa) + lambda_ / (
-            2 * np.pi * i0(kappa) * kappa
-        ) * (np.exp(-kappa) - np.exp(kappa * np.cos(x - mu)))
-    else:
-        return stats.vonmises.cdf(x, loc=mu, kappa=kappa) + lambda_ / (
-            2 * np.pi * ive(0, kappa) * kappa
-        ) * (np.exp(-2 * kappa) - np.exp(kappa * (np.cos(x - mu) - 1)))
+    x = np.asarray(x)
+    mu = to_2pi_range(mu)
+
+    def cdf_raw(val):
+        if kappa < 600:
+            return stats.vonmises.cdf(val, loc=mu, kappa=kappa) + lambda_ / (
+                2 * np.pi * i0(kappa) * kappa
+            ) * (np.exp(-kappa) - np.exp(kappa * np.cos(val - mu)))
+        else:
+            return stats.vonmises.cdf(val, loc=mu, kappa=kappa) + lambda_ / (
+                2 * np.pi * ive(0, kappa) * kappa
+            ) * (np.exp(-2 * kappa) - np.exp(kappa * (np.cos(val - mu) - 1)))
+
+    val_mod = np.remainder(x, 2 * np.pi)
+    raw_val = cdf_raw(val_mod) - cdf_raw(0)
+    periods = np.floor_divide(x, 2 * np.pi)
+    return raw_val + periods
+
+
+pdf = sine_skewed_vonmises_pdf_analytical
+cdf = sine_skewed_vonmises_periodic_cdf_analytical
 
 
 def fisher_info_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
@@ -86,9 +107,11 @@ def fisher_info_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
             kappa * r1
             + lambda_
             * integrate.quad(
-                lambda x: np.exp(kappa * np.cos(x))
-                * (lambda_ + np.sin(x))
-                / (1 + lambda_ * np.sin(x)),
+                lambda x: (
+                    np.exp(kappa * np.cos(x))
+                    * (lambda_ + np.sin(x))
+                    / (1 + lambda_ * np.sin(x))
+                ),
                 -np.pi,
                 np.pi,
                 points=[0.0],
@@ -97,9 +120,11 @@ def fisher_info_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
         )
         i_lambda_lambda = (
             integrate.quad(
-                lambda x: np.exp(kappa * np.cos(x))
-                * (np.sin(x) ** 2)
-                / (1 + lambda_ * np.sin(x)),
+                lambda x: (
+                    np.exp(kappa * np.cos(x))
+                    * (np.sin(x) ** 2)
+                    / (1 + lambda_ * np.sin(x))
+                ),
                 -np.pi,
                 np.pi,
                 points=[0.0],
@@ -108,9 +133,9 @@ def fisher_info_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
         )
         i_mu_lambda = (
             integrate.quad(
-                lambda x: np.exp(kappa * np.cos(x))
-                * np.cos(x)
-                / (1 + lambda_ * np.sin(x)),
+                lambda x: (
+                    np.exp(kappa * np.cos(x)) * np.cos(x) / (1 + lambda_ * np.sin(x))
+                ),
                 -np.pi,
                 np.pi,
                 points=[0.0],
@@ -123,9 +148,11 @@ def fisher_info_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
             kappa * r1
             + lambda_
             * integrate.quad(
-                lambda x: np.exp(kappa * (np.cos(x) - 1))
-                * (lambda_ + np.sin(x))
-                / (1 + lambda_ * np.sin(x)),
+                lambda x: (
+                    np.exp(kappa * (np.cos(x) - 1))
+                    * (lambda_ + np.sin(x))
+                    / (1 + lambda_ * np.sin(x))
+                ),
                 -np.pi,
                 np.pi,
                 points=[0.0],
@@ -134,9 +161,11 @@ def fisher_info_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
         )
         i_lambda_lambda = (
             integrate.quad(
-                lambda x: np.exp(kappa * (np.cos(x) - 1))
-                * (np.sin(x) ** 2)
-                / (1 + lambda_ * np.sin(x)),
+                lambda x: (
+                    np.exp(kappa * (np.cos(x) - 1))
+                    * (np.sin(x) ** 2)
+                    / (1 + lambda_ * np.sin(x))
+                ),
                 -np.pi,
                 np.pi,
                 points=[0.0],
@@ -145,9 +174,11 @@ def fisher_info_3x3(kappa: float, lambda_: float) -> npt.NDArray[np.float64]:
         )
         i_mu_lambda = (
             integrate.quad(
-                lambda x: np.exp(kappa * (np.cos(x) - 1))
-                * np.cos(x)
-                / (1 + lambda_ * np.sin(x)),
+                lambda x: (
+                    np.exp(kappa * (np.cos(x) - 1))
+                    * np.cos(x)
+                    / (1 + lambda_ * np.sin(x))
+                ),
                 -np.pi,
                 np.pi,
                 points=[0.0],
@@ -193,20 +224,25 @@ def neg_log_likelihood(params, data) -> float:
     return -log_likelihood
 
 
-def MLE_direct_opt(
+def MLE_direct(
     x: npt.NDArray[np.float64],
-    bounds=((-np.pi, np.pi), (0.01, 4), (-1, 1)),
+    bounds=((0, 2 * np.pi), (0.01, 10.0), (-1.0, 1.0)),
     tol: float = 0.001,
     debug: bool = False,
 ) -> Tuple[float, float, float]:
-    """SS-von MisesのMLEでのパラメータ推定を行う
+    """SS-von MisesのMLEでのパラメータ推定を行う。
 
     Args:
-        x (npt.NDArray[np.float64]): データ in [-pi, pi]
+        x (npt.NDArray[np.float64]): データ in [0, 2pi]
+        bounds (tuple, optional): パラメータの探索範囲。
+            デフォルトは ((0, 2*pi), (0.01, 10.0), (-1.0, 1.0))
+        tol (float, optional): 最適化の収束判定閾値
+        debug (bool, optional): 最適化の途中経過を出力するかどうか
 
     Returns:
-        Tuple[float, float, float]: (mu, kappa, lambda) in [-pi, pi]x[0, inf]x[-1, 1]
+        Tuple[float, float, float]: 推定値 (mu, kappa, lambda_) の順
     """
+    x = to_2pi_range(x)
     result = optimize.differential_evolution(
         neg_log_likelihood,
         tol=tol,
@@ -215,32 +251,35 @@ def MLE_direct_opt(
     )
     if debug:
         print(result)
-    return result.x
+    return tuple(result.x)
+
+
+MLE_direct_opt = MLE_direct
 
 
 def rejection_sampling(
     n: int, mu: float, kappa: float, lambda_: float, debug: bool = False
 ) -> npt.NDArray[np.float64]:
-    """棄却サンプリングによってSine-Skewed von Misesからサンプリングする
+    """棄却サンプリングによってSine-Skewed von Misesからサンプリングする。
     提案分布としては 2倍のフォンミーゼス分布を用いる。
 
     Args:
         n (int): サンプル数
-        mu (float): 歪める前の分布の平均 in [-pi, pi]
+        mu (float): 歪める前の分布の平均 in [0, 2pi]
         kappa (float): 分布のパラメータ (>0)
         lambda_ (float): 摂動項のパラメータ in [-1, 1]
         debug (bool, optional): 棄却率を出力するか
 
     Returns:
-        npt.NDArray[np.float64]: サンプル in [-pi, pi]
+        npt.NDArray[np.float64]: [0, 2pi] の範囲のサンプル配列
     """
     rng = np.random.default_rng()
+    mu = to_2pi_range(mu)
 
     cnt = 0
     try_num = 0
     ret = np.zeros(n)
     while cnt < n:
-        # 一気に 2 * 必要数サンプルする (棄却率が50%のため)
         xs = stats.vonmises(loc=mu, kappa=kappa).rvs(2 * (n - cnt))
         for x in xs:
             if cnt >= n:
@@ -253,127 +292,46 @@ def rejection_sampling(
 
     if debug:
         print(f"accept rate: {n / try_num}")
-    return ret
+    return to_2pi_range(ret)
 
 
 def cumsum_hist(
     mu: float, kappa: float, lambda_: float, bin_num: int
 ) -> npt.NDArray[np.float64]:
-    """[-pi, pi] の間を bin_num (=D) 等分した区間でのcdfの値を返す
-    [F(i/D)] i=0,1,...,D
-    F(0)=0, F(1)=1を満たすソート済み列を返す
+    """[0, 2pi] の間を bin_num (=D) 等分した区間でのcdfの値を返す。
+    [F(i/D)] i=0,1,...,D を返す。
     """
-    x = np.linspace(-np.pi, np.pi, bin_num + 1)
-    y = cdf(x, mu, kappa, lambda_) - cdf(-np.pi, mu, kappa, lambda_)
+    x = np.linspace(0, 2 * np.pi, bin_num + 1)
+    y = sine_skewed_vonmises_periodic_cdf_analytical(x, mu, kappa, lambda_)
 
     assert len(y) == bin_num + 1
-    assert abs(y[0] - 0.0) < 1e-7, print(f"{mu}, {kappa}, {lambda_}, {y}")
+    assert abs(y[0] - 0.0) < 1e-7
     assert abs(y[-1] - 1.0) < 1e-7
     return y
 
 
-def cumsum_hist_data(
-    data: npt.NDArray[np.float64], bin_num: int
-) -> npt.NDArray[np.float64]:
-    """[-pi, pi] の間を bin_num (=D) 等分した区間でのデータの経験的cdfの値を返す
-    [F(i/D)] i=0,1,...,D
-    F(0)=0, F(1)=1を満たすソート済み列を返す
-    """
-    n = len(data)
-    data_hist = np.zeros(bin_num + 1)
-    for x in data:
-        data_hist[
-            np.clip(
-                int(np.remainder(bin_num * (x + np.pi) / (2 * np.pi), bin_num)) + 1,
-                1,
-                bin_num,
-            )
-        ] += 1
-    data_cumsum_hist = np.cumsum(data_hist) / n
-
-    assert abs(data_cumsum_hist[0] - 0.0) < 1e-7
-    assert abs(data_cumsum_hist[-1] - 1.0) < 1e-7
-    return data_cumsum_hist
+def W1_equal_div_cost_func(
+    x, bin_num: int, data_cumsum_hist: npt.NDArray[np.float64]
+) -> float:
+    mu, kappa, lambda_ = x
+    dist_cumsum_hist = cumsum_hist(mu, kappa, lambda_, bin_num)
+    return circular_w1_from_cumsums(data_cumsum_hist[1:], dist_cumsum_hist[1:])
 
 
-def _plot_for_slide():
-    """スライドに載せる分布の例の画像を作成する"""
-    n = 100000
-    mu = 0
-    kappa = 1
-    lambda_ = 0.7
-    fig = plt.figure(figsize=(12, 6))
-    left = plt.subplot(121)
-    right = plt.subplot(122, projection="polar")
-    x = np.linspace(-np.pi, np.pi, 1000)
-    ss_vM_pdf = pdf(x, mu, kappa, lambda_)
-    ticks = [0, 0.15, 0.3]
-    sample = rejection_sampling(n, mu, kappa, lambda_)
-    left.plot(x, ss_vM_pdf)
-    left.set_yticks(ticks)
-    number_of_bins = int(np.sqrt(n))
-    # left.hist(sample, density=True, bins=number_of_bins)
-    left.fill_between(x, ss_vM_pdf, color="tab:orange")
-    left.set_title("Cartesian plot")
-    left.set_xlim(-np.pi, np.pi)
-    left.grid(True)
-
-    right.plot(x, ss_vM_pdf, label="PDF")
-    right.set_yticks(ticks)
-    # right.hist(sample, density=True, bins=number_of_bins, label="Histogram")
-    right.fill_between(x, ss_vM_pdf, color="tab:orange", label="Histogram")
-    right.set_title("Polar plot")
-
-    right.legend(bbox_to_anchor=(0.15, 1.06))
-    plt.show()
-
-
-def _main():
-    n = 100000
-    kappa = 1
-    lambda_ = 0.7
-    mu = 0
-    sample = rejection_sampling(n, mu, kappa, lambda_, debug=True)
-    print(f"min: {np.min(sample)}, max: {np.max(sample)}")  # [-pi, pi]
-
-    fig = plt.figure(figsize=(12, 6))
-    left = plt.subplot(121)
-    right = plt.subplot(122, projection="polar")
-    x = np.linspace(-np.pi, np.pi, 1000)
-    ss_vonmises_pdf = pdf(x, mu, kappa, lambda_)
-    ticks = [0, 0.15, 0.3]
-
-    left.plot(x, ss_vonmises_pdf)
-    left.set_yticks(ticks)
-    number_of_bins = int(np.sqrt(n))
-    left.hist(sample, density=True, bins=number_of_bins)
-    left.set_title("Cartesian plot")
-    left.set_xlim(-np.pi, np.pi)
-    left.grid(True)
-
-    right.plot(x, ss_vonmises_pdf, label="PDF")
-    right.set_yticks(ticks)
-    right.hist(sample, density=True, bins=number_of_bins, label="Histogram")
-    right.set_title("Polar plot")
-
-    # param estimation
-    est_param = MLE_direct_opt(sample, debug=True)
-    print(est_param)
-    ss_vonmises_est_pdf = pdf(x, est_param[0], est_param[1], est_param[2])
-    left.plot(x, ss_vonmises_est_pdf, label="Estimated PDF")
-    right.plot(x, ss_vonmises_est_pdf, label="Estimated PDF")
-
-    right.legend(bbox_to_anchor=(0.15, 1.06))
-    plt.show()
-
-    mat = fisher_info_3x3(kappa, lambda_)
-    print("Fisher info:")
-    print(mat)
-    mat_inv_diag = fisher_mat_inv_diag(kappa, lambda_)
-    print("Fisher info inverse diagonal:")
-    print(mat_inv_diag)
-
-
-if __name__ == "__main__":
-    # _main()
-    _plot_for_slide()
+def W1_equal_div(
+    given_data: npt.NDArray[np.float64],
+    bounds=((0, 2 * np.pi), (0.01, 10.0), (-1.0, 1.0)),
+    tol=1e-7,
+) -> optimize.OptimizeResult:
+    """1-Wasserstein 距離（等分割ヒストグラム）を最小化するパラメータ推定"""
+    given_data = to_2pi_range(given_data)
+    bin_num = len(given_data)
+    data_cumsum_hist = cumsum_hist_data(given_data, bin_num)
+    cost_func = partial(
+        W1_equal_div_cost_func, bin_num=bin_num, data_cumsum_hist=data_cumsum_hist
+    )
+    return optimize.differential_evolution(
+        cost_func,
+        tol=tol,
+        bounds=bounds,
+    )

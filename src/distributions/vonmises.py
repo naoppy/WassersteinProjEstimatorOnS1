@@ -1,10 +1,23 @@
-from typing import List
+from functools import partial
+from typing import List, Optional
 
 import numpy as np
 import numpy.typing as npt
-from matplotlib import pyplot as plt
+from scipy import optimize
 from scipy.special import i0, i1, iv, ive
-from scipy.stats import vonmises
+from scipy.stats import vonmises as sp_vonmises
+
+from src.method.wasserstein import (
+    circular_w1_from_cumsums,
+    circular_wasserstein_from_samples,
+)
+from src.misc.circular_utils import (
+    circular_quantile_sampling,
+    cumsum_hist_data,
+    to_2pi_range,
+)
+
+bounds = ((-np.pi, np.pi), (0.01, 100.0))
 
 
 def _bessel_ratio(v: int, kappa: float) -> float:
@@ -35,9 +48,7 @@ def _bessel_ratio_i0(kappa1: float, kappa0: float) -> float:
 
 
 def fisher_info_2x2(kappa: float) -> npt.NDArray[np.float64]:
-    """
-    フォンミーゼス分布のフィッシャー情報量を計算する
-    """
+    """フォンミーゼス分布のフィッシャー情報量を計算する"""
     r1 = _bessel_ratio(1, kappa)
     r2 = _bessel_ratio(2, kappa)
     return np.array(
@@ -54,11 +65,11 @@ def fisher_mat_inv_diag(kappa: float) -> List[float]:
     Returns:
         List[float]: [mu, kappa] の順
     """
-    mat = fisher_info_2x2(kappa)  # 対角行列なので逆数が逆行列
+    mat = fisher_info_2x2(kappa)
     return [1 / mat[0][0], 1 / mat[1][1]]
 
 
-def T(x):
+def T(x: npt.NDArray[np.float64]) -> List[float]:
     """フォンミーゼス分布の十分統計量を返す
 
     Args:
@@ -70,15 +81,15 @@ def T(x):
     return [np.sum(np.cos(x)), np.sum(np.sin(x))]
 
 
-def MLE(T_data, N: int):
+def MLE(T_data, N: int) -> List[float]:
     """最尤推定を行う
 
     Args:
         T_data: 十分統計量
-        N(int): サンプル数
+        N (int): サンプル数
 
     Returns:
-        Tuple[float, float]: 最尤推定値、[mu_MLE, kappa_MLE] の順
+        List[float]: 最尤推定値、[mu_MLE, kappa_MLE] の順
     """
     mu_MLE = np.arctan2(T_data[1], T_data[0])
     target_value = (T_data[0] * np.cos(mu_MLE) + T_data[1] * np.sin(mu_MLE)) / N
@@ -89,7 +100,6 @@ def MLE(T_data, N: int):
     while right - left > EPS:
         mid = (left + right) / 2
         now_value = _bessel_ratio(1, mid)
-        # print(mid, now_value) # for debug
         if np.abs(now_value - target_value) < EPS:
             break
         elif now_value - target_value > 0:
@@ -100,39 +110,37 @@ def MLE(T_data, N: int):
     return [mu_MLE, kappa_MLE]
 
 
+def vonmises_pdf_stable(
+    theta: npt.NDArray[np.float64], mu: float, kappa: float
+) -> npt.NDArray[np.float64]:
+    """Stable von Mises PDF using ive to prevent overflow."""
+    return np.exp(kappa * (np.cos(theta - mu) - 1)) / (2 * np.pi * ive(0, kappa))
+
+
+def vonmises_periodic_cdf_numerical(
+    x: npt.NDArray[np.float64], mu: float, kappa: float
+) -> npt.NDArray[np.float64]:
+    """Numerical periodic CDF for von Mises distribution.
+
+    Normalized to start at 0 on [0, 2*pi].
+    """
+    dist = sp_vonmises(loc=mu, kappa=kappa)
+    # Scipy's vonmises.cdf is monotonic on the real line: cdf(x + 2*pi) = cdf(x) + 1.
+    # Therefore, to normalize it to start at 0 at x=0, we simply compute:
+    return dist.cdf(x) - dist.cdf(0)
+
+
 def cumsum_hist(mu: float, kappa: float, bin_num: int) -> npt.NDArray[np.float64]:
-    """[-pi, pi] の間を bin_num (=D) 等分した区間でのcdfの値を返す
+    """[0, 2pi] の間を bin_num (=D) 等分した区間でのcdfの値を返す
     [F(i/D)] i=0,1,...,D
     """
-    dist = vonmises(loc=mu, kappa=kappa)
-    x = np.linspace(-np.pi, np.pi, bin_num + 1)
-    y = dist.cdf(x) - dist.cdf(-np.pi)
+    x = np.linspace(0, 2 * np.pi, bin_num + 1)
+    y = vonmises_periodic_cdf_numerical(x, mu, kappa)
 
     assert len(y) == bin_num + 1
-    assert abs(y[0] - 0.0) < 1e-7, print(f"{mu}, {kappa}, {y}")
+    assert abs(y[0] - 0.0) < 1e-7
     assert abs(y[-1] - 1.0) < 1e-7
     return y
-
-
-def cumsum_hist_data(data: npt.NDArray[np.float64], bin_num) -> npt.NDArray[np.float64]:
-    """[-pi, pi] の間を bin_num (=D) 等分した区間でのデータのcdfの値を返す
-    [F(i/D)] i=0,1,...,D
-    """
-    n = len(data)
-    data_hist = np.zeros(bin_num + 1)
-    for x in data:
-        data_hist[
-            np.clip(
-                int(np.remainder(bin_num * (x + np.pi) / (2 * np.pi), bin_num)) + 1,
-                1,
-                bin_num,
-            )
-        ] += 1
-    data_cumsum_hist = np.cumsum(data_hist) / n
-
-    assert abs(data_cumsum_hist[0] - 0.0) < 1e-7
-    assert abs(data_cumsum_hist[-1] - 1.0) < 1e-7
-    return data_cumsum_hist
 
 
 def quantile_sampling(
@@ -146,23 +154,21 @@ def quantile_sampling(
         sample_num (int): サンプルする数
 
     Returns:
-        npt.NDArray[np.float64]: [-pi, pi] の範囲のサンプル。F^(-1)(i/D) (i=0, 1, ..., D)
+        npt.NDArray[np.float64]: [0, 2*pi] の範囲のサンプル。
+            F^(-1)(i/D) (i=0, 1, ..., D)
     """
-    eps = 1e-7
-    x = np.linspace(
-        eps, 1 - eps, sample_num
-    )  # なぜか0, 1のppfを計算するとinfになるので避ける。
-    dist = vonmises(loc=mu, kappa=kappa)
-    y = dist.ppf(x)
-    y2 = np.remainder(y + np.pi, 2 * np.pi) - np.pi
-    assert np.all((-np.pi <= y2) & (y2 <= np.pi))
-    return y2
+    dist = sp_vonmises(loc=mu, kappa=kappa)
+
+    def ppf_func(q):
+        return dist.ppf(q)
+
+    return circular_quantile_sampling(ppf_func, sample_num)
 
 
 def fast_quantile_sampling(
     mu: float, kappa: float, sample_num: int
 ) -> npt.NDArray[np.float64]:
-    """フォンミーゼス分布から簡易的な分位点サンプリングする
+    """フォンミーゼス分布から高速な分位点サンプリングを行う（[0, 2*pi] 範囲）。
 
     Args:
         mu (float): 分布のパラメータ
@@ -170,14 +176,15 @@ def fast_quantile_sampling(
         sample_num (int): サンプルする数
 
     Returns:
-        npt.NDArray[np.float64]: [mu-pi, mu+pi] の範囲のサンプル。F^(-1)(i/D) (i=0, 1, ..., D)
+        npt.NDArray[np.float64]: [0, 2*pi] の範囲のソート済みサンプル配列。
+            F^(-1)(i/D) (i=0, 1, ..., D)
     """
     x, step = np.linspace(0, 1, sample_num, endpoint=False, retstep=True)
     x = x + step / 2
-    dist = vonmises(loc=mu, kappa=kappa)
+    dist = sp_vonmises(loc=mu, kappa=kappa)
 
     # cdfを一気に計算しておく
-    y, step = np.linspace(mu - np.pi, mu + np.pi, 1048576, retstep=True)  # 2^20
+    y, step_grid = np.linspace(mu - np.pi, mu + np.pi, 1048576, retstep=True)  # 2^20
     z = dist.cdf(y)
     lefts = np.zeros(len(x))
     i = 0
@@ -187,20 +194,25 @@ def fast_quantile_sampling(
         if i == 0:
             lefts[j] = mu - np.pi
         else:
-            lefts[j] = mu - np.pi + (i - 1) * step
-    # now (lefts, lefts + step) に xi がある。中点で代表。
-    return lefts + step / 2
+            lefts[j] = mu - np.pi + (i - 1) * step_grid
+    samples = lefts + step_grid / 2
+
+    # [0, 2*pi] へのマッピングおよびソート順のトポロジー補正
+    samples = to_2pi_range(samples)
+    if sample_num > 1:
+        diffs = np.diff(samples)
+        min_idx = np.argmin(diffs)
+        if diffs[min_idx] < 0:
+            shift = min_idx + 1
+        else:
+            shift = 0
+        samples = np.roll(samples, -shift)
+
+    return samples
 
 
 def circular_variance(kappa: float) -> float:
-    """フォンミーゼス分布の円周分散を計算する
-
-    Args:
-        kappa (float): 分布のパラメータ
-
-    Returns:
-        float: 円周分散
-    """
+    """円周分散"""
     R = _bessel_ratio(1, kappa)
     return 1 - R
 
@@ -220,7 +232,7 @@ def A0(kappa: float) -> float:
 
 
 def A0Inverse(y: float) -> float:
-    """A0の逆関数を数値的に求める
+    """A0の逆関数を数値的に求める。
     A0はA0(kappa) = I1(kappa) / I0(kappa) で定義される関数で、
     kappa >= 0 の単調増加関数。
     Ap(0)=0, Ap(inf)=1
@@ -246,6 +258,121 @@ def A0Inverse(y: float) -> float:
     return mid
 
 
+def MLE_direct(sample: npt.NDArray[np.float64]) -> List[float]:
+    """十分統計量を用いた標準的な最尤推定"""
+    sample = to_2pi_range(sample)
+    T_data = T(sample)
+    return MLE(T_data, len(sample))
+
+
+def W1_equal_div_cost_func(
+    x, bin_num: int, data_cumsum_hist: npt.NDArray[np.float64]
+) -> float:
+    mu, kappa = x
+    dist_cumsum_hist = cumsum_hist(mu, kappa, bin_num)
+    return circular_w1_from_cumsums(data_cumsum_hist[1:], dist_cumsum_hist[1:])
+
+
+def W1_equal_div(
+    given_data: npt.NDArray[np.float64],
+    x0: Optional[npt.NDArray[np.float64]] = None,
+    method="powell",
+) -> optimize.OptimizeResult:
+    """1-Wasserstein 距離（等分割ヒストグラム）を最小化するパラメータ推定"""
+    given_data = to_2pi_range(given_data)
+    bin_num = len(given_data)
+    data_cumsum_hist = cumsum_hist_data(given_data, bin_num)
+    cost_func = partial(
+        W1_equal_div_cost_func, bin_num=bin_num, data_cumsum_hist=data_cumsum_hist
+    )
+    if method == "differential_evolution":
+        return optimize.differential_evolution(cost_func, bounds=bounds)
+    else:
+        if x0 is None:
+            raise ValueError("x0 is required for local minimization")
+        return optimize.minimize(
+            cost_func,
+            x0,
+            bounds=bounds,
+            method=method,
+            options={"xtol": 1e-6, "ftol": 1e-6},
+        )
+
+
+def W1_quantile_sampling_cost_func(
+    x, given_data_normed_sorted: npt.NDArray[np.float64]
+) -> float:
+    sample = fast_quantile_sampling(x[0], x[1], len(given_data_normed_sorted)) / (
+        2 * np.pi
+    )
+    return circular_wasserstein_from_samples(
+        given_data_normed_sorted, sample, p=1, sorted=True
+    )
+
+
+def W1_quantile_sampling(
+    given_data: npt.NDArray[np.float64],
+    x0: Optional[npt.NDArray[np.float64]] = None,
+    method="powell",
+) -> optimize.OptimizeResult:
+    """1-Wasserstein 距離（分位点サンプリング）を最小化するパラメータ推定"""
+    given_data = to_2pi_range(given_data)
+    given_data_norm = given_data / (2 * np.pi)
+    given_data_norm_sorted = np.sort(given_data_norm)
+    cost_func = partial(
+        W1_quantile_sampling_cost_func, given_data_normed_sorted=given_data_norm_sorted
+    )
+    if method == "differential_evolution":
+        return optimize.differential_evolution(cost_func, bounds=bounds)
+    else:
+        if x0 is None:
+            raise ValueError("x0 is required for local minimization")
+        return optimize.minimize(
+            cost_func,
+            x0,
+            bounds=bounds,
+            method=method,
+            options={"xtol": 1e-6, "ftol": 1e-6},
+        )
+
+
+def W2_quantile_sampling_cost_func(
+    x, given_data_normed_sorted: npt.NDArray[np.float64]
+) -> float:
+    sample = fast_quantile_sampling(x[0], x[1], len(given_data_normed_sorted)) / (
+        2 * np.pi
+    )
+    return circular_wasserstein_from_samples(
+        given_data_normed_sorted, sample, p=2, sorted=True
+    )
+
+
+def W2_quantile_sampling(
+    given_data: npt.NDArray[np.float64],
+    x0: Optional[npt.NDArray[np.float64]] = None,
+    method="powell",
+) -> optimize.OptimizeResult:
+    """2-Wasserstein 距離（分位点サンプリング）を最小化するパラメータ推定"""
+    given_data = to_2pi_range(given_data)
+    given_data_norm = given_data / (2 * np.pi)
+    given_data_norm_sorted = np.sort(given_data_norm)
+    cost_func = partial(
+        W2_quantile_sampling_cost_func, given_data_normed_sorted=given_data_norm_sorted
+    )
+    if method == "differential_evolution":
+        return optimize.differential_evolution(cost_func, bounds=bounds)
+    else:
+        if x0 is None:
+            raise ValueError("x0 is required for local minimization")
+        return optimize.minimize(
+            cost_func,
+            x0,
+            bounds=bounds,
+            method=method,
+            options={"xtol": 1e-6, "ftol": 1e-6},
+        )
+
+
 def type0_estimate(
     data: npt.NDArray[np.float64], gamma: float, debug: bool = False
 ) -> List[float]:
@@ -260,6 +387,7 @@ def type0_estimate(
     Returns:
         List[float]: 推定値 [mu, kappa] の順
     """
+    data = to_2pi_range(data)
     T_data = T(data)
     N = len(data)
     initial_guess = MLE(T_data, N)  # 最尤推定値を初期値として使用
@@ -305,6 +433,7 @@ def type1_estimate(
     Returns:
         List[float]: 推定値 [mu, kappa] の順
     """
+    data = to_2pi_range(data)
     T_data = T(data)
     N = len(data)
     initial_guess = MLE(T_data, N)  # 最尤推定値を初期値として使用
@@ -322,8 +451,7 @@ def type1_estimate(
         w = np.exp(exponents - max_exp)
         w_sum = np.sum(w)
 
-        # 規格化された加重平均
-        w_norm = w / w_sum
+        w_norm = w / w_sum  # 規格化された加重平均
         y_norm = np.sum(w_norm * np.sin(data))
         x_norm = np.sum(w_norm * np.cos(data))
         next_mu = np.arctan2(y_norm, x_norm)
@@ -347,109 +475,3 @@ def type1_estimate(
         if debug:
             print(f"debug: i={i}, mu={now_mu}, kappa={now_kappa}")
     return [now_mu, now_kappa]
-
-
-def _plot_for_slide():
-    """スライドに載せる分布の例の画像を作成する"""
-    n = 100000
-    mu = 0
-    kappa = 2
-    fig = plt.figure(figsize=(12, 6))
-    left = plt.subplot(121)
-    right = plt.subplot(122, projection="polar")
-    x = np.linspace(-np.pi, np.pi, 1000)
-    vonmises_pdf = vonmises.pdf(x, loc=mu, kappa=kappa)
-    sample = fast_quantile_sampling(mu, kappa, n)
-    ticks = [0, 0.15, 0.3]
-
-    left.plot(x, vonmises_pdf)
-    left.set_yticks(ticks)
-    number_of_bins = int(np.sqrt(n))
-    left.hist(sample, density=True, bins=number_of_bins)
-    left.set_title("Cartesian plot")
-    left.set_xlim(-np.pi, np.pi)
-    left.grid(True)
-
-    right.plot(x, vonmises_pdf, label="PDF")
-    right.set_yticks(ticks)
-    right.hist(sample, density=True, bins=number_of_bins, label="Histogram")
-    right.set_title("Polar plot")
-
-    right.legend(bbox_to_anchor=(0.15, 1.06))
-    plt.show()
-
-
-def _estimate():
-    """
-    いろんな推定量を計算してみる
-    """
-    mu = 0.5 * np.pi + 2 * np.pi  # circular mean
-    kappa = 1.3  # concentration
-    N = 10000
-    dist = vonmises(loc=mu, kappa=kappa)
-    sample = dist.rvs(N)
-    T_data = T(sample)
-    mu_MLE, kappa_MLE = MLE(T_data, N)
-    print(f"MLE: mu={mu_MLE}, kappa={kappa_MLE}")
-    mu_type0, kappa_type0 = type0_estimate(sample, gamma=0, debug=True)
-    print(f"type0 estimator: mu={mu_type0}, kappa={kappa_type0}")
-    mu_type1, kappa_type1 = type1_estimate(sample, beta=0, debug=True)
-    print(f"type1 estimator: mu={mu_type1}, kappa={kappa_type1}")
-    mu_type0, kappa_type0 = type0_estimate(sample, gamma=0.5, debug=True)
-    print(f"type0 estimator: mu={mu_type0}, kappa={kappa_type0}")
-    mu_type1, kappa_type1 = type1_estimate(sample, beta=0.5, debug=True)
-    print(f"type1 estimator: mu={mu_type1}, kappa={kappa_type1}")
-
-
-def _main():
-    mu = 0.5 * np.pi + 2 * np.pi  # circular mean
-    kappa = 1.3  # concentration
-    N = 10000
-    dist = vonmises(loc=mu, kappa=kappa)
-
-    # calc Fisher info matrix
-    print("Fisher info:")
-    print(fisher_info_2x2(kappa))
-
-    sample = dist.rvs(N)
-    print(f"min: {np.min(sample)}, max: {np.max(sample)}")  # [-pi, pi]
-
-    sample2 = np.remainder(sample, 2 * np.pi)
-    print(f"min: {np.min(sample2)}, max: {np.max(sample2)}")  # [0, 2pi]
-
-    # calc MLE
-    T_data = T(sample)
-    mu_MLE, kappa_MLE = MLE(T_data, N)
-    print(f"MLE: mu={mu_MLE}, kappa={kappa_MLE}")
-
-    sample2 = quantile_sampling(mu, kappa, N)
-    print(f"min: {np.min(sample2)}, max: {np.max(sample2)}")
-
-    # plots
-    # 普通のCDFは周期拡張されていて、平均で0.5になるようになっている。
-    # 不便なので、-piで0、piで1になるようなCDFに変換する。
-    print(dist.cdf(mu))  # 0.5
-    x = np.linspace(-np.pi, np.pi, 1001)
-    plt.plot(x, dist.pdf(x), label="pdf")
-    plt.plot(x, dist.cdf(x), label="cdf")
-    plt.plot(x, dist.cdf(x) - dist.cdf(-np.pi), label="normalized cdf")
-    plt.legend()
-    plt.show()
-
-    # 普通のPPFは周期拡張されていて、0で平均-pi, 1で平均+piになるようになっている。
-    # つまり、普通のCDFの逆関数になるようになっている。
-    # 0で-pi、1でpiになるようなPPFにすることもできるが、多くの場合する必要はない。
-    eps = 1e-7
-    x = np.linspace(eps, 1 - eps, 1001)
-    y = dist.ppf(x)
-    plt.plot(x, y, label="ppf")
-    # y2 = dist.ppf(x + dist.cdf(-np.pi))
-    # plt.plot(x, y2, label="normalized ppf")
-    plt.legend()
-    plt.show()
-
-
-if __name__ == "__main__":
-    _estimate()
-    # _main()
-    # _plot_for_slide()

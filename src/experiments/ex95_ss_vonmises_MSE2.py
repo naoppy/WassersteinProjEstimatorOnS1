@@ -9,36 +9,11 @@ import numpy as np
 import pandas as pd
 from numpy import typing as npt
 from parfor import pmap
-from scipy import optimize
 
-from ..calc_semidiscrete_W_dist import method2
-from ..distributions import sine_skewed_vonmises
-
+from src.distributions import sine_skewed_vonmises
 
 TOL = 1e-7
-
-bounds = ((-np.pi, np.pi), (0.01, 2), (-1, 1))
-
-
-def est_method2(given_data):
-    """Calc W1-estimator using method1
-
-    Args:
-        given_data (np.ndarray): [0, 2*pi]のデータ
-    """
-    bin_num = len(given_data)
-    data_cumsum_hist = sine_skewed_vonmises.cumsum_hist_data(given_data, bin_num)
-
-    def cost_func(x):
-        mu, kappa, lambda_ = x
-        dist_cumsum_hist = sine_skewed_vonmises.cumsum_hist(mu, kappa, lambda_, bin_num)
-        return method2.method2(data_cumsum_hist[1:], dist_cumsum_hist[1:])
-
-    return optimize.differential_evolution(
-        cost_func,
-        tol=TOL,
-        bounds=bounds,
-    )
+bounds = ((0, 2 * np.pi), (0.01, 2), (-1, 1))
 
 
 def run_once(i, true_mu, true_kappa, true_lambda, N: int) -> npt.NDArray[np.float64]:
@@ -47,7 +22,7 @@ def run_once(i, true_mu, true_kappa, true_lambda, N: int) -> npt.NDArray[np.floa
     )
 
     s_time = time.perf_counter()
-    MLE = sine_skewed_vonmises.MLE_direct_opt(sample, bounds=bounds, tol=TOL)
+    MLE = sine_skewed_vonmises.MLE_direct(sample, bounds=bounds, tol=TOL)
     e_time = time.perf_counter()
     MLE_mu = MLE[0]
     MLE_kappa = MLE[1]
@@ -55,7 +30,7 @@ def run_once(i, true_mu, true_kappa, true_lambda, N: int) -> npt.NDArray[np.floa
     MLE_time = e_time - s_time
 
     s_time = time.perf_counter()
-    est = est_method2(sample)
+    est = sine_skewed_vonmises.W1_equal_div(sample, bounds=bounds, tol=TOL)
     e_time = time.perf_counter()
     W1method2_mu = est.x[0]
     W1method2_kappa = est.x[1]
@@ -101,7 +76,7 @@ def _main():
         ],
     )
 
-    for j, (true_lambda, try_num) in enumerate(zip(lambdas, try_nums, strict=True)):
+    for _j, (true_lambda, try_num) in enumerate(zip(lambdas, try_nums, strict=True)):
         print(f"true lambda={true_lambda}")
         MLE_mu = np.zeros(try_num)
         MLE_kappa = np.zeros(try_num)
@@ -155,7 +130,8 @@ def _main():
         print(f"{MLE_mu_mse}, {MLE_kappa_mse}, {MLE_lambda_mse}, {MLE_time_mean}")
         print("Method2(W1):")
         print(
-            f"{W1method2_mu_mse}, {W1method2_kappa_mse}, {W1method2_lambda_mse}, {W1method2_time_mean}"
+            f"{W1method2_mu_mse}, {W1method2_kappa_mse}, "
+            f"{W1method2_lambda_mse}, {W1method2_time_mean}"
         )
         print(df)
         df.to_csv("./data/ex95_change_lambda.csv")

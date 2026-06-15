@@ -10,8 +10,8 @@ import numpy as np
 import scipy.stats as stats
 from scipy import optimize
 
-from ..calc_semidiscrete_W_dist import method2
-from ..distributions import vonmises
+from src.distributions import vonmises
+from src.method import circular_w1_from_cumsums
 
 
 def estimate_param(given_data) -> Tuple[float, float]:
@@ -37,7 +37,7 @@ def estimate_param(given_data) -> Tuple[float, float]:
     def cost_func(x):
         mu, kappa = x
         dist_cumsum_hist = vonmises.cumsum_hist.cumsum_hist(mu, kappa, bin_num)
-        return method2.method2(data_cumsum_hist[1:], dist_cumsum_hist[1:])
+        return circular_w1_from_cumsums(data_cumsum_hist[1:], dist_cumsum_hist[1:])
 
     return optimize.brute(
         cost_func,
@@ -62,13 +62,14 @@ def main():
     T_data = vonmises.T(sample)
     mu_MLE, kappa_MLE = vonmises.MLE(T_data, N)
     time2 = time.perf_counter()
-    print(f"MLE result: mu={mu_MLE}, kappa={kappa_MLE}, time={time2-time1}s")
+    print(f"MLE result: mu={mu_MLE}, kappa={kappa_MLE}, time={time2 - time1}s")
 
     time3 = time.perf_counter()
     mu_est, kappa_est = estimate_param(sample)
     time4 = time.perf_counter()
     print(
-        f"Mehtod2 Estimation result: mu={mu_est}, kappa={kappa_est}, time={time4-time3}s"
+        f"Mehtod2 Estimation result: mu={mu_est}, kappa={kappa_est}, "
+        f"time={time4 - time3}s"
     )
 
 

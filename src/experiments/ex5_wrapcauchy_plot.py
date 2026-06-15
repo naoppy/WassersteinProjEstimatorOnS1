@@ -2,7 +2,8 @@
 実験5
 巻き込みコーシー分布のパラメータとワッサースタイン距離のグラフを描画して、関数の形を調べる
 
-結果: rho=0.1という一様分布に近い場合に勾配が緩くなり、ネルダーミード法がいい結果をださない。
+結果: rho=0.1という一様分布に近い場合に勾配が緩くなり、
+ネルダーミード法がいい結果をださない。
 一方でパウエル法はいい結果を返す。
 """
 
@@ -12,9 +13,12 @@ import numpy as np
 import scipy.stats as stats
 from scipy import optimize
 
-from ..calc_semidiscrete_W_dist import method1, method2
-from ..distributions import wrapedcauchy
-from ..plots import brute_heatmap
+from src.distributions import wrappedcauchy
+from src.method import (
+    circular_w1_from_cumsums,
+    circular_wasserstein_from_samples,
+)
+from src.plots import brute_heatmap
 
 
 def est_W1_method2(given_data):
@@ -27,12 +31,12 @@ def est_W1_method2(given_data):
         Tuple[float, float]: [推定したmu、推定したrho]
     """
     bin_num = len(given_data)
-    data_cumsum_hist = wrapedcauchy.cumsum_hist_data(given_data, len(given_data))
+    data_cumsum_hist = wrappedcauchy.cumsum_hist_data(given_data, len(given_data))
 
     def cost_func(x):
         mu, rho = x
-        dist_cumsum_hist = wrapedcauchy.cumsum_hist(mu, rho, bin_num)
-        return method2.method2(data_cumsum_hist[1:], dist_cumsum_hist[1:])
+        dist_cumsum_hist = wrappedcauchy.cumsum_hist(mu, rho, bin_num)
+        return circular_w1_from_cumsums(data_cumsum_hist[1:], dist_cumsum_hist[1:])
 
     return optimize.brute(
         cost_func,
@@ -45,12 +49,12 @@ def est_W1_method2(given_data):
 
 def est_W1_method2_justopt(given_data):
     bin_num = len(given_data)
-    data_cumsum_hist = wrapedcauchy.cumsum_hist_data(given_data, len(given_data))
+    data_cumsum_hist = wrappedcauchy.cumsum_hist_data(given_data, len(given_data))
 
     def cost_func(x):
         mu, rho = x
-        dist_cumsum_hist = wrapedcauchy.cumsum_hist(mu, rho, bin_num)
-        return method2.method2(data_cumsum_hist[1:], dist_cumsum_hist[1:])
+        dist_cumsum_hist = wrappedcauchy.cumsum_hist(mu, rho, bin_num)
+        return circular_w1_from_cumsums(data_cumsum_hist[1:], dist_cumsum_hist[1:])
 
     return optimize.minimize(
         cost_func,
@@ -75,7 +79,9 @@ def est_W2_method1(given_data):
         sample = stats.wrapcauchy(loc=mu, c=rho).rvs(len(given_data))
         sample = np.remainder(sample, 2 * np.pi) / (2 * np.pi)
         sample = np.sort(sample)
-        return method1.method1(given_data_norm_sorted, sample, p=2, sorted=True)
+        return circular_wasserstein_from_samples(
+            given_data_norm_sorted, sample, p=2, sorted=True
+        )
 
     return optimize.brute(
         cost_func,
@@ -95,7 +101,9 @@ def est_W2_method1_justopt(given_data):
         sample = stats.wrapcauchy(loc=mu, c=rho).rvs(len(given_data))
         sample = np.remainder(sample, 2 * np.pi) / (2 * np.pi)
         sample = np.sort(sample)
-        return method1.method1(given_data_norm_sorted, sample, p=2, sorted=True)
+        return circular_wasserstein_from_samples(
+            given_data_norm_sorted, sample, p=2, sorted=True
+        )
 
     return optimize.minimize(
         cost_func,
@@ -117,9 +125,11 @@ def est_W2_method3(given_data):
 
     def cost_func(x):
         mu, rho = x
-        sample = wrapedcauchy.quantile_sampling(mu, rho, len(given_data)) / (2 * np.pi)
+        sample = wrappedcauchy.quantile_sampling(mu, rho, len(given_data)) / (2 * np.pi)
         sample = np.sort(sample)
-        return method1.method1(given_data_norm_sorted, sample, p=2, sorted=True)
+        return circular_wasserstein_from_samples(
+            given_data_norm_sorted, sample, p=2, sorted=True
+        )
 
     return optimize.brute(
         cost_func,
@@ -136,9 +146,11 @@ def est_W2_method3_justopt(given_data):
 
     def cost_func(x):
         mu, rho = x
-        sample = wrapedcauchy.quantile_sampling(mu, rho, len(given_data)) / (2 * np.pi)
+        sample = wrappedcauchy.quantile_sampling(mu, rho, len(given_data)) / (2 * np.pi)
         sample = np.sort(sample)
-        return method1.method1(given_data_norm_sorted, sample, p=2, sorted=True)
+        return circular_wasserstein_from_samples(
+            given_data_norm_sorted, sample, p=2, sorted=True
+        )
 
     return optimize.minimize(
         cost_func,
@@ -165,50 +177,50 @@ def main():
     sample = np.remainder(sample, 2 * np.pi)
 
     s_time = time.perf_counter()
-    MLE = wrapedcauchy.MLE_OKAMURA(sample, N, iter_num=100)
+    MLE = wrappedcauchy.MLE_OKAMURA(sample, N, iter_num=100)
     e_time = time.perf_counter()
-    print(f"MLE result: mu={np.angle(MLE)}, rho={np.abs(MLE)}, time={e_time-s_time}s")
+    print(f"MLE result: mu={np.angle(MLE)}, rho={np.abs(MLE)}, time={e_time - s_time}s")
     print()
 
     s_time = time.perf_counter()
     ret = est_W1_method2(sample)
     e_time = time.perf_counter()
-    print(f"Mehtod2 Estimation result: time={e_time-s_time}s")
+    print(f"Mehtod2 Estimation result: time={e_time - s_time}s")
     brute_heatmap.plot_heatmap(ret, ("mu", "rho"))
     print()
 
     s_time = time.perf_counter()
     ret2 = est_W1_method2_justopt(sample)
     e_time = time.perf_counter()
-    print(f"Mehtod2 Estimation result with just optimization: time={e_time-s_time}s")
+    print(f"Mehtod2 Estimation result with just optimization: time={e_time - s_time}s")
     print(ret2)
     print()
 
     s_time = time.perf_counter()
     ret3 = est_W2_method1(sample)
     e_time = time.perf_counter()
-    print(f"Mehtod1 Estimation result: time={e_time-s_time}s")
+    print(f"Mehtod1 Estimation result: time={e_time - s_time}s")
     brute_heatmap.plot_heatmap(ret3, ("mu", "rho"))
     print()
 
     s_time = time.perf_counter()
     ret4 = est_W2_method1_justopt(sample)
     e_time = time.perf_counter()
-    print(f"Mehtod1 Estimation result with just optimization: time={e_time-s_time}s")
+    print(f"Mehtod1 Estimation result with just optimization: time={e_time - s_time}s")
     print(ret4)
     print()
 
     s_time = time.perf_counter()
     ret5 = est_W2_method3(sample)
     e_time = time.perf_counter()
-    print(f"Mehtod3 Estimation result: time={e_time-s_time}s")
+    print(f"Mehtod3 Estimation result: time={e_time - s_time}s")
     brute_heatmap.plot_heatmap(ret5, ("mu", "rho"))
     print()
 
     s_time = time.perf_counter()
     ret6 = est_W2_method3_justopt(sample)
     e_time = time.perf_counter()
-    print(f"Mehtod3 Estimation result with just optimization: time={e_time-s_time}s")
+    print(f"Mehtod3 Estimation result with just optimization: time={e_time - s_time}s")
     print(ret6)
     print()
 
