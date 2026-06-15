@@ -7,7 +7,6 @@ cdf(x_list) は早いのだが、cdf(x) for x in x_list は遅い。
 ppfはcdfを二分探索のたびに実行しているので遅い。
 """
 
-
 import time
 
 import numpy as np
@@ -78,13 +77,11 @@ def my_ppf3(x: npt.NDArray[np.float64], mu, kappa):
     shape = x.shape
     x = x.reshape((-1,))
     dist = vonmises(loc=mu, kappa=kappa)
-    eps = 1e-8  # 30bit精度程度  log2(eps/(2pi))
     ret_array = np.zeros(len(x))
 
     lefts = [mu - np.pi]
     rights = [mu + np.pi]
     Ns = [len(x)]
-    StartIdx = [0]
     for _ in range(6):  # 5ビット精度 * 6 = 30ビット精度
         next_lefts = []
         next_rights = []
@@ -94,7 +91,6 @@ def my_ppf3(x: npt.NDArray[np.float64], mu, kappa):
             left = lefts[i]
             right = rights[i]
             N = Ns[i]
-            startidx = StartIdx[i]
             y = np.linspace(left, right, 32)
             z = dist.cdf(y)
             for j in range(1, len(z)):
@@ -185,13 +181,13 @@ def _main():
     dist = vonmises(loc=mu, kappa=kappa)
 
     s_time = time.perf_counter()
-    sample = dist.rvs(N1)
+    _ = dist.rvs(N1)
     e_time = time.perf_counter()
     print(f"rvs time: {e_time - s_time}")
 
     x = np.linspace(-10, 10, N1)
     s_time = time.perf_counter()
-    cdf_val = dist.cdf(x)
+    _ = dist.cdf(x)
     e_time = time.perf_counter()
     print(f"cdf time: {e_time - s_time}")
 
@@ -202,27 +198,27 @@ def _main():
     # print(f"cdf iterate time: {e_time - s_time}")
 
     s_time = time.perf_counter()
-    ppf_val = dist.ppf(np.linspace(0.01, 0.99, N2))
+    _ = dist.ppf(np.linspace(0.01, 0.99, N2))
     e_time = time.perf_counter()
     print(f"ppf time: {(e_time - s_time) * N1 / N2}")
 
     s_time = time.perf_counter()
-    myppf_val = my_ppf(np.linspace(0.01, 0.99, N2), mu, kappa)
+    _ = my_ppf(np.linspace(0.01, 0.99, N2), mu, kappa)
     e_time = time.perf_counter()
     print(f"myppf time: {(e_time - s_time) * N1 / N2}")
 
     s_time = time.perf_counter()
-    myppf_val2 = my_ppf2(np.linspace(0.01, 0.99, N2), mu, kappa)
+    _ = my_ppf2(np.linspace(0.01, 0.99, N2), mu, kappa)
     e_time = time.perf_counter()
     print(f"myppf2 time: {(e_time - s_time) * N1 / N2}")
 
     s_time = time.perf_counter()
-    myppf_val4 = my_ppf4(np.linspace(0.01, 0.99, N1), mu, kappa)
+    _ = my_ppf4(np.linspace(0.01, 0.99, N1), mu, kappa)
     e_time = time.perf_counter()
     print(f"myppf4 time: {e_time - s_time}")
 
     s_time = time.perf_counter()
-    myppf_val5 = my_ppf5(np.linspace(0.01, 0.99, N1), mu, kappa)
+    _ = my_ppf5(np.linspace(0.01, 0.99, N1), mu, kappa)
     e_time = time.perf_counter()
     print(f"myppf5 time: {e_time - s_time}")
 

@@ -9,7 +9,7 @@ from src.method.wasserstein import (
     circular_w1_from_cumsums,
     circular_wasserstein_from_samples,
 )
-from src.misc.circular_utils import (
+from src.utils.circular_utils import (
     circular_quantile_sampling,
     cumsum_hist_data,
     to_2pi_range,
