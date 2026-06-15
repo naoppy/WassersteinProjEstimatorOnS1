@@ -8,7 +8,8 @@ from scipy.special import iv
 
 """
 このファイルは、2つのフォンミーゼス分布のサンプル間のWasserstein距離が
-p=1, 2, 8など変えた時に輸送がどのように変化するか、どのくらい変わるかを実験したときのものです。
+p=1, 2, 8など変えた時に輸送がどのように変化するか、
+どのくらい変わるかを実験したときのものです。
 兎に角輸送が変化することはわかりました。
 """
 
@@ -20,7 +21,8 @@ def pdf_von_Mises(theta, mu, kappa):
 
 def print_result(cost, log_dict, p: int):
     print(
-        f"p: {p}, 100*cost: {100*cost[0]:.6f}, 100*theta: {100*log_dict['optimal_theta'][0]:.3f}"
+        f"p: {p}, 100*cost: {100 * cost[0]:.6f}, "
+        f"100*theta: {100 * log_dict['optimal_theta'][0]:.3f}"
     )
     if len(log_dict) != 1:
         print(log_dict)
@@ -30,7 +32,8 @@ def confirm(empty_as: Optional[bool] = None) -> bool:
     """ファイルの保存確認を表示して、入力を受け付ける。
 
     Args:
-        empty_as (Optional[bool], optional): 入力無しのエンターをどう扱うか. Defaults to None.
+        empty_as (Optional[bool], optional): 入力無しのエンターをどう扱うか。
+            Defaults to None.
 
     Returns:
         bool: 保存するかどうか

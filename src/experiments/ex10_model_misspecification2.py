@@ -13,7 +13,7 @@ from numpy import typing as npt
 from parfor import pmap
 
 from src.distributions import vonmises, wrappedcauchy
-from src.misc import dist_utils
+from src.utils import dist_utils
 
 
 def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:

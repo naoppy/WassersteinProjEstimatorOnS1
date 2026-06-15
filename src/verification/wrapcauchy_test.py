@@ -10,10 +10,11 @@ locは分布の平均値パラメータ
 scaleはデフォルトの分布が [0, 2*pi] だが、scaleを使うと [0, 2*pi*scale] とかにできそう？
 [0, 1] にするときに使えそう。今回は使わなくて良さそう。
 
-さて、ここからが問題なのだが、wrapcauchyはvonmisesと違って周期性のないcdf, pdfの定義になっている
-例えば pdf は [loc, loc+2*pi] で定義されていてそれ以外の範囲では 0 になる
-cdf も同様で [loc, loc+2*pi] で定義されていてそれ以外の範囲では 0 になる
-これを周期性があるように直す必要がある
+# さて、ここからが問題なのだが、
+# wrapcauchyはvonmisesと違って周期性のないcdf, pdfの定義になっている
+# 例えば pdf は [loc, loc+2*pi] で定義されていてそれ以外の範囲では 0 になる
+# cdf も同様で [loc, loc+2*pi] で定義されていてそれ以外の範囲では 0 になる
+# これを周期性があるように直す必要がある
 """
 
 
@@ -36,7 +37,7 @@ def wrapcauchy_periodic_cdf(
 
 
 def main():
-    mu = -np.pi/2
+    mu = -np.pi / 2
     rho = 0.7
     dist = wrapcauchy(loc=mu, c=rho)
 
@@ -55,12 +56,13 @@ def main():
     # ax4 = fig.add_subplot(224)
     # ax4.plot(
     #     x,
-    #     wrapcauchy_periodic_cdf(x, rho, mu, 1) - wrapcauchy_periodic_cdf(0, rho, mu, 1),
+    #     wrapcauchy_periodic_cdf(x, rho, mu, 1)
+    #     - wrapcauchy_periodic_cdf(0, rho, mu, 1),
     # )
     # ax4.set_title("periodic cdf")
     # plt.show()
 
-    x = np.linspace(-np.pi, np.pi, 10001)
+    # x = np.linspace(-np.pi, np.pi, 10001)
     # y = dist.pdf(x)
     # plt.plot(x, y, label="pdf")
     # z = dist.cdf(x)
