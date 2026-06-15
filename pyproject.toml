@@ -30,3 +30,8 @@ select = ["E", "F", "W", "B", "I"]
 quote-style = "double"
 indent-style = "space"
 
+[tool.pyright]
+autoSearchPaths = false
+extraPaths = ["."]
+
+

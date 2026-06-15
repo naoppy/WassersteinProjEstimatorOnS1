@@ -170,7 +170,7 @@ def MLE_Kent(
         npt.NDArray[np.float64]: [mu_MLE, rho_MLE]。
             muは [-pi, pi] の範囲。rhoは [0, 1] の範囲。
     """
-    len(x)
+    # N = len(x)
     x = to_2pi_range(x)
     y = np.array([np.cos(x), np.sin(x)])  # (2, N)
     eta = np.array([0.5, 0.5])  # (2,) 初期値
