@@ -29,6 +29,9 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
     def p_cdf(theta):
         return dist_p.cdf(theta) - dist_p.cdf(0)
 
+    def p_ppf(q):
+        return dist_p.ppf(q)
+
     # MLE
     s_time = time.perf_counter()
     MLE = wrappedcauchy.MLE_Kent(sample)
@@ -45,8 +48,11 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
             theta, MLE_rho, MLE_mu
         ) - wrappedcauchy.wrapcauchy_periodic_cdf_analytical(0, MLE_rho, MLE_mu)
 
+    def q_ppf_mle(q):
+        return wrappedcauchy.wrapcauchy_ppf_analytical(q, MLE_rho, loc=MLE_mu)
+
     mle_kl, mle_w1, mle_w2 = dist_utils.calculate_distances(
-        p_pdf, q_pdf_mle, p_cdf=p_cdf, q_cdf=q_cdf_mle
+        p_pdf, q_pdf_mle, p_cdf=p_cdf, q_cdf=q_cdf_mle, p_ppf=p_ppf, q_ppf=q_ppf_mle
     )
 
     # W1 method2 (equal division)
@@ -67,8 +73,13 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
             0, W1method2_rho, W1method2_mu
         )
 
+    def q_ppf_w1m2(q):
+        return wrappedcauchy.wrapcauchy_ppf_analytical(
+            q, W1method2_rho, loc=W1method2_mu
+        )
+
     w1m2_kl, w1m2_w1, w1m2_w2 = dist_utils.calculate_distances(
-        p_pdf, q_pdf_w1m2, p_cdf=p_cdf, q_cdf=q_cdf_w1m2
+        p_pdf, q_pdf_w1m2, p_cdf=p_cdf, q_cdf=q_cdf_w1m2, p_ppf=p_ppf, q_ppf=q_ppf_w1m2
     )
 
     # W1 method3 (quantile sampling)
@@ -89,8 +100,13 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
             0, W1method3_rho, W1method3_mu
         )
 
+    def q_ppf_w1m3(q):
+        return wrappedcauchy.wrapcauchy_ppf_analytical(
+            q, W1method3_rho, loc=W1method3_mu
+        )
+
     w1m3_kl, w1m3_w1, w1m3_w2 = dist_utils.calculate_distances(
-        p_pdf, q_pdf_w1m3, p_cdf=p_cdf, q_cdf=q_cdf_w1m3
+        p_pdf, q_pdf_w1m3, p_cdf=p_cdf, q_cdf=q_cdf_w1m3, p_ppf=p_ppf, q_ppf=q_ppf_w1m3
     )
 
     # W2 method3 (quantile sampling)
@@ -111,8 +127,13 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
             0, W2method3_rho, W2method3_mu
         )
 
+    def q_ppf_w2m3(q):
+        return wrappedcauchy.wrapcauchy_ppf_analytical(
+            q, W2method3_rho, loc=W2method3_mu
+        )
+
     w2m3_kl, w2m3_w1, w2m3_w2 = dist_utils.calculate_distances(
-        p_pdf, q_pdf_w2m3, p_cdf=p_cdf, q_cdf=q_cdf_w2m3
+        p_pdf, q_pdf_w2m3, p_cdf=p_cdf, q_cdf=q_cdf_w2m3, p_ppf=p_ppf, q_ppf=q_ppf_w2m3
     )
 
     return np.array(

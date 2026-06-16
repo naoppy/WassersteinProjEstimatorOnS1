@@ -1,6 +1,5 @@
 import numpy as np
 import numpy.typing as npt
-from scipy import optimize
 from scipy.integrate import cumulative_trapezoid, quad
 from scipy.interpolate import interp1d
 
@@ -56,8 +55,9 @@ def get_interpolated_ppf(cdf_func, grid_size: int = 2000):
     )
 
 
-def calculate_distances(p_pdf, q_pdf, p_cdf=None, q_cdf=None):
+def calculate_distances(p_pdf, q_pdf, p_cdf=None, q_cdf=None, p_ppf=None, q_ppf=None):
     """Calculates KL, W1, and W2 distances between P and Q distributions on S1."""
+    import ot
 
     # KL divergence
     def kl_integrand(theta):
@@ -70,35 +70,39 @@ def calculate_distances(p_pdf, q_pdf, p_cdf=None, q_cdf=None):
 
     kl_div, _ = quad(kl_integrand, 0, 2 * np.pi, limit=100)
 
-    # CDF and PPF representations
+    # CDF representations
     cdf_P = p_cdf if p_cdf is not None else get_interpolated_cdf(p_pdf)
     cdf_Q = q_cdf if q_cdf is not None else get_interpolated_cdf(q_pdf)
 
     # W1 distance
-    def g_p(t):
-        return cdf_P(2 * np.pi * t)
-
-    def g_q(t):
-        return cdf_Q(2 * np.pi * t)
-
-    t_grid_w1 = np.linspace(0, 1, 1000)
-    g_p_vals = g_p(t_grid_w1)
-    g_q_vals = g_q(t_grid_w1)
-
-    def w1_loss(c):
-        return np.mean(np.abs(g_p_vals - g_q_vals - c))
-
-    res = optimize.minimize_scalar(w1_loss, bounds=(-1, 1), method="bounded")
-    w1 = 2 * np.pi * res.fun
+    t_grid_w1 = np.linspace(1e-9, 1 - 1e-9, 1000)
+    g_p_vals = cdf_P(2 * np.pi * t_grid_w1)
+    g_q_vals = cdf_Q(2 * np.pi * t_grid_w1)
+    diffs_w1 = g_p_vals - g_q_vals
+    c_opt = np.median(diffs_w1)
+    w1 = 2 * np.pi * np.mean(np.abs(diffs_w1 - c_opt))
 
     # W2 distance
-    ppf_P = get_interpolated_ppf(cdf_P)
-    ppf_Q = get_interpolated_ppf(cdf_Q)
+    if p_ppf is not None:
+        ppf_P_vals = p_ppf(t_grid_w1)
+    else:
+        ppf_P_vals = get_interpolated_ppf(cdf_P)(t_grid_w1) * 2 * np.pi
 
-    t_grid = np.linspace(0, 1, 2000)
-    diffs = ppf_P(t_grid) - ppf_Q(t_grid)
-    mean_diff = np.mean(diffs)
-    var_diff = np.mean((diffs - mean_diff) ** 2)
-    w2 = 2 * np.pi * np.sqrt(var_diff)
+    if q_ppf is not None:
+        ppf_Q_vals = q_ppf(t_grid_w1)
+    else:
+        ppf_Q_vals = get_interpolated_ppf(cdf_Q)(t_grid_w1) * 2 * np.pi
+
+    # Normalize PPF values to [0, 1] range for POT binary_search_circle
+    p_vals_norm = np.remainder(ppf_P_vals, 2 * np.pi) / (2 * np.pi)
+    q_vals_norm = np.remainder(ppf_Q_vals, 2 * np.pi) / (2 * np.pi)
+
+    # ot.binary_search_circle returns W_2^2, so we take the square root
+    w2_sq = ot.binary_search_circle(
+        p_vals_norm, q_vals_norm, p=2, log=False, require_sort=True
+    )
+    if isinstance(w2_sq, np.ndarray):
+        w2_sq = w2_sq[0]
+    w2 = 2 * np.pi * np.sqrt(w2_sq)
 
     return kl_div, w1, w2

@@ -11,7 +11,7 @@ from src.distributions.vonmises import (
     type1_estimate,
     vonmises_pdf_stable,
 )
-from src.misc.circular_utils import to_2pi_range
+from src.utils.circular_utils import to_2pi_range
 
 
 def test_estimate() -> None:
@@ -116,15 +116,6 @@ def test_main() -> None:
     )
     diff_val = np.mean(np.abs(sample2 - sample_fast))
     print(f"Mean abs diff (std vs fast): {diff_val:.6f}")
-
-    # Plot verification
-    x = np.linspace(0, 2 * np.pi, 1001)
-    plt.figure()
-    plt.plot(x, vonmises_pdf_stable(x, mu, kappa), label="pdf")
-    plt.plot(x, dist.cdf(x) - dist.cdf(0), label="normalized cdf")
-    plt.legend()
-    plt.title("PDF and Normalized CDF")
-    plt.show()
 
 
 if __name__ == "__main__":

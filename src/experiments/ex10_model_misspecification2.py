@@ -29,6 +29,9 @@ def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
             theta, true_rho, true_mu
         ) - wrappedcauchy.wrapcauchy_periodic_cdf_analytical(0, true_rho, true_mu)
 
+    def p_ppf(q):
+        return wrappedcauchy.wrapcauchy_ppf_analytical(q, true_rho, loc=true_mu)
+
     # MLE
     s_time = time.perf_counter()
     MLE = vonmises.MLE_direct(sample)
@@ -45,8 +48,11 @@ def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
     def q_cdf_mle(theta):
         return dist_q_mle.cdf(theta) - dist_q_mle.cdf(0)
 
+    def q_ppf_mle(q):
+        return dist_q_mle.ppf(q)
+
     mle_kl, mle_w1, mle_w2 = dist_utils.calculate_distances(
-        p_pdf, q_pdf_mle, p_cdf=p_cdf, q_cdf=q_cdf_mle
+        p_pdf, q_pdf_mle, p_cdf=p_cdf, q_cdf=q_cdf_mle, p_ppf=p_ppf, q_ppf=q_ppf_mle
     )
 
     # W1 method2 (equal division)
@@ -65,8 +71,11 @@ def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
     def q_cdf_w1m2(theta):
         return dist_q_w1m2.cdf(theta) - dist_q_w1m2.cdf(0)
 
+    def q_ppf_w1m2(q):
+        return dist_q_w1m2.ppf(q)
+
     w1m2_kl, w1m2_w1, w1m2_w2 = dist_utils.calculate_distances(
-        p_pdf, q_pdf_w1m2, p_cdf=p_cdf, q_cdf=q_cdf_w1m2
+        p_pdf, q_pdf_w1m2, p_cdf=p_cdf, q_cdf=q_cdf_w1m2, p_ppf=p_ppf, q_ppf=q_ppf_w1m2
     )
 
     # W1 method3 (quantile sampling)
@@ -85,8 +94,11 @@ def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
     def q_cdf_w1m3(theta):
         return dist_q_w1m3.cdf(theta) - dist_q_w1m3.cdf(0)
 
+    def q_ppf_w1m3(q):
+        return dist_q_w1m3.ppf(q)
+
     w1m3_kl, w1m3_w1, w1m3_w2 = dist_utils.calculate_distances(
-        p_pdf, q_pdf_w1m3, p_cdf=p_cdf, q_cdf=q_cdf_w1m3
+        p_pdf, q_pdf_w1m3, p_cdf=p_cdf, q_cdf=q_cdf_w1m3, p_ppf=p_ppf, q_ppf=q_ppf_w1m3
     )
 
     # W2 method3 (quantile sampling)
@@ -105,8 +117,11 @@ def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
     def q_cdf_w2m3(theta):
         return dist_q_w2m3.cdf(theta) - dist_q_w2m3.cdf(0)
 
+    def q_ppf_w2m3(q):
+        return dist_q_w2m3.ppf(q)
+
     w2m3_kl, w2m3_w1, w2m3_w2 = dist_utils.calculate_distances(
-        p_pdf, q_pdf_w2m3, p_cdf=p_cdf, q_cdf=q_cdf_w2m3
+        p_pdf, q_pdf_w2m3, p_cdf=p_cdf, q_cdf=q_cdf_w2m3, p_ppf=p_ppf, q_ppf=q_ppf_w2m3
     )
 
     return np.array(

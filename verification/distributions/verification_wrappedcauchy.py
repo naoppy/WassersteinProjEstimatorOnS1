@@ -11,7 +11,7 @@ from src.distributions.wrappedcauchy import (
     wrapcauchy_periodic_cdf_analytical,
     wrapcauchy_ppf_analytical,
 )
-from src.misc.circular_utils import circular_quantile_sampling, to_2pi_range
+from src.utils.circular_utils import circular_quantile_sampling, to_2pi_range
 
 
 def test_plot_for_slide() -> None:

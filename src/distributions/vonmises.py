@@ -276,7 +276,7 @@ def W1_equal_div_cost_func(
 def W1_equal_div(
     given_data: npt.NDArray[np.float64],
     x0: Optional[npt.NDArray[np.float64]] = None,
-    method="powell",
+    method="powell",  # or "differential_evolution"
 ) -> optimize.OptimizeResult:
     """1-Wasserstein 距離（等分割ヒストグラム）を最小化するパラメータ推定"""
     given_data = to_2pi_range(given_data)
