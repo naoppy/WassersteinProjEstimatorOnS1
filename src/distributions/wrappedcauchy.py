@@ -104,9 +104,7 @@ def wrapcauchy_ppf_analytical(
 def cumsum_hist(mu: float, rho: float, bin_num: int) -> npt.NDArray[np.float64]:
     """[0, 2pi] を bin_num 等分した区間でのcdfの値を返す"""
     x = np.linspace(0, 2 * np.pi, bin_num + 1)
-    y = wrapcauchy_periodic_cdf_analytical(
-        x, rho, mu, 1
-    ) - wrapcauchy_periodic_cdf_analytical(0, rho, mu, 1)
+    y = wrapcauchy_periodic_cdf_analytical(x, rho, mu, 1)
 
     assert len(y) == bin_num + 1
     assert abs(y[0] - 0.0) < 1e-7
