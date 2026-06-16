@@ -106,3 +106,90 @@ def calculate_distances(p_pdf, q_pdf, p_cdf=None, q_cdf=None, p_ppf=None, q_ppf=
     w2 = 2 * np.pi * np.sqrt(w2_sq)
 
     return kl_div, w1, w2
+
+
+def kl_vonmises_wrapcauchy_analytical(
+    mu_p: float, kappa: float, mu_q: float, rho: float, n_terms: int = 150
+) -> float:
+    """Calculates the analytical KL divergence D_KL(P || Q) where
+    P is von Mises(mu_p, kappa) and Q is wrapped Cauchy(mu_q, rho).
+    """
+    from scipy.special import ive
+
+    r1 = ive(1, kappa) / ive(0, kappa)
+    log_i0 = np.log(ive(0, kappa)) + kappa
+
+    n_arr = np.arange(1, n_terms + 1)
+    r_n = ive(n_arr, kappa) / ive(0, kappa)
+
+    cos_term = np.cos(n_arr * (mu_p - mu_q))
+    series_sum = np.sum((2.0 * (rho**n_arr) * r_n / n_arr) * cos_term)
+
+    kl = kappa * r1 - log_i0 - np.log(1.0 - rho**2) - series_sum
+    return float(kl)
+
+
+def kl_wrapcauchy_vonmises_analytical(
+    mu_q: float, rho: float, mu_p: float, kappa: float
+) -> float:
+    """Calculates the closed-form KL divergence D_KL(Q || P) where
+    Q is wrapped Cauchy(mu_q, rho) and P is von Mises(mu_p, kappa).
+    """
+    from scipy.special import ive
+
+    log_i0 = np.log(ive(0, kappa)) + kappa
+    kl = log_i0 - np.log(1.0 - rho**2) - kappa * rho * np.cos(mu_q - mu_p)
+    return float(kl)
+
+
+def vonmises_cdf_series(
+    theta: npt.NDArray[np.float64], mu: float, kappa: float, n_terms: int = 100
+) -> npt.NDArray[np.float64]:
+    """Calculates the von Mises CDF starting at 0 on [0, 2*pi]
+    using Fourier-Bessel series.
+    """
+    from scipy.special import ive
+
+    theta_arr = np.asarray(theta)
+    n_arr = np.arange(1, n_terms + 1)
+    r_n = ive(n_arr, kappa) / ive(0, kappa)
+
+    sin_diff = np.sin(np.outer(theta_arr - mu, n_arr))
+    sin_mu = np.sin(n_arr * mu)
+
+    terms = (r_n / n_arr) * (sin_diff + sin_mu)
+    sum_vals = np.sum(terms, axis=1)
+
+    return theta_arr / (2 * np.pi) + sum_vals / np.pi
+
+
+def vm_mean_abs_dev(kappa: float, n_terms: int = 150) -> float:
+    """Calculates the Mean Absolute Deviation E_P[|theta|] for von Mises
+    (mean 0) on [-pi, pi].
+    """
+    from scipy.special import ive
+
+    k_arr = np.arange(0, n_terms)
+    n_arr = 2 * k_arr + 1
+    r_n = ive(n_arr, kappa) / ive(0, kappa)
+    series_sum = np.sum(r_n / (n_arr**2))
+    return float(np.pi / 2.0 - (4.0 / np.pi) * series_sum)
+
+
+def wc_mean_abs_dev(rho: float, n_terms: int = 150) -> float:
+    """Calculates the Mean Absolute Deviation E_Q[|theta|] for wrapped Cauchy
+    (mean 0) on [-pi, pi].
+    """
+    k_arr = np.arange(0, n_terms)
+    n_arr = 2 * k_arr + 1
+    series_sum = np.sum((rho**n_arr) / (n_arr**2))
+    return float(np.pi / 2.0 - (4.0 / np.pi) * series_sum)
+
+
+def w1_aligned_analytical(kappa: float, rho: float, n_terms: int = 150) -> float:
+    """Calculates the analytical W1 distance when the mean directions are aligned
+    (mu_p = mu_q) and one distribution is more concentrated than the other.
+    """
+    evm = vm_mean_abs_dev(kappa, n_terms)
+    ewc = wc_mean_abs_dev(rho, n_terms)
+    return abs(evm - ewc)
