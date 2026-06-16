@@ -1,4 +1,3 @@
-import numba
 import numpy as np
 import numpy.typing as npt
 from scipy.integrate import cumulative_trapezoid, quad
@@ -141,59 +140,6 @@ def kl_wrapcauchy_vonmises_analytical(
     log_i0 = np.log(ive(0, kappa)) + kappa
     kl = log_i0 - np.log(1.0 - rho**2) - kappa * rho * np.cos(mu_q - mu_p)
     return float(kl)
-
-
-@numba.njit(fastmath=True, parallel=True, cache=True)
-def _vonmises_cdf_series_numba(
-    theta: npt.NDArray[np.float64], mu: float, r_n: npt.NDArray[np.float64]
-) -> npt.NDArray[np.float64]:
-    n_points = len(theta)
-    n_terms = len(r_n)
-    sum_vals = np.zeros_like(theta)
-    for i in numba.prange(n_points):
-        t = theta[i]
-        val = 0.0
-        for n in range(1, n_terms + 1):
-            val += (r_n[n - 1] / n) * (np.sin(n * (t - mu)) + np.sin(n * mu))
-        sum_vals[i] = t / (2 * np.pi) + val / np.pi
-    return sum_vals
-
-
-def vonmises_cdf_series(
-    theta: npt.NDArray[np.float64], mu: float, kappa: float, n_terms: int = 150
-) -> npt.NDArray[np.float64]:
-    """Calculates the von Mises CDF starting at 0 on [0, 2*pi]
-    using Fourier-Bessel series.
-
-    This implementation guarantees F(0) = 0.
-
-    Note:
-        As kappa (concentration) increases, more terms (n_terms) are required
-        for the series to converge to double precision (1e-16).
-        The following table shows the approximate number of terms required
-        to reach machine precision:
-
-        kappa   | Required n_terms
-        --------|-----------------
-        1.0     | 15
-        10.0    | 32
-        50.0    | 64
-        100.0   | 88
-        250.0   | 150
-
-    """
-    from scipy.special import ive
-
-    theta_arr = np.asarray(theta, dtype=np.float64)
-    n_arr = np.arange(1, n_terms + 1)
-    r_n = ive(n_arr, kappa) / ive(0, kappa)
-
-    orig_shape = theta_arr.shape
-    theta_flat = theta_arr.ravel()
-    res = _vonmises_cdf_series_numba(theta_flat, mu, r_n).reshape(orig_shape)
-    if res.ndim == 0:
-        return float(res)
-    return res
 
 
 def vm_mean_abs_dev(kappa: float, n_terms: int = 150) -> float:
