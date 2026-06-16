@@ -1,0 +1,68 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{bm}
+
+\title{Analytical Distance Calculations between von Mises and Wrapped Cauchy Distributions}
+\author{Naoki Otani}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+This document summarizes the mathematical details of the analytical distance calculations (KL divergence and 1-Wasserstein distance) between the von Mises distribution and the wrapped Cauchy distribution on the circle $S^1$.
+
+\section{Distributions}
+Let $P$ be the von Mises distribution with mean direction $\mu_P \in [-\pi, \pi)$ and concentration parameter $\kappa > 0$:
+\begin{equation}
+p(\theta) = \frac{1}{2\pi I_0(\kappa)} e^{\kappa \cos(\theta - \mu_P)}
+\end{equation}
+where $I_n(\kappa)$ is the modified Bessel function of the first kind of order $n$.
+
+Let $Q$ be the wrapped Cauchy distribution with mean direction $\mu_Q \in [-\pi, \pi)$ and concentration parameter $\rho \in [0, 1)$:
+\begin{equation}
+q(\theta) = \frac{1 - \rho^2}{2\pi (1 + \rho^2 - 2\rho \cos(\theta - \mu_Q))}
+\end{equation}
+
+\section{Kullback-Leibler Divergence}
+
+\subsection{Divergence from von Mises to Wrapped Cauchy}
+The KL divergence $D_{\text{KL}}(P \parallel Q)$ is defined as:
+\begin{equation}
+D_{\text{KL}}(P \parallel Q) = \int_0^{2\pi} p(\theta) \log \left( \frac{p(\theta)}{q(\theta)} \right) d\theta
+\end{equation}
+Using the Fourier series expansion:
+\begin{equation}
+\log (1 + \rho^2 - 2\rho \cos x) = -2 \sum_{n=1}^\infty \frac{\rho^n}{n} \cos(nx)
+\end{equation}
+and the trigonometric moments of the von Mises distribution:
+\begin{equation}
+E_P[\cos(n(\theta - \mu_Q))] = \frac{I_n(\kappa)}{I_0(\kappa)} \cos(n(\mu_P - \mu_Q))
+\end{equation}
+we obtain the fast-converging series representation:
+\begin{equation}
+D_{\text{KL}}(P \parallel Q) = \kappa \frac{I_1(\kappa)}{I_0(\kappa)} - \log I_0(\kappa) - \log(1 - \rho^2) - 2 \sum_{n=1}^\infty \frac{\rho^n I_n(\kappa)}{n I_0(\kappa)} \cos(n(\mu_P - \mu_Q))
+\end{equation}
+
+\subsection{Divergence from Wrapped Cauchy to von Mises}
+The KL divergence $D_{\text{KL}}(Q \parallel P)$ can be calculated in closed-form. Using $E_Q[\cos(\theta - \mu_P)] = \rho \cos(\mu_Q - \mu_P)$ and $E_Q[\log(1 + \rho^2 - 2\rho \cos(\theta - \mu_Q))] = 2 \log(1 - \rho^2)$, we get:
+\begin{equation}
+D_{\text{KL}}(Q \parallel P) = \log I_0(\kappa) - \log(1 - \rho^2) - \kappa \rho \cos(\mu_Q - \mu_P)
+\end{equation}
+
+\section{1-Wasserstein Distance (Aligned Means)}
+When the mean directions are aligned ($\mu_P = \mu_Q$) and one distribution is more concentrated than the other, the 1-Wasserstein distance $W_1(P, Q)$ on the circle reduces to the difference of their mean absolute deviations on $[-\pi, \pi]$:
+\begin{equation}
+W_1(P, Q) = | E_P[|\theta|] - E_Q[|\theta|] |
+\end{equation}
+The mean absolute deviation of each symmetric distribution is given by:
+\begin{align}
+E_P[|\theta|] &= \frac{\pi}{2} - \frac{4}{\pi} \sum_{k=0}^\infty \frac{I_{2k+1}(\kappa)}{(2k+1)^2 I_0(\kappa)} \\
+E_Q[|\theta|] &= \frac{\pi}{2} - \frac{4}{\pi} \sum_{k=0}^\infty \frac{\rho^{2k+1}}{(2k+1)^2}
+\end{align}
+Thus, the 1-Wasserstein distance is:
+\begin{equation}
+W_1(P, Q) = \frac{4}{\pi} \left| \sum_{k=0}^\infty \frac{\rho^{2k+1} - \frac{I_{2k+1}(\kappa)}{I_0(\kappa)}}{(2k+1)^2} \right|
+\end{equation}
+
+\end{document}

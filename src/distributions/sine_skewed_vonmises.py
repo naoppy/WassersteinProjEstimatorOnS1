@@ -6,6 +6,7 @@ import numpy.typing as npt
 from scipy import integrate, optimize, stats
 from scipy.special import i0, i1, iv, ive
 
+from src.distributions.vonmises import vonmises_cdf_series
 from src.method.wasserstein import circular_w1_from_cumsums
 from src.utils.circular_utils import (
     cumsum_hist_data,
@@ -68,11 +69,11 @@ def sine_skewed_vonmises_periodic_cdf_analytical(
 
     def cdf_raw(val):
         if kappa < 600:
-            return stats.vonmises.cdf(val, loc=mu, kappa=kappa) + lambda_ / (
+            return vonmises_cdf_series(val, mu, kappa) + lambda_ / (
                 2 * np.pi * i0(kappa) * kappa
             ) * (np.exp(-kappa) - np.exp(kappa * np.cos(val - mu)))
         else:
-            return stats.vonmises.cdf(val, loc=mu, kappa=kappa) + lambda_ / (
+            return vonmises_cdf_series(val, mu, kappa) + lambda_ / (
                 2 * np.pi * ive(0, kappa) * kappa
             ) * (np.exp(-2 * kappa) - np.exp(kappa * (np.cos(val - mu) - 1)))
 
