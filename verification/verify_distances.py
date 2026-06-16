@@ -5,6 +5,8 @@ import ot
 import scipy.stats as stats
 
 from src.distributions import wrappedcauchy
+from src.distributions.vonmises import vonmises_pdf_stable
+from src.distributions.wrappedcauchy import wrapcauchy_pdf_analytical
 from src.utils import dist_utils
 
 
@@ -28,10 +30,10 @@ def main():
             )
 
         def p_pdf(theta, mu1=mu1, kappa=kappa):
-            return dist_utils.vonmises_pdf(theta, mu1, kappa)
+            return vonmises_pdf_stable(theta, mu1, kappa)
 
         def q_pdf(theta, mu2=mu2, kappa=kappa):
-            return dist_utils.vonmises_pdf(theta, mu2, kappa)
+            return vonmises_pdf_stable(theta, mu2, kappa)
 
         dist_p = stats.vonmises(loc=mu1, kappa=kappa)
         dist_q = stats.vonmises(loc=mu2, kappa=kappa)
@@ -66,10 +68,10 @@ def main():
     mu2, rho = 1.1, 0.75
 
     def p_pdf_check(theta, mu1=mu1, kappa=kappa):
-        return dist_utils.vonmises_pdf(theta, mu1, kappa)
+        return vonmises_pdf_stable(theta, mu1, kappa)
 
     def q_pdf_check(theta, mu2=mu2, rho=rho):
-        return dist_utils.wrapcauchy_pdf(theta, mu2, rho)
+        return wrapcauchy_pdf_analytical(theta, rho, loc=mu2)
 
     dist_p = stats.vonmises(loc=mu1, kappa=kappa)
 

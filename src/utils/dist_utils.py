@@ -1,25 +1,6 @@
 import numpy as np
-import numpy.typing as npt
 from scipy.integrate import cumulative_trapezoid, quad
 from scipy.interpolate import interp1d
-
-
-def vonmises_pdf(
-    theta: npt.NDArray[np.float64], mu: float, kappa: float
-) -> npt.NDArray[np.float64]:
-    """Stable von Mises PDF using stable vonmises module."""
-    from src.distributions import vonmises
-
-    return vonmises.vonmises_pdf_stable(theta, mu, kappa)
-
-
-def wrapcauchy_pdf(
-    theta: npt.NDArray[np.float64], mu: float, rho: float
-) -> npt.NDArray[np.float64]:
-    """Wrapped Cauchy PDF using stable wrappedcauchy module."""
-    from src.distributions import wrappedcauchy
-
-    return wrappedcauchy.wrapcauchy_pdf_analytical(theta, rho, mu)
 
 
 def get_interpolated_cdf(pdf_func, grid_size: int = 2000):
