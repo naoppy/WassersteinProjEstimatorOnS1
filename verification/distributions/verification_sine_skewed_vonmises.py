@@ -5,8 +5,10 @@ from src.distributions.sine_skewed_vonmises import (
     MLE_direct,
     fisher_info_3x3,
     fisher_mat_inv_diag,
-    pdf,
     rejection_sampling,
+)
+from src.distributions.sine_skewed_vonmises import (
+    sine_skewed_vonmises_pdf_analytical as pdf,
 )
 
 
