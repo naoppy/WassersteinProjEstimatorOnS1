@@ -12,30 +12,14 @@ import scipy.stats as stats
 from numpy import typing as npt
 from parfor import pmap
 
-from src.distributions import vonmises, wrappedcauchy
-from src.distributions.vonmises import vonmises_cdf_series, vonmises_pdf_stable
-from src.distributions.wrappedcauchy import wrapcauchy_pdf_analytical
-from src.utils.dist_utils import (
-    calculate_distances,
-    kl_wrapcauchy_vonmises_analytical,
-)
+from src.distributions import vonmises
+from src.utils.dist_utils import calculate_distances_vonmises_wrappedcauchy
 
 
 def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
     # データは巻き込みコーシー分布、モデルはフォンミーゼス分布
     sample = stats.wrapcauchy(loc=true_mu, c=true_rho).rvs(N)
     sample = np.remainder(sample, 2 * np.pi)
-
-    def p_pdf(theta):
-        return wrapcauchy_pdf_analytical(theta, true_rho, loc=true_mu)
-
-    def p_cdf(theta):
-        return wrappedcauchy.wrapcauchy_periodic_cdf_analytical(
-            theta, true_rho, true_mu
-        ) - wrappedcauchy.wrapcauchy_periodic_cdf_analytical(0, true_rho, true_mu)
-
-    def p_ppf(q):
-        return wrappedcauchy.wrapcauchy_ppf_analytical(q, true_rho, loc=true_mu)
 
     # MLE
     s_time = time.perf_counter()
@@ -45,26 +29,8 @@ def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
     MLE_kappa = MLE[1]
     MLE_time = e_time - s_time
 
-    def q_pdf_mle(theta):
-        return vonmises_pdf_stable(theta, MLE_mu, MLE_kappa)
-
-    dist_q_mle = stats.vonmises(loc=MLE_mu, kappa=MLE_kappa)
-
-    def q_cdf_mle(theta):
-        return vonmises_cdf_series(theta, MLE_mu, MLE_kappa)
-
-    def q_ppf_mle(q):
-        return dist_q_mle.ppf(q)
-
-    mle_kl = kl_wrapcauchy_vonmises_analytical(true_mu, true_rho, MLE_mu, MLE_kappa)
-    _, mle_w1, mle_w2 = calculate_distances(
-        p_pdf,
-        q_pdf_mle,
-        p_cdf=p_cdf,
-        q_cdf=q_cdf_mle,
-        p_ppf=p_ppf,
-        q_ppf=q_ppf_mle,
-        skip_kl=True,
+    _, mle_kl, mle_w1, mle_w2 = calculate_distances_vonmises_wrappedcauchy(
+        MLE_mu, MLE_kappa, true_mu, true_rho
     )
 
     # W1 method2 (equal division)
@@ -75,28 +41,8 @@ def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
     W1method2_kappa = est.x[1]
     W1method2_time = e_time - s_time
 
-    def q_pdf_w1m2(theta):
-        return vonmises_pdf_stable(theta, W1method2_mu, W1method2_kappa)
-
-    dist_q_w1m2 = stats.vonmises(loc=W1method2_mu, kappa=W1method2_kappa)
-
-    def q_cdf_w1m2(theta):
-        return vonmises_cdf_series(theta, W1method2_mu, W1method2_kappa)
-
-    def q_ppf_w1m2(q):
-        return dist_q_w1m2.ppf(q)
-
-    w1m2_kl = kl_wrapcauchy_vonmises_analytical(
-        true_mu, true_rho, W1method2_mu, W1method2_kappa
-    )
-    _, w1m2_w1, w1m2_w2 = calculate_distances(
-        p_pdf,
-        q_pdf_w1m2,
-        p_cdf=p_cdf,
-        q_cdf=q_cdf_w1m2,
-        p_ppf=p_ppf,
-        q_ppf=q_ppf_w1m2,
-        skip_kl=True,
+    _, w1m2_kl, w1m2_w1, w1m2_w2 = calculate_distances_vonmises_wrappedcauchy(
+        W1method2_mu, W1method2_kappa, true_mu, true_rho
     )
 
     # W1 method3 (quantile sampling)
@@ -107,28 +53,8 @@ def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
     W1method3_kappa = est.x[1]
     W1method3_time = e_time - s_time
 
-    def q_pdf_w1m3(theta):
-        return vonmises_pdf_stable(theta, W1method3_mu, W1method3_kappa)
-
-    dist_q_w1m3 = stats.vonmises(loc=W1method3_mu, kappa=W1method3_kappa)
-
-    def q_cdf_w1m3(theta):
-        return vonmises_cdf_series(theta, W1method3_mu, W1method3_kappa)
-
-    def q_ppf_w1m3(q):
-        return dist_q_w1m3.ppf(q)
-
-    w1m3_kl = kl_wrapcauchy_vonmises_analytical(
-        true_mu, true_rho, W1method3_mu, W1method3_kappa
-    )
-    _, w1m3_w1, w1m3_w2 = calculate_distances(
-        p_pdf,
-        q_pdf_w1m3,
-        p_cdf=p_cdf,
-        q_cdf=q_cdf_w1m3,
-        p_ppf=p_ppf,
-        q_ppf=q_ppf_w1m3,
-        skip_kl=True,
+    _, w1m3_kl, w1m3_w1, w1m3_w2 = calculate_distances_vonmises_wrappedcauchy(
+        W1method3_mu, W1method3_kappa, true_mu, true_rho
     )
 
     # W2 method3 (quantile sampling)
@@ -139,28 +65,8 @@ def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
     W2method3_kappa = est.x[1]
     W2method3_time = e_time - s_time
 
-    def q_pdf_w2m3(theta):
-        return vonmises_pdf_stable(theta, W2method3_mu, W2method3_kappa)
-
-    dist_q_w2m3 = stats.vonmises(loc=W2method3_mu, kappa=W2method3_kappa)
-
-    def q_cdf_w2m3(theta):
-        return vonmises_cdf_series(theta, W2method3_mu, W2method3_kappa)
-
-    def q_ppf_w2m3(q):
-        return dist_q_w2m3.ppf(q)
-
-    w2m3_kl = kl_wrapcauchy_vonmises_analytical(
-        true_mu, true_rho, W2method3_mu, W2method3_kappa
-    )
-    _, w2m3_w1, w2m3_w2 = calculate_distances(
-        p_pdf,
-        q_pdf_w2m3,
-        p_cdf=p_cdf,
-        q_cdf=q_cdf_w2m3,
-        p_ppf=p_ppf,
-        q_ppf=q_ppf_w2m3,
-        skip_kl=True,
+    _, w2m3_kl, w2m3_w1, w2m3_w2 = calculate_distances_vonmises_wrappedcauchy(
+        W2method3_mu, W2method3_kappa, true_mu, true_rho
     )
 
     return np.array(
