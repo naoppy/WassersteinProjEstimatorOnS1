@@ -55,6 +55,58 @@ When the mean directions are aligned ($\mu_P = \mu_Q$) and one distribution is m
 \begin{equation}
 W_1(P, Q) = | E_P[|\theta|] - E_Q[|\theta|] |
 \end{equation}
+
+\subsection{Derivation and Proof}
+Without loss of generality, assume the aligned mean direction is $\mu_P = \mu_Q = 0$ and the distributions are defined on $[-\pi, \pi]$. Since both the von Mises and wrapped Cauchy distributions are symmetric around $\theta = 0$, their cumulative distribution functions (CDFs) satisfy $F_P(-\theta) = 1 - F_P(\theta)$ and $F_Q(-\theta) = 1 - F_Q(\theta)$ for $\theta \in [0, \pi]$.
+
+The 1-Wasserstein distance on the circle $S^1$ is given by:
+\begin{equation}
+W_1(P, Q) = \min_{\alpha \in \mathbb{R}} \int_{-\pi}^\pi |F_P(\theta) - F_Q(\theta) - \alpha| d\theta
+\end{equation}
+Let $D(\theta) = F_P(\theta) - F_Q(\theta)$. By the symmetry of the CDFs, we have:
+\begin{equation}
+D(-\theta) = (1 - F_P(\theta)) - (1 - F_Q(\theta)) = -D(\theta)
+\end{equation}
+which implies that the difference function $D(\theta)$ is odd. The optimal shift $\alpha^*$ that minimizes the integral is the median of $D(\theta)$ over $[-\pi, \pi]$. Since $D(\theta)$ is a continuous odd function on the symmetric interval $[-\pi, \pi]$, its median is exactly $0$. Therefore, $\alpha^* = 0$, and the distance simplifies to:
+\begin{equation}
+W_1(P, Q) = \int_{-\pi}^\pi |F_P(\theta) - F_Q(\theta)| d\theta
+\end{equation}
+Since $|D(\theta)|$ is an even function, we can restrict the integration to $[0, \pi]$:
+\begin{equation}
+W_1(P, Q) = 2 \int_0^\pi |F_P(\theta) - F_Q(\theta)| d\theta
+\end{equation}
+
+Now, assume one distribution (say $P$) is more concentrated than the other ($Q$). For symmetric, unimodal distributions centered at $0$, the probability density functions cross exactly once in $(0, \pi)$, meaning the difference $F_P(\theta) - F_Q(\theta)$ does not change sign on $(0, \pi)$. Specifically, if $P$ is more concentrated than $Q$, we have $F_P(\theta) \geq F_Q(\theta)$ for all $\theta \in [0, \pi]$. This allows us to remove the absolute value:
+\begin{equation}
+W_1(P, Q) = 2 \int_0^\pi (F_P(\theta) - F_Q(\theta)) d\theta
+\end{equation}
+
+Next, we establish the relationship between this integral and the mean absolute deviation (MAD). The MAD of a symmetric distribution $P$ on $[-\pi, \pi]$ is defined as:
+\begin{equation}
+E_P[|\theta|] = \int_{-\pi}^\pi |\theta| p(\theta) d\theta = 2 \int_0^\pi \theta p(\theta) d\theta
+\end{equation}
+Using integration by parts with $u = \theta$ and $dv = p(\theta)d\theta$ (where $v = F_P(\theta) - 1$), we obtain:
+\begin{align}
+2 \int_0^\pi \theta p(\theta) d\theta &= 2 \left[ \theta (F_P(\theta) - 1) \right]_0^\pi - 2 \int_0^\pi (F_P(\theta) - 1) d\theta \nonumber \\
+&= 2 \pi (1 - 1) - 0 + 2 \int_0^\pi (1 - F_P(\theta)) d\theta \nonumber \\
+&= 2 \int_0^\pi (1 - F_P(\theta)) d\theta
+\end{align}
+Thus, we have:
+\begin{equation}
+E_P[|\theta|] = 2 \int_0^\pi (1 - F_P(\theta)) d\theta, \quad E_Q[|\theta|] = 2 \int_0^\pi (1 - F_Q(\theta)) d\theta
+\end{equation}
+Substituting these expressions back into the simplified 1-Wasserstein integral yields:
+\begin{align}
+W_1(P, Q) &= 2 \int_0^\pi (F_P(\theta) - F_Q(\theta)) d\theta \nonumber \\
+&= 2 \int_0^\pi (1 - F_Q(\theta)) d\theta - 2 \int_0^\pi (1 - F_P(\theta)) d\theta \nonumber \\
+&= E_Q[|\theta|] - E_P[|\theta|]
+\end{align}
+Taking the absolute value to handle both cases where either $P$ or $Q$ is more concentrated, we arrive at the desired result:
+\begin{equation}
+W_1(P, Q) = | E_P[|\theta|] - E_Q[|\theta|] |
+\end{equation}
+
+\subsection{Analytical Expressions for Symmetric Distributions}
 The mean absolute deviation of each symmetric distribution is given by:
 \begin{align}
 E_P[|\theta|] &= \frac{\pi}{2} - \frac{4}{\pi} \sum_{k=0}^\infty \frac{I_{2k+1}(\kappa)}{(2k+1)^2 I_0(\kappa)} \\
