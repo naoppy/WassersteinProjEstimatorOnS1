@@ -53,11 +53,15 @@ This file contains rules, constraints, architectural context, and execution guid
 * **Optimize Flag (`-O`)**: Always use `-O` for execution runs. This disables assertions and speeds up mathematical calculation loops significantly.
 
 ### 3.3 LaTeX & TikZ Compilation
-* Compile `.tex` files containing pgfplots/tikz to PDF and SVG using standard compiler commands (such as `lualatex` to build PDFs, followed by standard utilities like `pdftocairo` to generate SVGs if needed).
-* **Command Example**:
+* **General LaTeX Compilation**: For standard document builds, compile `.tex` files containing equations/math directly using standard compiler commands:
   ```bash
   lualatex docs/calc_dists/calc_dists.tex
   ```
+* **Plotting CSV data via TikZ**: When compiling `.tex` files that plot experimental CSV data located under `./data/` or `./data/csv_data/` into PDF and SVG formats, use the custom `csv2tikz` wrapper module:
+  ```bash
+  uv run python -m src.plots.csv2tikz data/csv_data/vonmises_MSE/ex6.tex
+  ```
+  *(Note: The script runs `platex`, `dvipdfmx`, and `pdftocairo` under the hood to resolve relative table paths and output SVG files).*
 
 ---
 
