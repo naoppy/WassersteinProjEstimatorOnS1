@@ -29,11 +29,11 @@ def est_W1_method2(given_data) -> Tuple[float, float]:
         Tuple[float, float]: [推定したmu、推定したkappa]
     """
     bin_num = len(given_data)
-    data_cumsum_hist = vonmises.cumsum_hist.cumsum_hist_data(given_data, bin_num)
+    data_cumsum_hist = vonmises.cumsum_hist_data(given_data, bin_num)
 
     def cost_func(x):
         mu, kappa = x
-        dist_cumsum_hist = vonmises.cumsum_hist.cumsum_hist(mu, kappa, bin_num)
+        dist_cumsum_hist = vonmises.cumsum_hist(mu, kappa, bin_num)
         return circular_w1_from_cumsums(data_cumsum_hist[1:], dist_cumsum_hist[1:])
 
     return optimize.brute(
@@ -48,11 +48,11 @@ def est_W1_method2(given_data) -> Tuple[float, float]:
 
 def est_W1_method2_justopt(given_data) -> Tuple[float, float]:
     bin_num = len(given_data)
-    data_cumsum_hist = vonmises.cumsum_hist.cumsum_hist_data(given_data, bin_num)
+    data_cumsum_hist = vonmises.cumsum_hist_data(given_data, bin_num)
 
     def cost_func(x):
         mu, kappa = x
-        dist_cumsum_hist = vonmises.cumsum_hist.cumsum_hist(mu, kappa, bin_num)
+        dist_cumsum_hist = vonmises.cumsum_hist(mu, kappa, bin_num)
         return circular_w1_from_cumsums(data_cumsum_hist[1:], dist_cumsum_hist[1:])
 
     return optimize.minimize(
