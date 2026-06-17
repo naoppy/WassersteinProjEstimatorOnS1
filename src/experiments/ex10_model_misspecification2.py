@@ -15,7 +15,10 @@ from parfor import pmap
 from src.distributions import vonmises, wrappedcauchy
 from src.distributions.vonmises import vonmises_cdf_series, vonmises_pdf_stable
 from src.distributions.wrappedcauchy import wrapcauchy_pdf_analytical
-from src.utils.dist_utils import calculate_distances
+from src.utils.dist_utils import (
+    calculate_distances,
+    kl_wrapcauchy_vonmises_analytical,
+)
 
 
 def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
@@ -53,8 +56,15 @@ def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
     def q_ppf_mle(q):
         return dist_q_mle.ppf(q)
 
-    mle_kl, mle_w1, mle_w2 = calculate_distances(
-        p_pdf, q_pdf_mle, p_cdf=p_cdf, q_cdf=q_cdf_mle, p_ppf=p_ppf, q_ppf=q_ppf_mle
+    mle_kl = kl_wrapcauchy_vonmises_analytical(true_mu, true_rho, MLE_mu, MLE_kappa)
+    _, mle_w1, mle_w2 = calculate_distances(
+        p_pdf,
+        q_pdf_mle,
+        p_cdf=p_cdf,
+        q_cdf=q_cdf_mle,
+        p_ppf=p_ppf,
+        q_ppf=q_ppf_mle,
+        skip_kl=True,
     )
 
     # W1 method2 (equal division)
@@ -76,8 +86,17 @@ def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
     def q_ppf_w1m2(q):
         return dist_q_w1m2.ppf(q)
 
-    w1m2_kl, w1m2_w1, w1m2_w2 = calculate_distances(
-        p_pdf, q_pdf_w1m2, p_cdf=p_cdf, q_cdf=q_cdf_w1m2, p_ppf=p_ppf, q_ppf=q_ppf_w1m2
+    w1m2_kl = kl_wrapcauchy_vonmises_analytical(
+        true_mu, true_rho, W1method2_mu, W1method2_kappa
+    )
+    _, w1m2_w1, w1m2_w2 = calculate_distances(
+        p_pdf,
+        q_pdf_w1m2,
+        p_cdf=p_cdf,
+        q_cdf=q_cdf_w1m2,
+        p_ppf=p_ppf,
+        q_ppf=q_ppf_w1m2,
+        skip_kl=True,
     )
 
     # W1 method3 (quantile sampling)
@@ -99,8 +118,17 @@ def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
     def q_ppf_w1m3(q):
         return dist_q_w1m3.ppf(q)
 
-    w1m3_kl, w1m3_w1, w1m3_w2 = calculate_distances(
-        p_pdf, q_pdf_w1m3, p_cdf=p_cdf, q_cdf=q_cdf_w1m3, p_ppf=p_ppf, q_ppf=q_ppf_w1m3
+    w1m3_kl = kl_wrapcauchy_vonmises_analytical(
+        true_mu, true_rho, W1method3_mu, W1method3_kappa
+    )
+    _, w1m3_w1, w1m3_w2 = calculate_distances(
+        p_pdf,
+        q_pdf_w1m3,
+        p_cdf=p_cdf,
+        q_cdf=q_cdf_w1m3,
+        p_ppf=p_ppf,
+        q_ppf=q_ppf_w1m3,
+        skip_kl=True,
     )
 
     # W2 method3 (quantile sampling)
@@ -122,8 +150,17 @@ def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
     def q_ppf_w2m3(q):
         return dist_q_w2m3.ppf(q)
 
-    w2m3_kl, w2m3_w1, w2m3_w2 = calculate_distances(
-        p_pdf, q_pdf_w2m3, p_cdf=p_cdf, q_cdf=q_cdf_w2m3, p_ppf=p_ppf, q_ppf=q_ppf_w2m3
+    w2m3_kl = kl_wrapcauchy_vonmises_analytical(
+        true_mu, true_rho, W2method3_mu, W2method3_kappa
+    )
+    _, w2m3_w1, w2m3_w2 = calculate_distances(
+        p_pdf,
+        q_pdf_w2m3,
+        p_cdf=p_cdf,
+        q_cdf=q_cdf_w2m3,
+        p_ppf=p_ppf,
+        q_ppf=q_ppf_w2m3,
+        skip_kl=True,
     )
 
     return np.array(

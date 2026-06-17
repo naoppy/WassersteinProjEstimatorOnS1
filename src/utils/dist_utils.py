@@ -36,27 +36,33 @@ def get_interpolated_ppf(cdf_func, grid_size: int = 2000):
     )
 
 
-def calculate_distances(p_pdf, q_pdf, p_cdf=None, q_cdf=None, p_ppf=None, q_ppf=None):
+def calculate_distances(
+    p_pdf, q_pdf, p_cdf=None, q_cdf=None, p_ppf=None, q_ppf=None, skip_kl=False
+):
     """Calculates KL, W1, and W2 distances between P and Q distributions on S1."""
     import ot
 
     # KL divergence
-    def kl_integrand(theta):
-        val_p = p_pdf(theta)
-        val_q = q_pdf(theta)
-        if val_p <= 0:
-            return 0.0
-        val_q = max(val_q, 1e-300)
-        return val_p * (np.log(val_p) - np.log(val_q))
+    if skip_kl:
+        kl_div = 0.0
+    else:
 
-    kl_div, _ = quad(kl_integrand, 0, 2 * np.pi, limit=100)
+        def kl_integrand(theta):
+            val_p = p_pdf(theta)
+            val_q = q_pdf(theta)
+            if val_p <= 0:
+                return 0.0
+            val_q = max(val_q, 1e-300)
+            return val_p * (np.log(val_p) - np.log(val_q))
+
+        kl_div, _ = quad(kl_integrand, 0, 2 * np.pi, limit=100)
 
     # CDF representations
     cdf_P = p_cdf if p_cdf is not None else get_interpolated_cdf(p_pdf)
     cdf_Q = q_cdf if q_cdf is not None else get_interpolated_cdf(q_pdf)
 
     # W1 distance
-    t_grid_w1 = np.linspace(1e-9, 1 - 1e-9, 1000)
+    t_grid_w1 = np.linspace(1e-9, 1 - 1e-9, 10000)
     g_p_vals = cdf_P(2 * np.pi * t_grid_w1)
     g_q_vals = cdf_Q(2 * np.pi * t_grid_w1)
     diffs_w1 = g_p_vals - g_q_vals
