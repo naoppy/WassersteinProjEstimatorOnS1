@@ -36,7 +36,7 @@ def estimate_param(given_data) -> Tuple[float, float]:
 
     def cost_func(x):
         mu, kappa = x
-        dist_cumsum_hist = vonmises.cumsum_hist.cumsum_hist(mu, kappa, bin_num)
+        dist_cumsum_hist = vonmises.cumsum_hist(mu, kappa, bin_num)
         return circular_w1_from_cumsums(data_cumsum_hist[1:], dist_cumsum_hist[1:])
 
     return optimize.brute(
