@@ -8,13 +8,13 @@ import time
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
-from numpy import typing as npt
-from parfor import pmap
+from joblib import Parallel, delayed
+from tqdm import tqdm
 
 from src.distributions import wrappedcauchy
 
 
-def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
+def run_once(i, true_mu, true_rho, N: int) -> dict:
     # [0, 2*pi] の範囲でサンプリングしたいが、[mu, mu + 2*pi] の範囲になっているので修正
     sample = stats.wrapcauchy(loc=true_mu, c=true_rho).rvs(N)
     sample = np.remainder(sample, 2 * np.pi)
@@ -40,19 +40,17 @@ def run_once(i, true_mu, true_rho, N: int) -> npt.NDArray[np.float64]:
     W2method3_rho = est.x[1]
     W2method3_time = e_time - s_time
 
-    return np.array(
-        [
-            MLE_mu_kent,
-            MLE_rho_kent,
-            MLE_time_kent,
-            W1method2_mu,
-            W1method2_rho,
-            W1method2_time,
-            W2method3_mu,
-            W2method3_rho,
-            W2method3_time,
-        ]
-    )
+    return {
+        "MLE_mu_kent": MLE_mu_kent,
+        "MLE_rho_kent": MLE_rho_kent,
+        "MLE_time_kent": MLE_time_kent,
+        "W1method2_mu": W1method2_mu,
+        "W1method2_rho": W1method2_rho,
+        "W1method2_time": W1method2_time,
+        "W2method3_mu": W2method3_mu,
+        "W2method3_rho": W2method3_rho,
+        "W2method3_time": W2method3_time,
+    }
 
 
 def _main():
@@ -81,39 +79,25 @@ def _main():
         zip(rhos, try_nums, strict=True)
     ):  # データ数Nを変える
         print(f"rho={true_rho}")
-        MLE_mu_kent = np.zeros(try_num)
-        MLE_rho_kent = np.zeros(try_num)
-        MLE_time_kent = np.zeros(try_num)
-        W1method2_mu = np.zeros(try_num)
-        W1method2_rho = np.zeros(try_num)
-        W1method2_time = np.zeros(try_num)
-        W2method3_mu = np.zeros(try_num)
-        W2method3_rho = np.zeros(try_num)
-        W2method3_time = np.zeros(try_num)
 
-        result = pmap(run_once, range(try_num), (true_mu, true_rho, N))
-        for i in range(try_num):
-            r = result[i]
-            MLE_mu_kent[i] = r[0]
-            MLE_rho_kent[i] = r[1]
-            MLE_time_kent[i] = r[2]
-            W1method2_mu[i] = r[3]
-            W1method2_rho[i] = r[4]
-            W1method2_time[i] = r[5]
-            W2method3_mu[i] = r[6]
-            W2method3_rho[i] = r[7]
-            W2method3_time[i] = r[8]
+        result = Parallel(n_jobs=-1)(
+            delayed(run_once)(i, true_mu, true_rho, N)
+            for i in tqdm(range(try_num), desc=f"N={N}")
+        )
+        df_trial = pd.DataFrame(result)
 
         # MSEを計算する
-        MLE_mu_kent_mse = np.mean((MLE_mu_kent - true_mu) ** 2)
-        MLE_rho_kent_mse = np.mean((MLE_rho_kent - true_rho) ** 2)
-        MLE_time_kent_mean = np.mean(MLE_time_kent)
-        method2_mu_mse = np.mean((W1method2_mu - true_mu) ** 2)
-        method2_rho_mse = np.mean((W1method2_rho - true_rho) ** 2)
-        method2_time_mean = np.mean(W1method2_time)
-        method3_mu_mse = np.mean((W2method3_mu - true_mu) ** 2)
-        method3_rho_mse = np.mean((W2method3_rho - true_rho) ** 2)
-        method3_time_mean = np.mean(W2method3_time)
+        MLE_mu_kent_mse = np.mean((df_trial["MLE_mu_kent"] - true_mu) ** 2)
+        MLE_rho_kent_mse = np.mean((df_trial["MLE_rho_kent"] - true_rho) ** 2)
+        MLE_time_kent_mean = df_trial["MLE_time_kent"].mean()
+
+        method2_mu_mse = np.mean((df_trial["W1method2_mu"] - true_mu) ** 2)
+        method2_rho_mse = np.mean((df_trial["W1method2_rho"] - true_rho) ** 2)
+        method2_time_mean = df_trial["W1method2_time"].mean()
+
+        method3_mu_mse = np.mean((df_trial["W2method3_mu"] - true_mu) ** 2)
+        method3_rho_mse = np.mean((df_trial["W2method3_rho"] - true_rho) ** 2)
+        method3_time_mean = df_trial["W2method3_time"].mean()
 
         fisher_mat_inv_diag = wrappedcauchy.fisher_mat_inv_diag(true_rho)
         CR_mu_mse_times_N = fisher_mat_inv_diag[0]

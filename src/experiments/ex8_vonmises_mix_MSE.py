@@ -8,7 +8,8 @@ import time
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
-from parfor import pmap
+from joblib import Parallel, delayed
+from tqdm import tqdm
 
 from src.distributions import vonmises
 
@@ -64,25 +65,23 @@ def run_once(i, true_mu, true_kappa, uniform_noise_rate, N: int):
     type1_beta05_kappa = est[1]
     type1_beta05_time = e_time - s_time
 
-    return np.array(
-        [
-            MLE_mu,
-            MLE_kappa,
-            MLE_time,
-            W1method2_mu,
-            W1method2_kappa,
-            W1method2_time,
-            W2method3_mu,
-            W2method3_kappa,
-            W2method3_time,
-            type0_gamma05_mu,
-            type0_gamma05_kappa,
-            type0_gamma05_time,
-            type1_beta05_mu,
-            type1_beta05_kappa,
-            type1_beta05_time,
-        ]
-    )
+    return {
+        "MLE_mu": MLE_mu,
+        "MLE_kappa": MLE_kappa,
+        "MLE_time": MLE_time,
+        "W1method2_mu": W1method2_mu,
+        "W1method2_kappa": W1method2_kappa,
+        "W1method2_time": W1method2_time,
+        "W2method3_mu": W2method3_mu,
+        "W2method3_kappa": W2method3_kappa,
+        "W2method3_time": W2method3_time,
+        "type0_gamma05_mu": type0_gamma05_mu,
+        "type0_gamma05_kappa": type0_gamma05_kappa,
+        "type0_gamma05_time": type0_gamma05_time,
+        "type1_beta05_mu": type1_beta05_mu,
+        "type1_beta05_kappa": type1_beta05_kappa,
+        "type1_beta05_time": type1_beta05_time,
+    }
 
 
 def main():
@@ -118,58 +117,38 @@ def main():
 
     for _j, (N, try_num) in enumerate(zip(Ns, try_nums, strict=True)):
         print(f"N={N}")
-        MLE_mu = np.zeros(try_num)
-        MLE_kappa = np.zeros(try_num)
-        MLE_time = np.zeros(try_num)
-        method1_mu = np.zeros(try_num)
-        method1_kappa = np.zeros(try_num)
-        method1_time = np.zeros(try_num)
-        method2_mu = np.zeros(try_num)
-        method2_kappa = np.zeros(try_num)
-        method2_time = np.zeros(try_num)
-        type0_gamma05_mu = np.zeros(try_num)
-        type0_gamma05_kappa = np.zeros(try_num)
-        type0_gamma05_time = np.zeros(try_num)
-        type1_beta05_mu = np.zeros(try_num)
-        type1_beta05_kappa = np.zeros(try_num)
-        type1_beta05_time = np.zeros(try_num)
 
-        result = pmap(
-            run_once, range(try_num), (true_mu, true_kappa, uniform_noise_rate, N)
+        result = Parallel(n_jobs=-1)(
+            delayed(run_once)(i, true_mu, true_kappa, uniform_noise_rate, N)
+            for i in tqdm(range(try_num), desc=f"N={N}")
         )
-        for i in range(try_num):
-            r = result[i]
-            MLE_mu[i] = r[0]
-            MLE_kappa[i] = r[1]
-            MLE_time[i] = r[2]
-            method1_mu[i] = r[3]
-            method1_kappa[i] = r[4]
-            method1_time[i] = r[5]
-            method2_mu[i] = r[6]
-            method2_kappa[i] = r[7]
-            method2_time[i] = r[8]
-            type0_gamma05_mu[i] = r[9]
-            type0_gamma05_kappa[i] = r[10]
-            type0_gamma05_time[i] = r[11]
-            type1_beta05_mu[i] = r[12]
-            type1_beta05_kappa[i] = r[13]
-            type1_beta05_time[i] = r[14]
+        df_trial = pd.DataFrame(result)
+
         # MSEを計算する
-        MLE_mu_mse = np.mean((MLE_mu - true_mu) ** 2)
-        MLE_kappa_mse = np.mean((MLE_kappa - true_kappa) ** 2)
-        MLE_time_mean = np.mean(MLE_time)
-        W1method2_mu_mse = np.mean((method1_mu - true_mu) ** 2)
-        W1method2_kappa_mse = np.mean((method1_kappa - true_kappa) ** 2)
-        W1method2_time_mean = np.mean(method1_time)
-        W2method3_mu_mse = np.mean((method2_mu - true_mu) ** 2)
-        W2method3_kappa_mse = np.mean((method2_kappa - true_kappa) ** 2)
-        W2method3_time_mean = np.mean(method2_time)
-        type0_gamma05_mu_mse = np.mean((type0_gamma05_mu - true_mu) ** 2)
-        type0_gamma05_kappa_mse = np.mean((type0_gamma05_kappa - true_kappa) ** 2)
-        type0_gamma05_time_mean = np.mean(type0_gamma05_time)
-        type1_beta05_mu_mse = np.mean((type1_beta05_mu - true_mu) ** 2)
-        type1_beta05_kappa_mse = np.mean((type1_beta05_kappa - true_kappa) ** 2)
-        type1_beta05_time_mean = np.mean(type1_beta05_time)
+        MLE_mu_mse = np.mean((df_trial["MLE_mu"] - true_mu) ** 2)
+        MLE_kappa_mse = np.mean((df_trial["MLE_kappa"] - true_kappa) ** 2)
+        MLE_time_mean = df_trial["MLE_time"].mean()
+
+        W1method2_mu_mse = np.mean((df_trial["W1method2_mu"] - true_mu) ** 2)
+        W1method2_kappa_mse = np.mean((df_trial["W1method2_kappa"] - true_kappa) ** 2)
+        W1method2_time_mean = df_trial["W1method2_time"].mean()
+
+        W2method3_mu_mse = np.mean((df_trial["W2method3_mu"] - true_mu) ** 2)
+        W2method3_kappa_mse = np.mean((df_trial["W2method3_kappa"] - true_kappa) ** 2)
+        W2method3_time_mean = df_trial["W2method3_time"].mean()
+
+        type0_gamma05_mu_mse = np.mean((df_trial["type0_gamma05_mu"] - true_mu) ** 2)
+        type0_gamma05_kappa_mse = np.mean(
+            (df_trial["type0_gamma05_kappa"] - true_kappa) ** 2
+        )
+        type0_gamma05_time_mean = df_trial["type0_gamma05_time"].mean()
+
+        type1_beta05_mu_mse = np.mean((df_trial["type1_beta05_mu"] - true_mu) ** 2)
+        type1_beta05_kappa_mse = np.mean(
+            (df_trial["type1_beta05_kappa"] - true_kappa) ** 2
+        )
+        type1_beta05_time_mean = df_trial["type1_beta05_time"].mean()
+
         df.loc[log10_Ns[_j]] = [
             np.log10(MLE_mu_mse),
             np.log10(MLE_kappa_mse),
