@@ -1,6 +1,6 @@
 # AI Instructions & Repository Rules (Agents.md)
 
-This file contains rules, constraints, architectural context, and execution guidelines for AI coding assistants (like Antigravity, Cline, Cursor, etc.) working on this B4 graduation thesis repository.
+This file contains rules, constraints, architectural context, and execution guidelines for AI coding assistants (like Antigravity, Cline, Cursor, etc.) working on this Wasserstein Projection Estimators research repository.
 
 ---
 
@@ -21,7 +21,7 @@ This file contains rules, constraints, architectural context, and execution guid
 ├── uv.lock                # Dependency lock file
 ├── README.md              # Public project documentation
 ├── Agents.md              # AI instruction manual (this file)
-├── data/                  # Thesis data and outputs
+├── data/                  # Experiment data and outputs
 │   └── csv_data/          # CSV tables organized by experiment type
 ├── docs/                  # LaTeX math proofs and benchmarks
 │   ├── ai_guidelines.md   # Historic guidelines
@@ -106,5 +106,5 @@ AI agents must respect the following numerical implementations to ensure stabili
 ## 6. Research & Data Integrity Rules
 
 * **Reproducibility**: Always initialize a random seed at the top of experiment scripts (e.g., `np.random.seed(42)`) to ensure simulation results are consistent.
-* **Data Preservation**: Under no circumstances should existing CSV files or generated TikZ/SVG/PDF figures under `data/` or `data/csv_data/` be deleted or modified, as these contain historical thesis experiment runs. If you need to re-run simulations, output to a temporary or newly named file unless explicitly directed to overwrite.
+* **Data Preservation**: Under no circumstances should existing CSV files or generated TikZ/SVG/PDF figures under `data/` or `data/csv_data/` be deleted or modified, as these contain historical simulation experiment runs. If you need to re-run simulations, output to a temporary or newly named file unless explicitly directed to overwrite.
 * **Hardware profile**: The codebase is optimized for multi-core CPUs via `joblib.Parallel` and `scipy`. Avoid introducing GPU dependencies.
