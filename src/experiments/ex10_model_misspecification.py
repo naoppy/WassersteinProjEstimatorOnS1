@@ -13,26 +13,13 @@ from numpy import typing as npt
 from parfor import pmap
 
 from src.distributions import wrappedcauchy
-from src.distributions.vonmises import vonmises_cdf_series, vonmises_pdf_stable
-from src.distributions.wrappedcauchy import wrapcauchy_pdf_analytical
-from src.utils.dist_utils import calculate_distances
+from src.utils.dist_utils import calculate_distances_vonmises_wrappedcauchy
 
 
 def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
     # データはフォンミーゼス分布、モデルは巻き込みコーシー分布
     sample = stats.vonmises(loc=true_mu, kappa=true_kappa).rvs(N)
     sample = np.remainder(sample, 2 * np.pi)
-
-    def p_pdf(theta):
-        return vonmises_pdf_stable(theta, true_mu, true_kappa)
-
-    dist_p = stats.vonmises(loc=true_mu, kappa=true_kappa)
-
-    def p_cdf(theta):
-        return vonmises_cdf_series(theta, true_mu, true_kappa)
-
-    def p_ppf(q):
-        return dist_p.ppf(q)
 
     # MLE
     s_time = time.perf_counter()
@@ -42,19 +29,8 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
     MLE_rho = MLE[1]
     MLE_time = e_time - s_time
 
-    def q_pdf_mle(theta):
-        return wrapcauchy_pdf_analytical(theta, MLE_rho, loc=MLE_mu)
-
-    def q_cdf_mle(theta):
-        return wrappedcauchy.wrapcauchy_periodic_cdf_analytical(
-            theta, MLE_rho, MLE_mu
-        ) - wrappedcauchy.wrapcauchy_periodic_cdf_analytical(0, MLE_rho, MLE_mu)
-
-    def q_ppf_mle(q):
-        return wrappedcauchy.wrapcauchy_ppf_analytical(q, MLE_rho, loc=MLE_mu)
-
-    mle_kl, mle_w1, mle_w2 = calculate_distances(
-        p_pdf, q_pdf_mle, p_cdf=p_cdf, q_cdf=q_cdf_mle, p_ppf=p_ppf, q_ppf=q_ppf_mle
+    mle_kl, _, mle_w1, mle_w2 = calculate_distances_vonmises_wrappedcauchy(
+        true_mu, true_kappa, MLE_mu, MLE_rho
     )
 
     # W1 method2 (equal division)
@@ -65,23 +41,8 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
     W1method2_rho = est.x[1]
     W1method2_time = e_time - s_time
 
-    def q_pdf_w1m2(theta):
-        return wrapcauchy_pdf_analytical(theta, W1method2_rho, loc=W1method2_mu)
-
-    def q_cdf_w1m2(theta):
-        return wrappedcauchy.wrapcauchy_periodic_cdf_analytical(
-            theta, W1method2_rho, W1method2_mu
-        ) - wrappedcauchy.wrapcauchy_periodic_cdf_analytical(
-            0, W1method2_rho, W1method2_mu
-        )
-
-    def q_ppf_w1m2(q):
-        return wrappedcauchy.wrapcauchy_ppf_analytical(
-            q, W1method2_rho, loc=W1method2_mu
-        )
-
-    w1m2_kl, w1m2_w1, w1m2_w2 = calculate_distances(
-        p_pdf, q_pdf_w1m2, p_cdf=p_cdf, q_cdf=q_cdf_w1m2, p_ppf=p_ppf, q_ppf=q_ppf_w1m2
+    w1m2_kl, _, w1m2_w1, w1m2_w2 = calculate_distances_vonmises_wrappedcauchy(
+        true_mu, true_kappa, W1method2_mu, W1method2_rho
     )
 
     # W1 method3 (quantile sampling)
@@ -92,23 +53,8 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
     W1method3_rho = est.x[1]
     W1method3_time = e_time - s_time
 
-    def q_pdf_w1m3(theta):
-        return wrapcauchy_pdf_analytical(theta, W1method3_rho, loc=W1method3_mu)
-
-    def q_cdf_w1m3(theta):
-        return wrappedcauchy.wrapcauchy_periodic_cdf_analytical(
-            theta, W1method3_rho, W1method3_mu
-        ) - wrappedcauchy.wrapcauchy_periodic_cdf_analytical(
-            0, W1method3_rho, W1method3_mu
-        )
-
-    def q_ppf_w1m3(q):
-        return wrappedcauchy.wrapcauchy_ppf_analytical(
-            q, W1method3_rho, loc=W1method3_mu
-        )
-
-    w1m3_kl, w1m3_w1, w1m3_w2 = calculate_distances(
-        p_pdf, q_pdf_w1m3, p_cdf=p_cdf, q_cdf=q_cdf_w1m3, p_ppf=p_ppf, q_ppf=q_ppf_w1m3
+    w1m3_kl, _, w1m3_w1, w1m3_w2 = calculate_distances_vonmises_wrappedcauchy(
+        true_mu, true_kappa, W1method3_mu, W1method3_rho
     )
 
     # W2 method3 (quantile sampling)
@@ -119,23 +65,8 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
     W2method3_rho = est.x[1]
     W2method3_time = e_time - s_time
 
-    def q_pdf_w2m3(theta):
-        return wrapcauchy_pdf_analytical(theta, W2method3_rho, loc=W2method3_mu)
-
-    def q_cdf_w2m3(theta):
-        return wrappedcauchy.wrapcauchy_periodic_cdf_analytical(
-            theta, W2method3_rho, W2method3_mu
-        ) - wrappedcauchy.wrapcauchy_periodic_cdf_analytical(
-            0, W2method3_rho, W2method3_mu
-        )
-
-    def q_ppf_w2m3(q):
-        return wrappedcauchy.wrapcauchy_ppf_analytical(
-            q, W2method3_rho, loc=W2method3_mu
-        )
-
-    w2m3_kl, w2m3_w1, w2m3_w2 = calculate_distances(
-        p_pdf, q_pdf_w2m3, p_cdf=p_cdf, q_cdf=q_cdf_w2m3, p_ppf=p_ppf, q_ppf=q_ppf_w2m3
+    w2m3_kl, _, w2m3_w1, w2m3_w2 = calculate_distances_vonmises_wrappedcauchy(
+        true_mu, true_kappa, W2method3_mu, W2method3_rho
     )
 
     return np.array(
