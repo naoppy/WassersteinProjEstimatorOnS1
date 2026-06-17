@@ -7,8 +7,8 @@ import time
 
 import numpy as np
 import pandas as pd
-from numpy import typing as npt
-from parfor import pmap
+from joblib import Parallel, delayed
+from tqdm import tqdm
 
 from src.distributions import sine_skewed_vonmises
 
@@ -16,7 +16,7 @@ TOL = 1e-7
 bounds = ((0, 2 * np.pi), (0.01, 2), (-1, 1))
 
 
-def run_once(i, true_mu, true_kappa, true_lambda, N: int) -> npt.NDArray[np.float64]:
+def run_once(i, true_mu, true_kappa, true_lambda, N: int) -> dict:
     sample = sine_skewed_vonmises.rejection_sampling(
         N, true_mu, true_kappa, true_lambda
     )
@@ -37,18 +37,16 @@ def run_once(i, true_mu, true_kappa, true_lambda, N: int) -> npt.NDArray[np.floa
     W1method2_lambda = est.x[2]
     W1method2_time = e_time - s_time
 
-    return np.array(
-        [
-            MLE_mu,
-            MLE_kappa,
-            MLE_lambda,
-            MLE_time,
-            W1method2_mu,
-            W1method2_kappa,
-            W1method2_lambda,
-            W1method2_time,
-        ]
-    )
+    return {
+        "MLE_mu": MLE_mu,
+        "MLE_kappa": MLE_kappa,
+        "MLE_lambda": MLE_lambda,
+        "MLE_time": MLE_time,
+        "W1method2_mu": W1method2_mu,
+        "W1method2_kappa": W1method2_kappa,
+        "W1method2_lambda": W1method2_lambda,
+        "W1method2_time": W1method2_time,
+    }
 
 
 def _main():
@@ -76,43 +74,33 @@ def _main():
         ],
     )
 
+    # lambdaを変える
     for _j, (true_lambda, try_num) in enumerate(zip(lambdas, try_nums, strict=True)):
         print(f"true lambda={true_lambda}")
-        MLE_mu = np.zeros(try_num)
-        MLE_kappa = np.zeros(try_num)
-        MLE_lambda = np.zeros(try_num)
-        MLE_time = np.zeros(try_num)
-        W1method2_mu = np.zeros(try_num)
-        W1method2_kappa = np.zeros(try_num)
-        W1method2_lambda = np.zeros(try_num)
-        W1method2_time = np.zeros(try_num)
 
         fisher_mat_inv_diag = sine_skewed_vonmises.fisher_mat_inv_diag(
             true_kappa, true_lambda
         )
 
         # MSEをとるための試行回数
-        result = pmap(run_once, range(try_num), (true_mu, true_kappa, true_lambda, N))
-        for i in range(try_num):
-            r = result[i]
-            MLE_mu[i] = r[0]
-            MLE_kappa[i] = r[1]
-            MLE_lambda[i] = r[2]
-            MLE_time[i] = r[3]
-            W1method2_mu[i] = r[4]
-            W1method2_kappa[i] = r[5]
-            W1method2_lambda[i] = r[6]
-            W1method2_time[i] = r[7]
+        result = Parallel(n_jobs=-1)(
+            delayed(run_once)(i, true_mu, true_kappa, true_lambda, N)
+            for i in tqdm(range(try_num), desc=f"lambda={true_lambda:.2f}")
+        )
+        df_trial = pd.DataFrame(result)
 
         # MSEを計算する
-        MLE_mu_mse = np.mean((MLE_mu - true_mu) ** 2)
-        MLE_kappa_mse = np.mean((MLE_kappa - true_kappa) ** 2)
-        MLE_lambda_mse = np.mean((MLE_lambda - true_lambda) ** 2)
-        MLE_time_mean = np.mean(MLE_time)
-        W1method2_mu_mse = np.mean((W1method2_mu - true_mu) ** 2)
-        W1method2_kappa_mse = np.mean((W1method2_kappa - true_kappa) ** 2)
-        W1method2_lambda_mse = np.mean((W1method2_lambda - true_lambda) ** 2)
-        W1method2_time_mean = np.mean(W1method2_time)
+        MLE_mu_mse = np.mean((df_trial["MLE_mu"] - true_mu) ** 2)
+        MLE_kappa_mse = np.mean((df_trial["MLE_kappa"] - true_kappa) ** 2)
+        MLE_lambda_mse = np.mean((df_trial["MLE_lambda"] - true_lambda) ** 2)
+        MLE_time_mean = df_trial["MLE_time"].mean()
+
+        W1method2_mu_mse = np.mean((df_trial["W1method2_mu"] - true_mu) ** 2)
+        W1method2_kappa_mse = np.mean((df_trial["W1method2_kappa"] - true_kappa) ** 2)
+        W1method2_lambda_mse = np.mean(
+            (df_trial["W1method2_lambda"] - true_lambda) ** 2
+        )
+        W1method2_time_mean = df_trial["W1method2_time"].mean()
 
         df.loc[true_lambda] = [
             np.log10(MLE_mu_mse),

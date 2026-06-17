@@ -8,13 +8,13 @@ import time
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
-from numpy import typing as npt
-from parfor import pmap
+from joblib import Parallel, delayed
+from tqdm import tqdm
 
 from src.distributions import vonmises
 
 
-def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
+def run_once(i, true_mu, true_kappa, N: int) -> dict:
     sample = stats.vonmises(loc=true_mu, kappa=true_kappa).rvs(N)
     sample = np.remainder(sample, 2 * np.pi)
 
@@ -39,19 +39,17 @@ def run_once(i, true_mu, true_kappa, N: int) -> npt.NDArray[np.float64]:
     W2method3_kappa = est.x[1]
     W2method3_time = e_time - s_time
 
-    return np.array(
-        [
-            MLE_mu,
-            MLE_kappa,
-            MLE_time,
-            W1method2_mu,
-            W1method2_kappa,
-            W1method2_time,
-            W2method3_mu,
-            W2method3_kappa,
-            W2method3_time,
-        ]
-    )
+    return {
+        "MLE_mu": MLE_mu,
+        "MLE_kappa": MLE_kappa,
+        "MLE_time": MLE_time,
+        "W1method2_mu": W1method2_mu,
+        "W1method2_kappa": W1method2_kappa,
+        "W1method2_time": W1method2_time,
+        "W2method3_mu": W2method3_mu,
+        "W2method3_kappa": W2method3_kappa,
+        "W2method3_time": W2method3_time,
+    }
 
 
 def _main():
@@ -78,42 +76,29 @@ def _main():
 
     for _, (true_kappa, try_num) in enumerate(
         zip(kappas, try_nums, strict=True)
-    ):  # データ数Nを変える
+    ):  # kappaを変える
         print(f"kappa={true_kappa}")
-        MLE_mu = np.zeros(try_num)
-        MLE_kappa = np.zeros(try_num)
-        MLE_time = np.zeros(try_num)
-        W1method2_mu = np.zeros(try_num)
-        W1method2_kappa = np.zeros(try_num)
-        W1method2_time = np.zeros(try_num)
-        W2method3_mu = np.zeros(try_num)
-        W2method3_kappa = np.zeros(try_num)
-        W2method3_time = np.zeros(try_num)
 
         # MSEをとるための試行回数
-        result = pmap(run_once, range(try_num), (true_mu, true_kappa, N))
-        for i in range(try_num):
-            r = result[i]
-            MLE_mu[i] = r[0]
-            MLE_kappa[i] = r[1]
-            MLE_time[i] = r[2]
-            W1method2_mu[i] = r[3]
-            W1method2_kappa[i] = r[4]
-            W1method2_time[i] = r[5]
-            W2method3_mu[i] = r[6]
-            W2method3_kappa[i] = r[7]
-            W2method3_time[i] = r[8]
+        result = Parallel(n_jobs=-1)(
+            delayed(run_once)(i, true_mu, true_kappa, N)
+            for i in tqdm(range(try_num), desc=f"kappa={true_kappa:.2f}")
+        )
+        df_trial = pd.DataFrame(result)
 
         # MSEを計算する
-        MLE_mu_mse = np.mean((MLE_mu - true_mu) ** 2)
-        MLE_kappa_mse = np.mean((MLE_kappa - true_kappa) ** 2)
-        MLE_time_mean = np.mean(MLE_time)
-        W1method2_mu_mse = np.mean((W1method2_mu - true_mu) ** 2)
-        W1method2_kappa_mse = np.mean((W1method2_kappa - true_kappa) ** 2)
-        W1method2_time_mean = np.mean(W1method2_time)
-        W2method3_mu_mse = np.mean((W2method3_mu - true_mu) ** 2)
-        W2method3_kappa_mse = np.mean((W2method3_kappa - true_kappa) ** 2)
-        W2method3_time_mean = np.mean(W2method3_time)
+        MLE_mu_mse = np.mean((df_trial["MLE_mu"] - true_mu) ** 2)
+        MLE_kappa_mse = np.mean((df_trial["MLE_kappa"] - true_kappa) ** 2)
+        MLE_time_mean = df_trial["MLE_time"].mean()
+
+        W1method2_mu_mse = np.mean((df_trial["W1method2_mu"] - true_mu) ** 2)
+        W1method2_kappa_mse = np.mean((df_trial["W1method2_kappa"] - true_kappa) ** 2)
+        W1method2_time_mean = df_trial["W1method2_time"].mean()
+
+        W2method3_mu_mse = np.mean((df_trial["W2method3_mu"] - true_mu) ** 2)
+        W2method3_kappa_mse = np.mean((df_trial["W2method3_kappa"] - true_kappa) ** 2)
+        W2method3_time_mean = df_trial["W2method3_time"].mean()
+
         CR_mu_mse_times_N = vonmises.fisher_mat_inv_diag(true_kappa)[0]
         CR_kappa_mse_times_N = vonmises.fisher_mat_inv_diag(true_kappa)[1]
         df.loc[true_kappa] = [

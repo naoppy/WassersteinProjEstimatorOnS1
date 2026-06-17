@@ -9,7 +9,7 @@ dependencies = [
     "numba>=0.65.1",
     "numpy>=2.3.4",
     "pandas>=2.3.3",
-    "parfor>=2025.1.0",
+    "joblib>=1.4.2",
     "pot>=0.9.6.post1",
     "scipy>=1.16.3",
     "tqdm>=4.67.1",
@@ -35,4 +35,7 @@ indent-style = "space"
 autoSearchPaths = false
 extraPaths = ["."]
 
-
+[dependency-groups]
+dev = [
+    "ruff>=0.9.0",
+]
