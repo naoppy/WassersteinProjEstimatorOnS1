@@ -76,13 +76,13 @@ def _main():
 
     for _, (true_kappa, try_num) in enumerate(
         zip(kappas, try_nums, strict=True)
-    ):  # データ数Nを変える
+    ):  # kappaを変える
         print(f"kappa={true_kappa}")
 
         # MSEをとるための試行回数
         result = Parallel(n_jobs=-1)(
             delayed(run_once)(i, true_mu, true_kappa, N)
-            for i in tqdm(range(try_num), desc=f"N={N}")
+            for i in tqdm(range(try_num), desc=f"kappa={true_kappa:.2f}")
         )
         df_trial = pd.DataFrame(result)
 

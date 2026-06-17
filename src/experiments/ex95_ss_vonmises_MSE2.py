@@ -74,6 +74,7 @@ def _main():
         ],
     )
 
+    # lambdaを変える
     for _j, (true_lambda, try_num) in enumerate(zip(lambdas, try_nums, strict=True)):
         print(f"true lambda={true_lambda}")
 
@@ -84,7 +85,7 @@ def _main():
         # MSEをとるための試行回数
         result = Parallel(n_jobs=-1)(
             delayed(run_once)(i, true_mu, true_kappa, true_lambda, N)
-            for i in tqdm(range(try_num), desc=f"N={N}")
+            for i in tqdm(range(try_num), desc=f"lambda={true_lambda:.2f}")
         )
         df_trial = pd.DataFrame(result)
 

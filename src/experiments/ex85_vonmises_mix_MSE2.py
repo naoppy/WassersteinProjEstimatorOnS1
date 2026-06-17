@@ -87,12 +87,13 @@ def main():
     )
     df.index.name = "noise_rate"
 
+    # noise_rateを変える
     for _j, (noise_rate, try_num) in enumerate(zip(noise_rates, try_nums, strict=True)):
         print(f"noise_rate={noise_rate}")
 
         result = Parallel(n_jobs=-1)(
             delayed(run_once)(i, true_mu, true_kappa, noise_rate, N)
-            for i in tqdm(range(try_num), desc=f"N={N}")
+            for i in tqdm(range(try_num), desc=f"noise_rate={noise_rate:.2f}")
         )
         df_trial = pd.DataFrame(result)
 

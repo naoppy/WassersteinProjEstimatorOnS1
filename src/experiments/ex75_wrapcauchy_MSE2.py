@@ -77,12 +77,12 @@ def _main():
 
     for _j, (true_rho, try_num) in enumerate(
         zip(rhos, try_nums, strict=True)
-    ):  # データ数Nを変える
+    ):  # rhoを変える
         print(f"rho={true_rho}")
 
         result = Parallel(n_jobs=-1)(
             delayed(run_once)(i, true_mu, true_rho, N)
-            for i in tqdm(range(try_num), desc=f"N={N}")
+            for i in tqdm(range(try_num), desc=f"rho={true_rho:.2f}")
         )
         df_trial = pd.DataFrame(result)
 
