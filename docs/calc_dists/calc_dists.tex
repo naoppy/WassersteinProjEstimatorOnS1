@@ -76,7 +76,18 @@ Since $|D(\theta)|$ is an even function, we can restrict the integration to $[0,
 W_1(P, Q) = 2 \int_0^\pi |F_P(\theta) - F_Q(\theta)| d\theta
 \end{equation}
 
-Now, assume one distribution (say $P$) is more concentrated than the other ($Q$). For symmetric, unimodal distributions centered at $0$, the probability density functions cross exactly once in $(0, \pi)$, meaning the difference $F_P(\theta) - F_Q(\theta)$ does not change sign on $(0, \pi)$. Specifically, if $P$ is more concentrated than $Q$, we have $F_P(\theta) \geq F_Q(\theta)$ for all $\theta \in [0, \pi]$. This allows us to remove the absolute value:
+Now, we examine the condition under which the CDF difference $D(\theta) = F_P(\theta) - F_Q(\theta)$ does not change sign (i.e., has 0 crossings) on the open interval $(0, \pi)$. For symmetric, unimodal circular distributions centered at $0$, the derivative $D'(\theta) = p(\theta) - q(\theta)$ can change sign at most twice in $(0, \pi)$. Since $D(0) = D(\pi) = 0$, the derivative must change sign at least once. 
+
+A necessary and sufficient condition for $D(\theta)$ to have no crossings in $(0, \pi)$ is:
+\begin{equation}
+(p(0) - q(0))(p(\pi) - q(\pi)) \le 0
+\end{equation}
+Indeed:
+\begin{itemize}
+    \item If $(p(0) - q(0))(p(\pi) - q(\pi)) \le 0$, the derivative $D'(\theta)$ changes sign exactly once in $(0, \pi)$. Thus, $D(\theta)$ is unimodal and remains strictly positive (if $p(0) > q(0)$) or strictly negative (if $p(0) < q(0)$) on $(0, \pi)$, meaning it has 0 crossings.
+    \item If $(p(0) - q(0))(p(\pi) - q(\pi)) > 0$, the derivative $D'(\theta)$ changes sign exactly twice in $(0, \pi)$. By Rolle's theorem and the Intermediate Value Theorem, this implies that $D(\theta)$ must cross $0$ exactly once in $(0, \pi)$.
+\end{itemize}
+Therefore, if the condition $(p(0) - q(0))(p(\pi) - q(\pi)) \le 0$ is satisfied, $F_P(\theta) - F_Q(\theta)$ does not change sign on $(0, \pi)$. Assuming without loss of generality that $F_P(\theta) \geq F_Q(\theta)$ for all $\theta \in [0, \pi]$, we can remove the absolute value:
 \begin{equation}
 W_1(P, Q) = 2 \int_0^\pi (F_P(\theta) - F_Q(\theta)) d\theta
 \end{equation}
