@@ -118,6 +118,10 @@ def calculate_distances_vonmises_wrappedcauchy(
         wrapcauchy_ppf_analytical,
     )
 
+    # Wrap mean directions to [0, 2*pi) to avoid out-of-bounds shift
+    mu_vM = np.remainder(mu_vM, 2 * np.pi)
+    mu_WC = np.remainder(mu_WC, 2 * np.pi)
+
     # 1. KL divergences
     kl_vm_wc = kl_vonmises_wrapcauchy_analytical(mu_vM, kappa, mu_WC, rho)
     kl_wc_vm = kl_wrapcauchy_vonmises_analytical(mu_WC, rho, mu_vM, kappa)
