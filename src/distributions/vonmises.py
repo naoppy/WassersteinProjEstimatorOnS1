@@ -245,55 +245,93 @@ def quantile_sampling(
 
 
 @numba.njit(fastmath=True, cache=True)
-def _find_lefts_numba(
-    x: npt.NDArray[np.float64], z: npt.NDArray[np.float64], step_grid: float
+def _fast_quantile_sampling_newton_jit(
+    mu: float,
+    kappa: float,
+    sample_num: int,
+    r_n: npt.NDArray[np.float64],
+    pdf_denom: float,
+    m_grid: int = 16384,
+    steps: int = 1,
 ) -> npt.NDArray[np.float64]:
-    n_x = len(x)
-    n_z = len(z)
-    lefts = np.empty(n_x, dtype=np.float64)
+    step = 1.0 / sample_num
+    x = np.empty(sample_num, dtype=np.float64)
+    for j in range(sample_num):
+        x[j] = j * step + step / 2.0
+
+    step_grid = (2.0 * np.pi) / (m_grid - 1)
+    y0 = np.empty(m_grid, dtype=np.float64)
+    for j in range(m_grid):
+        y0[j] = -np.pi + j * step_grid
+
+    # CDF on coarse grid at mu=0
+    z = _vonmises_cdf_series_numba_mu0(y0, r_n) + 0.5
+
+    # Linear search to get left indices
+    lefts_idx = np.empty(sample_num, dtype=np.intp)
     i = 0
-    for j in range(n_x):
+    for j in range(sample_num):
         xi = x[j]
-        while i < n_z and z[i] < xi:
+        while i < m_grid and z[i] < xi:
             i += 1
         if i == 0:
-            lefts[j] = -np.pi
+            lefts_idx[j] = 0
         else:
-            lefts[j] = -np.pi + (i - 1) * step_grid
-    return lefts
+            lefts_idx[j] = i - 1
+
+    # Linear interpolation for theta_0
+    theta = np.empty(sample_num, dtype=np.float64)
+    for j in range(sample_num):
+        idx = lefts_idx[j]
+        if idx >= m_grid - 1:
+            theta[j] = np.pi
+        else:
+            z_l = z[idx]
+            z_r = z[idx + 1]
+            denom = z_r - z_l
+            t_l = -np.pi + idx * step_grid
+            if denom < 1e-15:
+                theta[j] = t_l
+            else:
+                theta[j] = t_l + (x[j] - z_l) / denom * step_grid
+
+    # Newton-Raphson correction steps
+    for _ in range(steps):
+        cdf_vals = _vonmises_cdf_series_numba_mu0(theta, r_n) + 0.5
+        pdf_vals = np.exp(kappa * (np.cos(theta) - 1.0)) / pdf_denom
+        for j in range(sample_num):
+            p_val = pdf_vals[j]
+            if p_val < 1e-15:
+                p_val = 1e-15
+            theta[j] = theta[j] - (cdf_vals[j] - x[j]) / p_val
+
+    # Post-shift and map to [0, 2pi]
+    samples = np.empty(sample_num, dtype=np.float64)
+    for j in range(sample_num):
+        samples[j] = np.remainder(theta[j] + mu, 2.0 * np.pi)
+
+    return samples
 
 
 def fast_quantile_sampling(
     mu: float, kappa: float, sample_num: int
 ) -> npt.NDArray[np.float64]:
-    """フォンミーゼス分布から高速な分位点サンプリングを行う（[0, 2*pi] 範囲）。
+    """1-step Newton (coarse grid) ハイブリッド法による高速な分位点サンプリング"""
+    if sample_num <= 0:
+        return np.array([], dtype=np.float64)
 
-    Args:
-        mu (float): 分布のパラメータ
-        kappa (float): 分布のパラメータ
-        sample_num (int): サンプルする数
-
-    Returns:
-        npt.NDArray[np.float64]: [0, 2*pi] の範囲のソート済みサンプル配列。
-            F^(-1)(i/D) (i=0, 1, ..., D)
-    """
-    x, step = np.linspace(0, 1, sample_num, endpoint=False, retstep=True)
-    x = x + step / 2
-
-    # mu = 0 でcdfを一気に計算しておく
-    y0, step_grid = np.linspace(-np.pi, np.pi, 1048576, retstep=True)  # 2^20
     n_terms = 150
     n_arr = np.arange(1, n_terms + 1)
     r_n = ive(n_arr, kappa) / ive(0, kappa)
 
-    # base for mu=0, theta=-np.pi is always -0.5, so F(y0) - base = F(y0) + 0.5
-    z = _vonmises_cdf_series_numba_mu0(y0, r_n) + 0.5
+    pdf_denom = 2.0 * np.pi * ive(0, kappa)
 
-    lefts = _find_lefts_numba(x, z, step_grid)
-    samples = lefts + step_grid / 2
+    # 1-step Newton using JIT-compiled function
+    samples = _fast_quantile_sampling_newton_jit(
+        mu, kappa, sample_num, r_n, pdf_denom, m_grid=16384, steps=1
+    )
 
-    # [0, 2*pi] へのマッピングおよびソート順のトポロジー補正 (muを足してから実施)
-    samples = to_2pi_range(samples + mu)
+    # トポロジー補正
     if sample_num > 1:
         diffs = np.diff(samples)
         min_idx = np.argmin(diffs)
