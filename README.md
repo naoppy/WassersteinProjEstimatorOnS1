@@ -8,47 +8,17 @@ The codebase implements, evaluates, and visualizes Wasserstein projection estima
 ---
 
 ## Table of Contents
-1. [Overview of Calculation Methods](#overview-of-calculation-methods)
-2. [Repository Structure](#repository-structure)
-3. [Environment & Setup](#environment--setup)
-4. [How to Run Experiments](#how-to-run-experiments)
-5. [Summary of Experiments](#summary-of-experiments)
+1. [Overview (Repository Structure)](#overview-repository-structure)
+2. [Environment & Setup](#environment--setup)
+3. [How to Run Experiments](#how-to-run-experiments)
+4. [Summary of Experiments](#summary-of-experiments)
+5. [Calculation Methods](#calculation-methods)
 6. [Useful Tools & Utilities](#useful-tools--utilities)
 7. [License](#license)
 
 ---
 
-## Overview of Calculation Methods
-
-### 1. Wasserstein Projection Estimator on the Circle
-The Wasserstein projection estimator $\hat{\theta}$ minimizes the circular $p$-Wasserstein distance $W_p$ between the empirical distribution $P_N = \frac{1}{N} \sum_{i=1}^N \delta_{x_i}$ of the sample $\{x_i\}_{i=1}^N \subset [0, 2\pi)$ and the parametric model circular distribution $P_\theta$ (e.g., von Mises, Wrapped Cauchy):
-$$\hat{\theta} = \arg\min_{\theta} W_p(P_N, P_\theta)$$
-
-### 2. Fast Circular $W_1$ from Cumulative Sums ($O(M)$)
-For equal-division histograms with $M$ bins, the circular $1$-Wasserstein distance can be calculated extremely fast in $O(M)$ time using the median alignment method:
-$$W_1(P_N, P_\theta) = \frac{1}{M} \sum_{j=1}^M \left| F_N\left(\frac{j}{M}\right) - F_\theta\left(\frac{j}{M}\right) - \text{median}\left( F_N - F_\theta \right) \right|$$
-where $F_N$ is the empirical CDF and $F_\theta$ is the model CDF. This avoids expensive search or sorting inside the optimization loop.
-
-### 3. Fast Hybrid Quantile Sampling (Grid + Newton)
-Quantile sampling approximates a continuous distribution $P_\theta$ with $D$ uniform discrete points $y_j = F_\theta^{-1}(\frac{j - 1/2}{D})$. Calculating $F_\theta^{-1}$ using naive SciPy root-finding is computationally heavy.
-To achieve up to a **1000x speedup** with double-precision accuracy ($\approx 10^{-13}$ absolute error), a hybrid method is implemented:
-1. **Coarse Grid Search**: Precomputes $F_\theta$ on a coarse grid of size $M = 16384$ and finds the containing interval.
-2. **Linear Interpolation**: Computes an initial estimate $\theta_0$ within the interval.
-3. **1-Step Newton-Raphson Correction**:
-   $$\theta \leftarrow \theta - \frac{F(\theta) - q}{f(\theta)}$$
-   which achieves machine precision in a single step due to the smoothness of circular distribution CDFs.
-
-### 4. Analytical Calculations for Distance Verification
-* **KL Divergence $D_{\text{KL}}(P_{\text{vM}} \parallel Q_{\text{WC}})$**: Computed via a fast-converging Fourier series expansion:
-  $$D_{\text{KL}}(P \parallel Q) = \kappa \frac{I_1(\kappa)}{I_0(\kappa)} - \log I_0(\kappa) - \log(1 - \rho^2) - 2 \sum_{n=1}^\infty \frac{\rho^n I_n(\kappa)}{n I_0(\kappa)} \cos(n(\mu_P - \mu_Q))$$
-* **KL Divergence $D_{\text{KL}}(Q_{\text{WC}} \parallel P_{\text{vM}})$**: Computed in closed-form:
-  $$D_{\text{KL}}(Q \parallel P) = \log I_0(\kappa) - \log(1 - \rho^2) - \kappa \rho \cos(\mu_P - \mu_Q)$$
-* **Aligned 1-Wasserstein Distance $W_1(P_{\text{vM}}, Q_{\text{WC}})$**: When mean directions are aligned ($\mu_P = \mu_Q$), the distance simplifies to the difference of their Mean Absolute Deviations (MAD) on $[-\pi, \pi]$:
-  $$W_1(P, Q) = \frac{4}{\pi} \left| \sum_{k=0}^\infty \frac{\rho^{2k+1} - \frac{I_{2k+1}(\kappa)}{I_0(\kappa)}}{(2k+1)^2} \right|$$
-
----
-
-## Repository Structure
+## Overview (Repository Structure)
 
 ```
 .
@@ -122,6 +92,44 @@ All experiment entry points are inside `src/experiments/`. Always run them as Py
 | **ex10** | [ex10_model_misspecification.py](file:///c:/Users/onaok/Desktop/git/TodaiB4Thesis/src/experiments/ex10_model_misspecification.py) | Misspecified (vM data $\rightarrow$ WC fit) | Sample Size $N \in [10^2, 10^5]$ | Misspecification robustness: KL divergence, W1, and W2 distances |
 | **ex10_2** | [ex10_model_misspecification2.py](file:///c:/Users/onaok/Desktop/git/TodaiB4Thesis/src/experiments/ex10_model_misspecification2.py) | Misspecified (WC data $\rightarrow$ vM fit) | Sample Size $N \in [10^2, 10^5]$ | Misspecification robustness: KL divergence, W1, and W2 distances |
 | **ex11** | [ex11_time.py](file:///c:/Users/onaok/Desktop/git/TodaiB4Thesis/src/experiments/ex11_time.py) | vM & WC | Sample Size $N \in [10^2, 10^5]$ | Computation time benchmark of different estimators |
+
+---
+
+## Calculation Methods
+
+### 1. Wasserstein Projection Estimator on the Circle
+The Wasserstein projection estimator $\hat{\theta}$ minimizes the circular $p$-Wasserstein distance $W_p$ between the empirical distribution $P_N = \frac{1}{N} \sum_{i=1}^N \delta_{x_i}$ of the sample $\{x_i\}_{i=1}^N \subset [0, 2\pi)$ and the parametric model circular distribution $P_\theta$ (e.g., von Mises, Wrapped Cauchy):
+$$\hat{\theta} = \arg\min_{\theta} W_p(P_N, P_\theta)$$
+
+### 2. Fast Circular $W_1$ from Cumulative Sums ($O(M)$)
+For equal-division histograms with $M$ bins, the circular $1$-Wasserstein distance can be calculated extremely fast in $O(M)$ time using the median alignment method:
+$$W_1(P_N, P_\theta) = \frac{1}{M} \sum_{j=1}^M \left| F_N\left(\frac{j}{M}\right) - F_\theta\left(\frac{j}{M}\right) - \text{median}\left( F_N - F_\theta \right) \right|$$
+where $F_N$ is the empirical CDF and $F_\theta$ is the model CDF. This avoids expensive search or sorting inside the optimization loop.
+
+### 3. Fast Hybrid Quantile Sampling (Grid + Newton)
+Quantile sampling approximates a continuous distribution $P_\theta$ with $D$ uniform discrete points $y_j = F_\theta^{-1}(\frac{j - 1/2}{D})$. Calculating $F_\theta^{-1}$ using naive SciPy root-finding is computationally heavy.
+To achieve up to a **1000x speedup** with double-precision accuracy ($\approx 10^{-13}$ absolute error), a hybrid method is implemented:
+1. **Coarse Grid Search**: Precomputes $F_\theta$ on a coarse grid of size $M = 16384$ and finds the containing interval.
+2. **Linear Interpolation**: Computes an initial estimate $\theta_0$ within the interval.
+3. **1-Step Newton-Raphson Correction**:
+   $$\theta \leftarrow \theta - \frac{F(\theta) - q}{f(\theta)}$$
+   which achieves machine precision in a single step due to the smoothness of circular distribution CDFs.
+
+### 4. Analytical Calculations for Distance Verification
+* **KL Divergence $D_{\text{KL}}(P_{\text{vM}} \parallel Q_{\text{WC}})$**: Computed via a fast-converging Fourier series expansion:
+  $$D_{\text{KL}}(P \parallel Q) = \kappa \frac{I_1(\kappa)}{I_0(\kappa)} - \log I_0(\kappa) - \log(1 - \rho^2) - 2 \sum_{n=1}^\infty \frac{\rho^n I_n(\kappa)}{n I_0(\kappa)} \cos(n(\mu_P - \mu_Q))$$
+* **KL Divergence $D_{\text{KL}}(Q_{\text{WC}} \parallel P_{\text{vM}})$**: Computed in closed-form:
+  $$D_{\text{KL}}(Q \parallel P) = \log I_0(\kappa) - \log(1 - \rho^2) - \kappa \rho \cos(\mu_P - \mu_Q)$$
+* **Aligned 1-Wasserstein Distance $W_1(P_{\text{vM}}, Q_{\text{WC}})$**:
+  When the mean directions are aligned ($\mu_P = \mu_Q$) and one distribution is strictly more concentrated than the other such that their CDF difference $F_P(\theta) - F_Q(\theta)$ does not change sign on the open interval $(0, \pi)$, the circular $1$-Wasserstein distance simplifies to the absolute difference of their Mean Absolute Deviations (MAD) on $[-\pi, \pi]$:
+  $$W_1(P, Q) = | E_P[|\theta|] - E_Q[|\theta|] |$$
+  
+  > [!IMPORTANT]
+  > **Mathematical Constraint / Verification Assumption**:
+  > This analytical simplification holds if and only if there are **no CDF crossings** on the open interval $(0, \pi)$, which is satisfied when $(p(0) - q(0))(p(\pi) - q(\pi)) \le 0$. Under this condition, the optimal circular phase shift $\alpha^*$ that minimizes the Wasserstein distance $\int_{-\pi}^\pi |F_P(\theta) - F_Q(\theta) - \alpha| d\theta$ is exactly $0$ (since the median of the odd function $F_P(\theta) - F_Q(\theta)$ on $[-\pi, \pi]$ is $0$).
+  
+  Under this constraint, the distance is computed analytically using rapidly converging series:
+  $$W_1(P, Q) = \frac{4}{\pi} \left| \sum_{k=0}^\infty \frac{\rho^{2k+1} - \frac{I_{2k+1}(\kappa)}{I_0(\kappa)}}{(2k+1)^2} \right|$$
 
 ---
 
