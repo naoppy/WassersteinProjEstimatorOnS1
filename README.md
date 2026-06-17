@@ -1,8 +1,9 @@
 # Wasserstein Projection Estimators for Circular Distributions
 
-This repository contains the Python implementation for research on **Wasserstein projection estimators for circular distributions** (specifically for B4 graduation thesis experiments). The codebase implements, evaluates, and visualizes projection estimators on circular probability distributions using Wasserstein metrics, comparing them with Maximum Likelihood Estimation (MLE) and density-based estimators.
+This repository contains the official Python implementation of the experiments for the research paper:  
+**[Wasserstein projection estimators for circular distributions](https://arxiv.org/abs/2510.18367)** (arXiv:2510.18367).
 
-It is based on the target paper: [Wasserstein projection estimators for circular distributions](https://arxiv.org/abs/2510.18367) (arXiv:2510.18367).
+The codebase implements, evaluates, and visualizes Wasserstein projection estimators on circular probability distributions (e.g., von Mises, Wrapped Cauchy, Sine-Skewed von Mises), and compares their performance and robustness against Maximum Likelihood Estimation (MLE) and other estimators.
 
 ---
 
