@@ -134,6 +134,51 @@ def _vonmises_cdf_series_numba(
     return sum_vals
 
 
+@numba.njit(fastmath=True, parallel=True, cache=True)
+def _vonmises_cdf_series_numba_mu0(
+    theta: npt.NDArray[np.float64], r_n: npt.NDArray[np.float64]
+) -> npt.NDArray[np.float64]:
+    """平均 mu=0 のフォンミーゼス分布について、CDF から 0.5 を引いた値を計算する。
+
+    数式としては以下を計算する:
+        F(theta; 0, kappa) - 0.5
+        = theta / (2*pi) + (1/pi) * sum_{n=1}^N (r_n / n) * sin(n*theta)
+
+    級数の計算には Clenshaw の漸化式を使用し、
+    三角関数の呼び出し回数を最小限に抑えている。
+    """
+    n_points = len(theta)
+    n_terms = len(r_n)
+    sum_vals = np.zeros_like(theta)
+
+    # 各項の係数 r_n / n を事前に計算
+    r_n_over_n = np.empty(n_terms, dtype=np.float64)
+    for n in range(1, n_terms + 1):
+        r_n_over_n[n - 1] = r_n[n - 1] / n
+
+    for i in numba.prange(n_points):
+        t = theta[i]
+
+        cos_t = np.cos(t)
+        two_cos_t = 2.0 * cos_t
+
+        # Clenshaw 漸化式による sum_{n=1}^N a_n * sin(n*t) の高速計算
+        # b_{N+1} = b_{N+2} = 0
+        # b_n = 2 * cos(t) * b_{n+1} - b_{n+2} + a_n
+        # 和 = b_1 * sin(t)
+        b_p2 = 0.0
+        b_p1 = 0.0
+        for n in range(n_terms - 1, -1, -1):
+            b_curr = two_cos_t * b_p1 - b_p2 + r_n_over_n[n]
+            b_p2 = b_p1
+            b_p1 = b_curr
+        val = b_p1 * np.sin(t)
+
+        # F(theta) - 0.5 の値を格納
+        sum_vals[i] = t / (2 * np.pi) + val / np.pi
+    return sum_vals
+
+
 def vonmises_cdf_series(
     theta: npt.NDArray[np.float64], mu: float, kappa: float, n_terms: int = 150
 ) -> npt.NDArray[np.float64]:
@@ -214,40 +259,110 @@ def quantile_sampling(
     return circular_quantile_sampling(ppf_func, sample_num)
 
 
+@numba.njit(fastmath=True, cache=True)
+def _fast_quantile_sampling_newton_jit(
+    mu: float,
+    kappa: float,
+    sample_num: int,
+    r_n: npt.NDArray[np.float64],
+    pdf_denom: float,
+    m_grid: int = 16384,
+    steps: int = 1,
+) -> npt.NDArray[np.float64]:
+    """ハイブリッド分位点サンプリングのコア JIT ロジック。
+
+    粗いグリッド探索で初期推定値を決定し、Newton-Raphson法で高精度に補正する。
+
+    Args:
+        mu (float): 平均パラメータ
+        kappa (float): 集中度パラメータ
+        sample_num (int): サンプル数
+        r_n (npt.NDArray[np.float64]): I_n(kappa)/I_0(kappa) の配列
+        pdf_denom (float): PDF の分母 2*pi * I_0(kappa) (iveで計算されたもの)
+        m_grid (int): 初期探索用のグリッド数 (デフォルト: 16384)
+        steps (int): Newton-Raphson の繰り返し回数 (通常は 1 で十分)
+    """
+    step = 1.0 / sample_num
+    x = np.empty(sample_num, dtype=np.float64)
+    for j in range(sample_num):
+        x[j] = j * step + step / 2.0
+
+    # mu=0 における [-pi, pi] の粗いグリッドを生成
+    step_grid = (2.0 * np.pi) / (m_grid - 1)
+    y0 = np.empty(m_grid, dtype=np.float64)
+    for j in range(m_grid):
+        y0[j] = -np.pi + j * step_grid
+
+    # mu=0 のグリッド上で CDF を評価 (F(y0) = F_mu0(y0) + 0.5)
+    z = _vonmises_cdf_series_numba_mu0(y0, r_n) + 0.5
+
+    # 1. 各サンプル点 x[j] に対応するグリッドの左側インデックスを線形探索
+    # x と z は共に単調増加なので、ポインタ i を進めるだけの O(N + M) で探索可能
+    lefts_idx = np.empty(sample_num, dtype=np.intp)
+    i = 0
+    for j in range(sample_num):
+        xi = x[j]
+        while i < m_grid and z[i] < xi:
+            i += 1
+        if i == 0:
+            lefts_idx[j] = 0
+        else:
+            lefts_idx[j] = i - 1
+
+    # 2. グリッドの左側と右側の値から線形補間し、初期推定値 theta_0 を構築
+    theta = np.empty(sample_num, dtype=np.float64)
+    for j in range(sample_num):
+        idx = lefts_idx[j]
+        if idx >= m_grid - 1:
+            theta[j] = np.pi
+        else:
+            z_l = z[idx]
+            z_r = z[idx + 1]
+            denom = z_r - z_l
+            t_l = -np.pi + idx * step_grid
+            if denom < 1e-15:
+                theta[j] = t_l
+            else:
+                theta[j] = t_l + (x[j] - z_l) / denom * step_grid
+
+    # 3. Newton-Raphson 補正ステップ
+    # theta = theta - (F(theta) - x) / f(theta) を繰り返す
+    for _ in range(steps):
+        cdf_vals = _vonmises_cdf_series_numba_mu0(theta, r_n) + 0.5
+        pdf_vals = np.exp(kappa * (np.cos(theta) - 1.0)) / pdf_denom
+        for j in range(sample_num):
+            p_val = pdf_vals[j]
+            if p_val < 1e-15:
+                p_val = 1e-15  # ゼロ除算防止
+            theta[j] = theta[j] - (cdf_vals[j] - x[j]) / p_val
+
+    # 4. mu を加算し、円周 [0, 2pi] 範囲にマッピング
+    samples = np.empty(sample_num, dtype=np.float64)
+    for j in range(sample_num):
+        samples[j] = np.remainder(theta[j] + mu, 2.0 * np.pi)
+
+    return samples
+
+
 def fast_quantile_sampling(
     mu: float, kappa: float, sample_num: int
 ) -> npt.NDArray[np.float64]:
-    """フォンミーゼス分布から高速な分位点サンプリングを行う（[0, 2*pi] 範囲）。
+    """1-step Newton (coarse grid) ハイブリッド法による高速な分位点サンプリング"""
+    if sample_num <= 0:
+        return np.array([], dtype=np.float64)
 
-    Args:
-        mu (float): 分布のパラメータ
-        kappa (float): 分布のパラメータ
-        sample_num (int): サンプルする数
+    n_terms = 150
+    n_arr = np.arange(1, n_terms + 1)
+    r_n = ive(n_arr, kappa) / ive(0, kappa)
 
-    Returns:
-        npt.NDArray[np.float64]: [0, 2*pi] の範囲のソート済みサンプル配列。
-            F^(-1)(i/D) (i=0, 1, ..., D)
-    """
-    x, step = np.linspace(0, 1, sample_num, endpoint=False, retstep=True)
-    x = x + step / 2
+    pdf_denom = 2.0 * np.pi * ive(0, kappa)
 
-    # cdfを一気に計算しておく
-    y, step_grid = np.linspace(mu - np.pi, mu + np.pi, 1048576, retstep=True)  # 2^20
-    base = vonmises_cdf_series(np.array([mu - np.pi]), mu, kappa)[0]
-    z = vonmises_cdf_series(y, mu, kappa) - base
-    lefts = np.zeros(len(x))
-    i = 0
-    for j, xi in enumerate(x):
-        while i < len(z) and z[i] < xi:
-            i += 1
-        if i == 0:
-            lefts[j] = mu - np.pi
-        else:
-            lefts[j] = mu - np.pi + (i - 1) * step_grid
-    samples = lefts + step_grid / 2
+    # 1-step Newton using JIT-compiled function
+    samples = _fast_quantile_sampling_newton_jit(
+        mu, kappa, sample_num, r_n, pdf_denom, m_grid=16384, steps=1
+    )
 
-    # [0, 2*pi] へのマッピングおよびソート順のトポロジー補正
-    samples = to_2pi_range(samples)
+    # トポロジー補正
     if sample_num > 1:
         diffs = np.diff(samples)
         min_idx = np.argmin(diffs)
