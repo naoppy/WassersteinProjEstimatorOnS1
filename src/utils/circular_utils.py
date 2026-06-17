@@ -1,7 +1,9 @@
+import numba
 import numpy as np
 import numpy.typing as npt
 
 
+@numba.njit(cache=True)
 def to_2pi_range(angles: npt.ArrayLike) -> npt.NDArray[np.float64]:
     """Map circular angles to [0, 2*pi]."""
     return np.remainder(angles, 2 * np.pi)
@@ -38,10 +40,11 @@ def cumsum_hist_data(sample, bin_num: int) -> npt.NDArray[np.float64]:
     """empirical CDF generator on equal divisions of [0, 2*pi] domain."""
     sample = to_2pi_range(sample)
     n = len(sample)
-    data_hist = np.zeros(bin_num + 1)
-    for x in sample:
-        # Map [0, 2*pi] to bins 1 to bin_num
-        data_hist[np.clip(int(x / (2 * np.pi) * bin_num) + 1, 1, bin_num)] += 1
+
+    indices = (sample / (2.0 * np.pi) * bin_num).astype(np.intp) + 1
+    indices = np.clip(indices, 1, bin_num)
+
+    data_hist = np.bincount(indices, minlength=bin_num + 1)
     data_cumsum_hist = np.cumsum(data_hist) / n
 
     assert abs(data_cumsum_hist[0] - 0.0) < 1e-7

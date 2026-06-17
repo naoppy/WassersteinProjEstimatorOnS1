@@ -134,6 +134,36 @@ def _vonmises_cdf_series_numba(
     return sum_vals
 
 
+@numba.njit(fastmath=True, parallel=True, cache=True)
+def _vonmises_cdf_series_numba_mu0(
+    theta: npt.NDArray[np.float64], r_n: npt.NDArray[np.float64]
+) -> npt.NDArray[np.float64]:
+    n_points = len(theta)
+    n_terms = len(r_n)
+    sum_vals = np.zeros_like(theta)
+
+    r_n_over_n = np.empty(n_terms, dtype=np.float64)
+    for n in range(1, n_terms + 1):
+        r_n_over_n[n - 1] = r_n[n - 1] / n
+
+    for i in numba.prange(n_points):
+        t = theta[i]
+
+        cos_t = np.cos(t)
+        two_cos_t = 2.0 * cos_t
+
+        b_p2 = 0.0
+        b_p1 = 0.0
+        for n in range(n_terms - 1, -1, -1):
+            b_curr = two_cos_t * b_p1 - b_p2 + r_n_over_n[n]
+            b_p2 = b_p1
+            b_p1 = b_curr
+        val = b_p1 * np.sin(t)
+
+        sum_vals[i] = t / (2 * np.pi) + val / np.pi
+    return sum_vals
+
+
 def vonmises_cdf_series(
     theta: npt.NDArray[np.float64], mu: float, kappa: float, n_terms: int = 150
 ) -> npt.NDArray[np.float64]:
@@ -214,6 +244,25 @@ def quantile_sampling(
     return circular_quantile_sampling(ppf_func, sample_num)
 
 
+@numba.njit(fastmath=True, cache=True)
+def _find_lefts_numba(
+    x: npt.NDArray[np.float64], z: npt.NDArray[np.float64], step_grid: float
+) -> npt.NDArray[np.float64]:
+    n_x = len(x)
+    n_z = len(z)
+    lefts = np.empty(n_x, dtype=np.float64)
+    i = 0
+    for j in range(n_x):
+        xi = x[j]
+        while i < n_z and z[i] < xi:
+            i += 1
+        if i == 0:
+            lefts[j] = -np.pi
+        else:
+            lefts[j] = -np.pi + (i - 1) * step_grid
+    return lefts
+
+
 def fast_quantile_sampling(
     mu: float, kappa: float, sample_num: int
 ) -> npt.NDArray[np.float64]:
@@ -231,23 +280,20 @@ def fast_quantile_sampling(
     x, step = np.linspace(0, 1, sample_num, endpoint=False, retstep=True)
     x = x + step / 2
 
-    # cdfを一気に計算しておく
-    y, step_grid = np.linspace(mu - np.pi, mu + np.pi, 1048576, retstep=True)  # 2^20
-    base = vonmises_cdf_series(np.array([mu - np.pi]), mu, kappa)[0]
-    z = vonmises_cdf_series(y, mu, kappa) - base
-    lefts = np.zeros(len(x))
-    i = 0
-    for j, xi in enumerate(x):
-        while i < len(z) and z[i] < xi:
-            i += 1
-        if i == 0:
-            lefts[j] = mu - np.pi
-        else:
-            lefts[j] = mu - np.pi + (i - 1) * step_grid
+    # mu = 0 でcdfを一気に計算しておく
+    y0, step_grid = np.linspace(-np.pi, np.pi, 1048576, retstep=True)  # 2^20
+    n_terms = 150
+    n_arr = np.arange(1, n_terms + 1)
+    r_n = ive(n_arr, kappa) / ive(0, kappa)
+
+    # base for mu=0, theta=-np.pi is always -0.5, so F(y0) - base = F(y0) + 0.5
+    z = _vonmises_cdf_series_numba_mu0(y0, r_n) + 0.5
+
+    lefts = _find_lefts_numba(x, z, step_grid)
     samples = lefts + step_grid / 2
 
-    # [0, 2*pi] へのマッピングおよびソート順のトポロジー補正
-    samples = to_2pi_range(samples)
+    # [0, 2*pi] へのマッピングおよびソート順のトポロジー補正 (muを足してから実施)
+    samples = to_2pi_range(samples + mu)
     if sample_num > 1:
         diffs = np.diff(samples)
         min_idx = np.argmin(diffs)
