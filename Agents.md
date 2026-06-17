@@ -88,23 +88,17 @@ This file contains rules, constraints, architectural context, and execution guid
 
 ## 5. Critical Mathematical & Numerical Context
 
-AI agents must respect the following numerical implementations to ensure stability and correctness:
+AI agents must ensure correctness, stability, and speed when implementing mathematical equations:
 
-### 5.1 Numerical Stability of Bessel Functions
-* For von Mises distributions, calculating the Bessel ratio $I_v(\kappa) / I_0(\kappa)$ directly leads to float overflow when concentration $\kappa \ge 600$.
-* **Rule**: Always use the exponentially-scaled Bessel function utility `scipy.special.ive` for calculating PDF, CDF, MLE, and Fisher Information when $\kappa \ge 600$, implemented via `_bessel_ratio` and `_bessel_ratio_i0` in `src/distributions/vonmises.py`.
+### 5.1 Numerical Stability under Sharp Distributions
+* When distributions become extremely concentrated/sharp (e.g., concentration parameters like $\kappa$ or $\rho$ are very large), direct calculations can lead to numerical overflow, underflow, or division by zero.
+* **Guideline**: Implement guardrails such as using exponentially-scaled functions (e.g., `scipy.special.ive` for Bessel functions), clipping denominators, or using alternative analytical approximations under extreme parameter values.
 
-### 5.2 Fast Quantile Sampling (Grid + Newton)
-* SciPy's default root-finder (`scipy.stats.vonmises.ppf`) is extremely slow for large sample sizes.
-* **Rule**: When performing quantile sampling for von Mises in simulations, use `fast_quantile_sampling` from `src/distributions/vonmises.py`. This uses a coarse grid search ($M = 16384$) followed by a 1-step Newton-Raphson correction to yield $\approx 10^{-13}$ precision with up to **1000x speedup**.
+### 5.2 Performance Optimization (Numba)
+* Optimization loops and grid searches are computationally intensive. For critical computation paths (such as grid searches, CDF evaluations, or custom integration routines), propose and implement high-performance code using Numba's JIT compilation (`@numba.njit`) to avoid Python runtime overhead.
 
-### 5.3 Circular $W_1$ from Histograms ($O(M)$)
-* Minimizing Wasserstein distance with sample sorting inside optimization loops is slow ($O(N \log N)$).
-* **Rule**: Use the equal-division cumulative sum $O(M)$ Wasserstein calculator `circular_w1_from_cumsums` (defined in `src/method/wasserstein.py`) to execute optimization searches efficiently.
-
-### 5.4 Aligned 1-Wasserstein Distance
-* For symmetric circular distributions centered at the same location, circular $W_1$ distance is mathematically equivalent to the absolute difference of their Mean Absolute Deviations (MAD).
-* Use `w1_aligned_analytical` in `src/utils/dist_utils.py` for direct evaluation.
+### 5.3 Coding Guidelines & Mathematical Comments
+* Mathematical code must be highly maintainable. When implementing complex numerical algorithms or mathematical formulas (such as series expansions, KL divergences, or Wasserstein distances), write descriptive, clear comments explaining the equations, boundary checks, and mathematical rationale.
 
 ---
 
