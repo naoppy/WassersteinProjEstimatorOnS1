@@ -13,8 +13,7 @@ The codebase implements, evaluates, and visualizes Wasserstein projection estima
 3. [How to Run Experiments](#how-to-run-experiments)
 4. [Summary of Experiments](#summary-of-experiments)
 5. [Calculation Methods](#calculation-methods)
-6. [Useful Tools & Utilities](#useful-tools--utilities)
-7. [License](#license)
+6. [License](#license)
 
 ---
 
@@ -76,22 +75,22 @@ All experiment entry points are inside `src/experiments/`. Always run them as Py
 
 | Experiment | Filename | Distribution | Independent Variable | Dependent Variable / Comparison Target |
 | :--- | :--- | :--- | :--- | :--- |
-| **ex1** | [ex1_vonmises_method1.py](file:///c:/Users/onaok/Desktop/git/TodaiB4Thesis/src/experiments/ex1_vonmises_method1.py) | von Mises | N/A (Validation) | Parameter estimation via minimizing sample-based $W_2$ |
-| **ex2** | [ex2_vonmises_method2.py](file:///c:/Users/onaok/Desktop/git/TodaiB4Thesis/src/experiments/ex2_vonmises_method2.py) | von Mises | N/A (Validation) | Parameter estimation via minimizing equal-division $W_1$ |
-| **ex3** | [ex3_wrapped_cauchy.py](file:///c:/Users/onaok/Desktop/git/TodaiB4Thesis/src/experiments/ex3_wrapped_cauchy.py) | Wrapped Cauchy | N/A (Validation) | Comparing MLE vs equal-division $W_1$ |
-| **ex4** | [ex4_vonmises_plot.py](file:///c:/Users/onaok/Desktop/git/TodaiB4Thesis/src/experiments/ex4_vonmises_plot.py) | von Mises | Grid search | Landscape visualization of Wasserstein distance over ($\mu, \kappa$) |
-| **ex5** | [ex5_wrapcauchy_plot.py](file:///c:/Users/onaok/Desktop/git/TodaiB4Thesis/src/experiments/ex5_wrapcauchy_plot.py) | Wrapped Cauchy | Grid search | Landscape visualization of Wasserstein distance over ($\mu, \rho$) |
-| **ex6** | [ex6_vonmises_MSE.py](file:///c:/Users/onaok/Desktop/git/TodaiB4Thesis/src/experiments/ex6_vonmises_MSE.py) | von Mises | Sample Size $N \in [10^2, 10^5]$ | MSE of MLE, W1 (equal div), W1 (quantile), and W2 (quantile) |
-| **ex65** | [ex65_vonmises_MSE2.py](file:///c:/Users/onaok/Desktop/git/TodaiB4Thesis/src/experiments/ex65_vonmises_MSE2.py) | von Mises | Concentration $\kappa \in [0.5, 500]$ | MSE of MLE, W1 (equal div), and W2 (quantile) at $N=10^5$ |
-| **ex7** | [ex7_wrapcauchy_MSE.py](file:///c:/Users/onaok/Desktop/git/TodaiB4Thesis/src/experiments/ex7_wrapcauchy_MSE.py) | Wrapped Cauchy | Sample Size $N \in [10^2, 10^5]$ | MSE of MLE (Kent), W1 (equal div), and W2 (quantile) |
-| **ex75** | [ex75_wrapcauchy_MSE2.py](file:///c:/Users/onaok/Desktop/git/TodaiB4Thesis/src/experiments/ex75_wrapcauchy_MSE2.py) | Wrapped Cauchy | Concentration $\rho \in [0.1, 0.9]$ | MSE of MLE (Kent), W1 (equal div), and W2 (quantile) at $N=10^5$ |
-| **ex8** | [ex8_vonmises_mix_MSE.py](file:///c:/Users/onaok/Desktop/git/TodaiB4Thesis/src/experiments/ex8_vonmises_mix_MSE.py) | Mixture (vM + Uniform) | Sample Size $N \in [10^2, 10^5]$ | Robustness MSE of MLE, W1 (equal div), W2 (quantile), and density-based estimators |
-| **ex85** | [ex85_vonmises_mix_MSE2.py](file:///c:/Users/onaok/Desktop/git/TodaiB4Thesis/src/experiments/ex85_vonmises_mix_MSE2.py) | Mixture (vM + Uniform) | Noise Rate $\gamma \in [0.0, 0.5]$ | Robustness MSE of MLE, W1 (equal div), and W2 (quantile) at $N=10^4$ |
-| **ex9** | [ex9_ss_vonmises_MSE.py](file:///c:/Users/onaok/Desktop/git/TodaiB4Thesis/src/experiments/ex9_ss_vonmises_MSE.py) | Sine-Skewed von Mises | Sample Size $N \in [10^2, 10^5]$ | MSE of MLE and W1 (equal div) |
-| **ex95** | [ex95_ss_vonmises_MSE2.py](file:///c:/Users/onaok/Desktop/git/TodaiB4Thesis/src/experiments/ex95_ss_vonmises_MSE2.py) | Sine-Skewed von Mises | Skewness $\lambda \in [-1, 1]$ | MSE of MLE and W1 (equal div) at $N=10^5$ |
-| **ex10** | [ex10_model_misspecification.py](file:///c:/Users/onaok/Desktop/git/TodaiB4Thesis/src/experiments/ex10_model_misspecification.py) | Misspecified (vM data $\rightarrow$ WC fit) | Sample Size $N \in [10^2, 10^5]$ | Misspecification robustness: KL divergence, W1, and W2 distances |
-| **ex10_2** | [ex10_model_misspecification2.py](file:///c:/Users/onaok/Desktop/git/TodaiB4Thesis/src/experiments/ex10_model_misspecification2.py) | Misspecified (WC data $\rightarrow$ vM fit) | Sample Size $N \in [10^2, 10^5]$ | Misspecification robustness: KL divergence, W1, and W2 distances |
-| **ex11** | [ex11_time.py](file:///c:/Users/onaok/Desktop/git/TodaiB4Thesis/src/experiments/ex11_time.py) | vM & WC | Sample Size $N \in [10^2, 10^5]$ | Computation time benchmark of different estimators |
+| **ex1** | [ex1_vonmises_method1.py](./src/experiments/ex1_vonmises_method1.py) | von Mises | N/A (Validation) | Parameter estimation via minimizing sample-based $W_2$ |
+| **ex2** | [ex2_vonmises_method2.py](./src/experiments/ex2_vonmises_method2.py) | von Mises | N/A (Validation) | Parameter estimation via minimizing equal-division $W_1$ |
+| **ex3** | [ex3_wrapped_cauchy.py](./src/experiments/ex3_wrapped_cauchy.py) | Wrapped Cauchy | N/A (Validation) | Comparing MLE vs equal-division $W_1$ |
+| **ex4** | [ex4_vonmises_plot.py](./src/experiments/ex4_vonmises_plot.py) | von Mises | Grid search | Landscape visualization of Wasserstein distance over ($\mu, \kappa$) |
+| **ex5** | [ex5_wrapcauchy_plot.py](./src/experiments/ex5_wrapcauchy_plot.py) | Wrapped Cauchy | Grid search | Landscape visualization of Wasserstein distance over ($\mu, \rho$) |
+| **ex6** | [ex6_vonmises_MSE.py](./src/experiments/ex6_vonmises_MSE.py) | von Mises | Sample Size $N \in [10^2, 10^5]$ | MSE of MLE, W1 (equal div), W1 (quantile), and W2 (quantile) |
+| **ex65** | [ex65_vonmises_MSE2.py](./src/experiments/ex65_vonmises_MSE2.py) | von Mises | Concentration $\kappa \in [0.5, 500]$ | MSE of MLE, W1 (equal div), and W2 (quantile) at $N=10^5$ |
+| **ex7** | [ex7_wrapcauchy_MSE.py](./src/experiments/ex7_wrapcauchy_MSE.py) | Wrapped Cauchy | Sample Size $N \in [10^2, 10^5]$ | MSE of MLE (Kent), W1 (equal div), and W2 (quantile) |
+| **ex75** | [ex75_wrapcauchy_MSE2.py](./src/experiments/ex75_wrapcauchy_MSE2.py) | Wrapped Cauchy | Concentration $\rho \in [0.1, 0.9]$ | MSE of MLE (Kent), W1 (equal div), and W2 (quantile) at $N=10^5$ |
+| **ex8** | [ex8_vonmises_mix_MSE.py](./src/experiments/ex8_vonmises_mix_MSE.py) | Mixture (vM + Uniform) | Sample Size $N \in [10^2, 10^5]$ | Robustness MSE of MLE, W1 (equal div), W2 (quantile), and density-based estimators |
+| **ex85** | [ex85_vonmises_mix_MSE2.py](./src/experiments/ex85_vonmises_mix_MSE2.py) | Mixture (vM + Uniform) | Noise Rate $\gamma \in [0.0, 0.5]$ | Robustness MSE of MLE, W1 (equal div), and W2 (quantile) at $N=10^4$ |
+| **ex9** | [ex9_ss_vonmises_MSE.py](./src/experiments/ex9_ss_vonmises_MSE.py) | Sine-Skewed von Mises | Sample Size $N \in [10^2, 10^5]$ | MSE of MLE and W1 (equal div) |
+| **ex95** | [ex95_ss_vonmises_MSE2.py](./src/experiments/ex95_ss_vonmises_MSE2.py) | Sine-Skewed von Mises | Skewness $\lambda \in [-1, 1]$ | MSE of MLE and W1 (equal div) at $N=10^5$ |
+| **ex10** | [ex10_model_misspecification.py](./src/experiments/ex10_model_misspecification.py) | Misspecified (vM data $\rightarrow$ WC fit) | Sample Size $N \in [10^2, 10^5]$ | Misspecification robustness: KL divergence, W1, and W2 distances |
+| **ex10_2** | [ex10_model_misspecification2.py](./src/experiments/ex10_model_misspecification2.py) | Misspecified (WC data $\rightarrow$ vM fit) | Sample Size $N \in [10^2, 10^5]$ | Misspecification robustness: KL divergence, W1, and W2 distances |
+| **ex11** | [ex11_time.py](./src/experiments/ex11_time.py) | vM & WC | Sample Size $N \in [10^2, 10^5]$ | Computation time benchmark of different estimators |
 
 ---
 
@@ -130,35 +129,6 @@ To achieve up to a **1000x speedup** with double-precision accuracy ($\approx 10
   
   Under this constraint, the distance is computed analytically using rapidly converging series:
   $$W_1(P, Q) = \frac{4}{\pi} \left| \sum_{k=0}^\infty \frac{\rho^{2k+1} - \frac{I_{2k+1}(\kappa)}{I_0(\kappa)}}{(2k+1)^2} \right|$$
-
----
-
-## Useful Tools & Utilities
-
-The repository provides several utilities to process data, visualize results, and compile reports:
-
-### 1. LaTeX TikZ/PGFPlots Compiler (`csv2tikz.py`)
-Compiles LaTeX documents with plots generated from experiment data into PDF and high-quality SVG formats.
-```bash
-uv run python -m src.plots.csv2tikz docs/calc_dists/calc_dists.tex
-```
-*Requirement*: Standard LaTeX tools (`platex`, `dvipdfmx`, `pdftocairo`) must be installed on the system PATH.
-
-### 2. Log-to-CSV Converter (`txt2csv.py`)
-Parses raw output files from experiments, calculates the diagonal elements of the inverse Fisher Information Matrix (the Cramer-Rao Lower Bounds), and outputs a structured CSV.
-```python
-from src.plots.txt2csv import ToCSV
-ToCSV(methods, params, "input.txt", "output.csv", fisher_bounds)
-```
-
-### 3. CSV Visualizer (`csv_visualizer.py`)
-A helper utility to quickly plot log-log scales of Sample Size $N$ vs Mean Squared Error (MSE), comparing estimated parameters with the Cramer-Rao Lower Bounds.
-```bash
-uv run python -m src.plots.csv_visualizer
-```
-
-### 4. Fast Quantile Sampling
-The core function `fast_quantile_sampling` in `src/distributions/vonmises.py` JIT-compiles via Numba, allowing extremely fast quantile calculations for von Mises. This makes large-scale simulation studies feasible on standard CPUs.
 
 ---
 
