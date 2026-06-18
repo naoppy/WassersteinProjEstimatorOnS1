@@ -16,11 +16,11 @@ col sep=comma,
 \begin{document}
 	\begin{tikzpicture}
 		\tikzset{every node/.style={}}
-		\begin{semilogyaxis}
+		\begin{axis}
 			[
 			xmax=5,xmin=2,
 			xlabel={$\log_{10} n$},
-			ylabel={$\mu$ MSE},
+			ylabel={$\mu$ MSE ratio w.r.t. MLE},
 			yticklabel style={
 				/pgf/number format/.cd,
 				fixed,
@@ -30,15 +30,14 @@ col sep=comma,
 			legend pos=north east,
 			legend style={legend cell align=left,draw=none,fill=white,fill opacity=0.8,text opacity=1,},
 			]
-			\addplot[color=black, mark=o] table [x=log10N, y=MLE_mu_mse] {\mycsv};
-			\addlegendentry{MLE}
-			\addplot[color=blue, mark=square] table [x=log10N, y=W1(method2)_mu_mse] {\mycsv};
-			\addlegendentry{W1 (equal div)}
-			\addplot[color=teal, mark=triangle] table [x=log10N, y=W1(method3)_mu_mse] {\mycsv};
-			\addlegendentry{W1 (quantile)}
-			\addplot[color=red, mark=x] table [x=log10N, y=W2(method3)_mu_mse] {\mycsv};
-			\addlegendentry{W2 (quantile)}
-		\end{semilogyaxis}
+			\addplot[color=black, mark=square*, mark options={solid}] table [x=log10N, y expr={\thisrow{W1(method2)_mu_mse} / \thisrow{MLE_mu_mse}}] {\mycsv};
+			\addlegendentry{W1 (equal div)/MLE}
+			\addplot[color=blue, dashed, mark=*, mark options={solid}] table [x=log10N, y expr={\thisrow{W1(method3)_mu_mse} / \thisrow{MLE_mu_mse}}] {\mycsv};
+			\addlegendentry{W1 (quantile)/MLE}
+			\addplot[color=red, dashdotdotted, mark=x, mark options={solid}] table [x=log10N, y expr={\thisrow{W2(method3)_mu_mse} / \thisrow{MLE_mu_mse}}] {\mycsv};
+			\addlegendentry{W2 (quantile)/MLE}
+			\addplot[thin, color=black, dotted,] {1};
+		\end{axis}
 	\end{tikzpicture}
 	\begin{tikzpicture}
 		\tikzset{every node/.style={}}
