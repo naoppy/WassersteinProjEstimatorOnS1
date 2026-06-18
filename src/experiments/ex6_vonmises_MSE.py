@@ -156,7 +156,7 @@ def main():
 
     df.index.name = "log10N"
     print(df)
-    df.to_csv("./data/csv_data/vonmises_MSE/ex6_mu0.3kappa2.csv")
+    df.to_csv("./data/vonmises_MSE/ex6_mu0.3kappa2.csv")
 
 
 if __name__ == "__main__":

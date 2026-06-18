@@ -225,7 +225,7 @@ def main():
 
     df.index.name = "log10N"
     print(df)
-    df.to_csv("./data/csv_data/model_misspecification/ex10_vM_WC.csv")
+    df.to_csv("./data/model_misspecification/ex10_vM_WC.csv")
 
 
 if __name__ == "__main__":

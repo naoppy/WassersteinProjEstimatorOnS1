@@ -133,10 +133,10 @@ def main():
             f"time={W2method3_time_mean}"
         )
         df.index.name = "noise_rate"
-        df.to_csv("./data/csv_data/vonmises_mix/ex85_change_noise_rate.csv")
+        df.to_csv("./data/vonmises_mix/ex85_change_noise_rate.csv")
     df.index.name = "noise_rate"
     print(df)
-    df.to_csv("./data/csv_data/vonmises_mix/ex85_change_noise_rate.csv")
+    df.to_csv("./data/vonmises_mix/ex85_change_noise_rate.csv")
 
 
 if __name__ == "__main__":

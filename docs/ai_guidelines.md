@@ -45,7 +45,7 @@ Entry-point scripts for conducting simulations. All experiment scripts are numbe
 
 ### `data/` (Experiment Artifacts)
 - **All simulation results** (CSV datasets, text reports) and **generated visualization figures** are saved in this directory.
-- `data/csv_data/`: Subdirectory organizing CSV data by experiment type (e.g., `vonmises_MSE`, `wrapcauchy_MSE`, `time_comparison.csv`).
+- data/ [subfolders]: Subdirectory organizing CSV data by experiment type (e.g., `vonmises_MSE`, `wrapcauchy_MSE`, `time_comparison.csv`).
 
 ---
 

@@ -101,7 +101,7 @@ def main():
         df.loc[N, "WC_W2(method3)_time"] = np.mean(W2method3_time)
 
     print(df)
-    df.to_csv("./data/csv_data/time_comparison.csv")
+    df.to_csv("./data/time_comparison.csv")
 
 
 if __name__ == "__main__":

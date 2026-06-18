@@ -123,10 +123,10 @@ def _main():
             f"{W1method2_lambda_mse}, {W1method2_time_mean}"
         )
         df.index.name = "log10N"
-        df.to_csv("./data/csv_data/ss_vonmises_MSE/ex9_ss_vonmises_MSE.csv")
+        df.to_csv("./data/ss_vonmises_MSE/ex9_ss_vonmises_MSE.csv")
     df.index.name = "log10N"
     print(df)
-    df.to_csv("./data/csv_data/ss_vonmises_MSE/ex9_ss_vonmises_MSE.csv")
+    df.to_csv("./data/ss_vonmises_MSE/ex9_ss_vonmises_MSE.csv")
 
 
 if __name__ == "__main__":

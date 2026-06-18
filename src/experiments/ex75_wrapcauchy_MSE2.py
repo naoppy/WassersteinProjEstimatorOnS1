@@ -127,7 +127,7 @@ def _main():
 
     df.index.name = "rho"
     print(df)
-    df.to_csv("./data/csv_data/wrapcauchy_MSE/ex75_wrapcauchy_change_rho.csv")
+    df.to_csv("./data/wrapcauchy_MSE/ex75_wrapcauchy_change_rho.csv")
 
 
 if __name__ == "__main__":

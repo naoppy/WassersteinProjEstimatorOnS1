@@ -22,7 +22,7 @@ This file contains rules, constraints, architectural context, and execution guid
 ├── README.md              # Public project documentation
 ├── Agents.md              # AI instruction manual (this file)
 ├── data/                  # Experiment data and outputs
-│   └── csv_data/          # CSV tables organized by experiment type
+│   └── [subfolders]/      # CSV tables organized by experiment type
 ├── docs/                  # LaTeX math proofs and benchmarks
 │   ├── ai_guidelines.md   # Historic guidelines
 │   ├── quantile_sampling_comparison.md  # Detailed hybrid method analysis
@@ -57,9 +57,9 @@ This file contains rules, constraints, architectural context, and execution guid
   ```bash
   lualatex docs/calc_dists/calc_dists.tex
   ```
-* **Plotting CSV data via TikZ**: When compiling `.tex` files that plot experimental CSV data located under `./data/` or `./data/csv_data/` into PDF and SVG formats, use the custom `csv2tikz` wrapper module:
+* **Plotting CSV data via TikZ**: When compiling `.tex` files that plot experimental CSV data located under `./data/` into PDF and SVG formats, use the custom `csv2tikz` wrapper module:
   ```bash
-  uv run python -m src.plots.csv2tikz data/csv_data/vonmises_MSE/ex6.tex
+  uv run python -m src.plots.csv2tikz data/vonmises_MSE/ex6.tex
   ```
   *(Note: The script runs `platex`, `dvipdfmx`, and `pdftocairo` under the hood to resolve relative table paths and output SVG files).*
 
@@ -105,5 +105,5 @@ AI agents must ensure correctness, stability, and speed when implementing mathem
 ## 6. Research & Data Integrity Rules
 
 * **Reproducibility**: Always initialize a random seed at the top of experiment scripts (e.g., `np.random.seed(42)`) to ensure simulation results are consistent.
-* **Data Preservation**: Under no circumstances should existing CSV files or generated TikZ/SVG/PDF figures under `data/` or `data/csv_data/` be deleted or modified, as these contain historical simulation experiment runs. If you need to re-run simulations, output to a temporary or newly named file unless explicitly directed to overwrite.
+* **Data Preservation**: Under no circumstances should existing CSV files or generated TikZ/SVG/PDF figures under `data/` be deleted or modified, as these contain historical simulation experiment runs. If you need to re-run simulations, output to a temporary or newly named file unless explicitly directed to overwrite.
 * **Hardware profile**: The codebase is optimized for multi-core CPUs via `joblib.Parallel` and `scipy`. Avoid introducing GPU dependencies.
