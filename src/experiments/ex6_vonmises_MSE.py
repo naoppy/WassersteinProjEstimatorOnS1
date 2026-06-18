@@ -154,8 +154,9 @@ def main():
             f"time={W2method3_time_mean}"
         )
 
+    df.index.name = "log10N"
     print(df)
-    df.to_csv("./data/ex6_vonmises_MSE.csv")
+    df.to_csv("./data/csv_data/vonmises_MSE/ex6_mu0.3kappa2.csv")
 
 
 if __name__ == "__main__":

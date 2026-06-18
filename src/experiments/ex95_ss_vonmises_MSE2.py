@@ -121,10 +121,11 @@ def _main():
             f"{W1method2_mu_mse}, {W1method2_kappa_mse}, "
             f"{W1method2_lambda_mse}, {W1method2_time_mean}"
         )
-        print(df)
-        df.to_csv("./data/ex95_change_lambda.csv")
+        df.index.name = "lambda"
+        df.to_csv("./data/csv_data/ss_vonmises_MSE/ex95changelambda.csv")
+    df.index.name = "lambda"
     print(df)
-    df.to_csv("./data/ex95_change_lambda.csv")
+    df.to_csv("./data/csv_data/ss_vonmises_MSE/ex95changelambda.csv")
 
 
 if __name__ == "__main__":

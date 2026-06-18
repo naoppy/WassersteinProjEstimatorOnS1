@@ -185,8 +185,9 @@ def main():
             f"kappa_mse={type1_beta05_kappa_mse}, "
             f"time={type1_beta05_time_mean}"
         )
+    df.index.name = "log10N"
     print(df)
-    df.to_csv("./data/ex8_vonmises_mix_MSE.csv")
+    df.to_csv("./data/csv_data/vonmises_mix/ex8_vonmises_mix_MSE.csv")
 
 
 if __name__ == "__main__":
