@@ -132,9 +132,11 @@ def main():
             f"kappa_mse={W2method3_kappa_mse}, "
             f"time={W2method3_time_mean}"
         )
-        df.to_csv("./data/ex85_change_noise_rate.csv")
+        df.index.name = "noise_rate"
+        df.to_csv("./data/vonmises_mix/ex85_change_noise_rate.csv")
+    df.index.name = "noise_rate"
     print(df)
-    df.to_csv("./data/ex85_change_noise_rate.csv")
+    df.to_csv("./data/vonmises_mix/ex85_change_noise_rate.csv")
 
 
 if __name__ == "__main__":

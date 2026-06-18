@@ -10,12 +10,12 @@ import pandas as pd
 def _main():
     # CSVファイルの読み込み
     df = pd.read_csv(
-        # "./data/csv_data/vonmises_MSE/ex6_mu0.3kappa2.csv",
-        # "./data/csv_data/vonmises_MSE/ex65_MSE_kappa_change.csv",
-        # "./data/csv_data/wrapcauchy_MSE/ex7.csv",
-        "./data/csv_data/vonmises_mix/ex8_vonmises_mix_MSE2.csv",
-        # "./data/csv_data/vonmises_mix/ex85_change_noise_rate.csv",
-        # "./data/csv_data/ss_vonmises_MSE/ex9_ss_vonmises_MSE.csv",
+        # "./data/vonmises_MSE/ex6_mu0.3kappa2.csv",
+        # "./data/vonmises_MSE/ex65_MSE_kappa_change.csv",
+        # "./data/wrapcauchy_MSE/ex7.csv",
+        "./data/vonmises_mix/ex8_vonmises_mix_MSE2.csv",
+        # "./data/vonmises_mix/ex85_change_noise_rate.csv",
+        # "./data/ss_vonmises_MSE/ex9_ss_vonmises_MSE.csv",
         # "./data/ex10_model_misspecification_MSE.csv",
         # "./data/ex10_model_misspecification2_MSE.csv",
         index_col=0,

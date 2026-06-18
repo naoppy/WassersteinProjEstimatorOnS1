@@ -125,8 +125,9 @@ def _main():
             f"rho_mse={method3_rho_mse}, time={method3_time_mean}"
         )
 
+    df.index.name = "rho"
     print(df)
-    df.to_csv("./data/ex75_wrapcauchy_change_rho.csv")
+    df.to_csv("./data/wrapcauchy_MSE/ex75_wrapcauchy_change_rho.csv")
 
 
 if __name__ == "__main__":

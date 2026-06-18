@@ -26,7 +26,7 @@ The codebase implements, evaluates, and visualizes Wasserstein projection estima
 ├── README.md              # Project documentation (this file)
 ├── Agents.md              # Guidelines and context for AI agents
 ├── data/                  # Experiment output datasets and figures
-│   └── csv_data/          # CSV results organized by experiment type
+│   └── [subfolders]/      # CSV results organized by experiment type
 ├── docs/                  # LaTeX explanations and benchmark records
 │   ├── ai_guidelines.md
 │   ├── quantile_sampling_comparison.md
@@ -137,7 +137,7 @@ To achieve up to a **1000x speedup** with double-precision accuracy ($\approx 10
 The repository provides several utilities under `src/plots/` to process data, visualize results, and compile plots:
 
 ### 1. LaTeX TikZ/PGFPlots Compiler (`csv2tikz.py`)
-Used to compile TikZ-based `.tex` plot files (which load experimental CSV datasets located under `./data/` or `./data/csv_data/`) into PDF and SVG plots.
+Used to compile TikZ-based `.tex` plot files (which load experimental CSV datasets located under `./data/`) into PDF and SVG plots.
 * **Usage**:
   ```bash
   uv run python -m src.plots.csv2tikz docs/calc_dists/calc_dists.tex
