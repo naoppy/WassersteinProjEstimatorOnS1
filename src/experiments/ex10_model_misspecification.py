@@ -223,8 +223,9 @@ def main():
             f"time={W2method3_time_mean}"
         )
 
+    df.index.name = "log10N"
     print(df)
-    df.to_csv("./data/ex10_model_misspecification_MSE.csv")
+    df.to_csv("./data/csv_data/model_misspecification/ex10_vM_WC.csv")
 
 
 if __name__ == "__main__":
