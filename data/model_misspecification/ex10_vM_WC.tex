@@ -15,75 +15,91 @@ col sep=comma,
 \thispagestyle{empty}
 \begin{document}
 	\begin{tikzpicture}
-		\tikzset{every node/.style={}}
+		% Plot 1: mu MSE (top-left)
 		\begin{axis}
 			[
-			xmax=5,xmin=2,
-			xlabel={$\log_{10} n$},
-			ylabel={$\mu$ MSE ratio w.r.t. MLE},
-			yticklabel style={
-				/pgf/number format/.cd,
-				fixed,
-				precision=4,
-			},
+			name=plot1,
+			xmode=log,
+			ymode=log,
+			xmax=500,xmin=0.5,
+			xlabel={$\kappa$},
+			ylabel={$\mu$ MSE},
 			ylabel near ticks,
-			legend pos=north east,
-			legend style={legend cell align=left,draw=none,fill=white,fill opacity=0.8,text opacity=1,},
+			legend pos=south west,
+			legend style={draw=none,fill=white,fill opacity=0.8,text opacity=1,font=\tiny},
 			]
-			\addplot[color=black, mark=square*, mark options={solid}] table [x=log10N, y expr={\thisrow{W1(method2)_mu_mse} / \thisrow{MLE_mu_mse}}] {\mycsv};
-			\addlegendentry{W1 (equal div)/MLE}
-			\addplot[color=blue, dashed, mark=*, mark options={solid}] table [x=log10N, y expr={\thisrow{W1(method3)_mu_mse} / \thisrow{MLE_mu_mse}}] {\mycsv};
-			\addlegendentry{W1 (quantile)/MLE}
-			\addplot[color=red, dashdotdotted, mark=x, mark options={solid}] table [x=log10N, y expr={\thisrow{W2(method3)_mu_mse} / \thisrow{MLE_mu_mse}}] {\mycsv};
-			\addlegendentry{W2 (quantile)/MLE}
-			\addplot[thin, color=black, dotted,] {1};
+			\addplot[color=black, mark=square*] table [x=kappa, y=MLE_mu_mse] {\mycsv};
+			\addlegendentry{MLE}
+			\addplot[color=blue, mark=*] table [x=kappa, y=W1(method2)_mu_mse] {\mycsv};
+			\addlegendentry{W1 (equal div)}
+			\addplot[color=red, mark=x] table [x=kappa, y=W2(method3)_mu_mse] {\mycsv};
+			\addlegendentry{W2 (quantile)}
 		\end{axis}
-	\end{tikzpicture}
-	\begin{tikzpicture}
-		\tikzset{every node/.style={}}
+
+		% Plot 2: KL Divergence (top-right)
 		\begin{axis}
 			[
-			xmax=5,xmin=2,
-			xlabel={$\log_{10} n$},
-			ylabel={Distance to true},
-			yticklabel style={
-				/pgf/number format/.cd,
-				fixed,
-				precision=4,
-			},
+			name=plot2,
+			at={(7.5cm,0)},
+			xmode=log,
+			ymode=log,
+			xmax=500,xmin=0.5,
+			xlabel={$\kappa$},
+			ylabel={KL Divergence},
 			ylabel near ticks,
-			legend pos=north east,
-			legend style={legend cell align=left,draw=none,fill=white,fill opacity=0.8,text opacity=1,font=\tiny},
+			legend pos=south west,
+			legend style={draw=none,fill=white,fill opacity=0.8,text opacity=1,font=\tiny},
 			]
-			% KL (dotted, mark=o)
-			\addplot[color=black, dotted, mark=o] table [x=log10N, y=MLE_KL] {\mycsv};
-			\addlegendentry{MLE (KL)}
-			\addplot[color=blue, dotted, mark=o] table [x=log10N, y=W1(method2)_KL] {\mycsv};
-			\addlegendentry{W1 eq (KL)}
-			\addplot[color=teal, dotted, mark=o] table [x=log10N, y=W1(method3)_KL] {\mycsv};
-			\addlegendentry{W1 qu (KL)}
-			\addplot[color=red, dotted, mark=o] table [x=log10N, y=W2(method3)_KL] {\mycsv};
-			\addlegendentry{W2 qu (KL)}
+			\addplot[color=black, mark=square*] table [x=kappa, y=MLE_KL] {\mycsv};
+			\addlegendentry{MLE}
+			\addplot[color=blue, mark=*] table [x=kappa, y=W1(method2)_KL] {\mycsv};
+			\addlegendentry{W1 (equal div)}
+			\addplot[color=red, mark=x] table [x=kappa, y=W2(method3)_KL] {\mycsv};
+			\addlegendentry{W2 (quantile)}
+		\end{axis}
 
-			% W1 (solid, mark=square)
-			\addplot[color=black, solid, mark=square] table [x=log10N, y=MLE_W1] {\mycsv};
-			\addlegendentry{MLE (W1)}
-			\addplot[color=blue, solid, mark=square] table [x=log10N, y=W1(method2)_W1] {\mycsv};
-			\addlegendentry{W1 eq (W1)}
-			\addplot[color=teal, solid, mark=square] table [x=log10N, y=W1(method3)_W1] {\mycsv};
-			\addlegendentry{W1 qu (W1)}
-			\addplot[color=red, solid, mark=square] table [x=log10N, y=W2(method3)_W1] {\mycsv};
-			\addlegendentry{W2 qu (W1)}
+		% Plot 3: W1 Distance (bottom-left)
+		\begin{axis}
+			[
+			name=plot3,
+			at={(0,-6.5cm)},
+			xmode=log,
+			ymode=log,
+			xmax=500,xmin=0.5,
+			xlabel={$\kappa$},
+			ylabel={$W_1$ distance},
+			ylabel near ticks,
+			legend pos=south west,
+			legend style={draw=none,fill=white,fill opacity=0.8,text opacity=1,font=\tiny},
+			]
+			\addplot[color=black, mark=square*] table [x=kappa, y=MLE_W1] {\mycsv};
+			\addlegendentry{MLE}
+			\addplot[color=blue, mark=*] table [x=kappa, y=W1(method2)_W1] {\mycsv};
+			\addlegendentry{W1 (equal div)}
+			\addplot[color=red, mark=x] table [x=kappa, y=W2(method3)_W1] {\mycsv};
+			\addlegendentry{W2 (quantile)}
+		\end{axis}
 
-			% W2 (dashed, mark=triangle)
-			\addplot[color=black, dashed, mark=triangle] table [x=log10N, y=MLE_W2] {\mycsv};
-			\addlegendentry{MLE (W2)}
-			\addplot[color=blue, dashed, mark=triangle] table [x=log10N, y=W1(method2)_W2] {\mycsv};
-			\addlegendentry{W1 eq (W2)}
-			\addplot[color=teal, dashed, mark=triangle] table [x=log10N, y=W1(method3)_W2] {\mycsv};
-			\addlegendentry{W1 qu (W2)}
-			\addplot[color=red, dashed, mark=triangle] table [x=log10N, y=W2(method3)_W2] {\mycsv};
-			\addlegendentry{W2 qu (W2)}
+		% Plot 4: W2 Distance (bottom-right)
+		\begin{axis}
+			[
+			name=plot4,
+			at={(7.5cm,-6.5cm)},
+			xmode=log,
+			ymode=log,
+			xmax=500,xmin=0.5,
+			xlabel={$\kappa$},
+			ylabel={$W_2$ distance},
+			ylabel near ticks,
+			legend pos=south west,
+			legend style={draw=none,fill=white,fill opacity=0.8,text opacity=1,font=\tiny},
+			]
+			\addplot[color=black, mark=square*] table [x=kappa, y=MLE_W2] {\mycsv};
+			\addlegendentry{MLE}
+			\addplot[color=blue, mark=*] table [x=kappa, y=W1(method2)_W2] {\mycsv};
+			\addlegendentry{W1 (equal div)}
+			\addplot[color=red, mark=x] table [x=kappa, y=W2(method3)_W2] {\mycsv};
+			\addlegendentry{W2 (quantile)}
 		\end{axis}
 	\end{tikzpicture}
 \end{document}
