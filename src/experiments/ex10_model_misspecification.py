@@ -33,13 +33,13 @@ def W2_quantile_sampling_downsampled(
     sample_downsampled = given_data_sorted[indices]
     sample_downsampled_norm = sample_downsampled / (2 * np.pi)
 
+    from src.utils.circular_utils import circular_quantile_sampling
+
     def cost_func(x):
         def ppf_func(q):
             return wrappedcauchy.wrapcauchy_ppf_analytical(q, x[1], loc=x[0])
 
-        # Generate model sample at M points
-        q_grid = np.linspace(1e-9, 1.0 - 1e-9, M)
-        model_sample = ppf_func(q_grid) / (2 * np.pi)
+        model_sample = circular_quantile_sampling(ppf_func, M) / (2 * np.pi)
         return circular_wasserstein_from_samples(
             sample_downsampled_norm, model_sample, p=2, sorted=True
         )
