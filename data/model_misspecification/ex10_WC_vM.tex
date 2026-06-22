@@ -6,7 +6,12 @@
 \usepackage{tikz}
 \usepackage{pgfplotstable}
 
-\pgfplotsset{compat=1.18}
+\pgfplotsset{
+	compat=1.18,
+	width=7cm,
+	height=5.5cm,
+	scale only axis,
+}
 
 \pgfplotstableread[
 col sep=comma,
@@ -39,7 +44,7 @@ col sep=comma,
 		\begin{axis}
 			[
 			name=plot2,
-			at={(7.5cm,0)},
+			at={(9.2cm,0)},
 			ymode=log,
 			xmax=0.95,xmin=0.05,
 			xlabel={$\rho$},
@@ -60,7 +65,7 @@ col sep=comma,
 		\begin{axis}
 			[
 			name=plot3,
-			at={(0,-6.5cm)},
+			at={(0,-7.0cm)},
 			ymode=log,
 			xmax=0.95,xmin=0.05,
 			xlabel={$\rho$},
@@ -81,7 +86,7 @@ col sep=comma,
 		\begin{axis}
 			[
 			name=plot4,
-			at={(7.5cm,-6.5cm)},
+			at={(9.2cm,-7.0cm)},
 			ymode=log,
 			xmax=0.95,xmin=0.05,
 			xlabel={$\rho$},
