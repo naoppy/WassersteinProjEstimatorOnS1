@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>極限集中度対応: von Mises vs Wrapped Cauchy</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            max-width: 650px;
+            width: 100%;
+        }
+        h2 { margin-top: 0; font-size: 1.4rem; text-align: center; }
+        .canvas-container { position: relative; margin: 20px 0; }
+        canvas { background: #fafafa; border: 1px solid #e1e4e8; border-radius: 6px; display: block; width: 100%; }
+        .controls { display: flex; flex-direction: column; gap: 15px; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #e9ecef; }
+        .slider-group { display: flex; align-items: center; gap: 15px; }
+        .slider-label { width: 120px; font-weight: bold; }
+        .wc-label { color: #007aff; }
+        .vm-label { color: #ff3b30; }
+        input[type="range"] { flex: 1; cursor: pointer; }
+        .val-display { font-family: monospace; font-size: 1.1rem; font-weight: bold; width: 50px; text-align: right; }
+        .legend { display: flex; justify-content: center; gap: 20px; margin-bottom: 10px; font-size: 0.9rem; }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .color-box { width: 16px; height: 16px; border-radius: 3px; }
+        .wc-color { background: #007aff; }
+        .vm-color { background: #ff3b30; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>極限集中度対応 (κ=500)</h2>
+    <div class="legend">
+        <div class="legend-item"><div class="color-box wc-color"></div>Wrapped Cauchy (ρ)</div>
+        <div class="legend-item"><div class="color-box vm-color"></div>von Mises (κ)</div>
+    </div>
+    <div class="canvas-container">
+        <canvas id="plotCanvas" width="600" height="350"></canvas>
+    </div>
+    <div class="controls">
+        <div class="slider-group">
+            <div class="slider-label wc-label">WC: ρ (rho)</div>
+            <input type="range" id="rhoSlider" min="0" max="0.99" step="0.01" value="0.95">
+            <span id="rhoValue" class="val-display wc-label">0.95</span>
+        </div>
+        <div class="slider-group">
+            <div class="slider-label vm-label">vM: κ (kappa)</div>
+            <input type="range" id="kappaSlider" min="0" max="500" step="1" value="100">
+            <span id="kappaValue" class="val-display vm-label">100</span>
+        </div>
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById('plotCanvas');
+const ctx = canvas.getContext('2d');
+const rhoSlider = document.getElementById('rhoSlider');
+const kappaSlider = document.getElementById('kappaSlider');
+const rhoDisplay = document.getElementById('rhoValue');
+const kappaDisplay = document.getElementById('kappaValue');
+
+const padding = { top: 30, right: 30, bottom: 40, left: 50 };
+const graphWidth = canvas.width - padding.left - padding.right;
+const graphHeight = canvas.height - padding.top - padding.bottom;
+
+// オーバーフロー対策済み Bessel I0
+function scaledI0(k) {
+    if (k === 0) return 1;
+    if (k > 15) {
+        // κが大きい場合は漸近展開を利用
+        return (1 / Math.sqrt(2 * Math.PI * k)) * (1 + 1/(8*k) + 9/(128*k*k) + 225/(3072*k*k*k));
+    }
+    let s = 1, t = 1;
+    for (let i = 1; i < 50; i++) {
+        t *= (k * k) / (4 * i * i);
+        s += t;
+        if (t < 1e-12) break;
+    }
+    return s * Math.exp(-k);
+}
+
+function wrappedCauchy(theta, rho) {
+    if (rho === 0) return 1 / (2 * Math.PI);
+    const num = 1 - rho * rho;
+    const den = 2 * Math.PI * (1 + rho * rho - 2 * rho * Math.cos(theta));
+    return num / den;
+}
+
+function vonMises(theta, kappa) {
+    // 指数関数のオーバーフローを防ぐため、e^(k*cos(θ)) / (I0(k)) を
+    // e^(k*(cos(θ)-1)) / (I0(k)*e^-k) という形に変形して計算
+    return Math.exp(kappa * (Math.cos(theta) - 1)) / (2 * Math.PI * scaledI0(kappa));
+}
+
+function drawPlot() {
+    const rho = parseFloat(rhoSlider.value);
+    const kappa = parseFloat(kappaSlider.value);
+    
+    rhoDisplay.textContent = rho.toFixed(2);
+    kappaDisplay.textContent = kappa.toFixed(0);
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // 描画解像度を800に引き上げ（細いピーク対応）
+    const steps = 800;
+    const wcPoints = [];
+    const vmPoints = [];
+    let maxDensity = 0;
+
+    for (let i = 0; i <= steps; i++) {
+        const theta = -Math.PI + (i / steps) * (2 * Math.PI);
+        const wcDens = wrappedCauchy(theta, rho);
+        const vmDens = vonMises(theta, kappa);
+        
+        wcPoints.push({ theta, density: wcDens });
+        vmPoints.push({ theta, density: vmDens });
+        
+        if (wcDens > maxDensity) maxDensity = wcDens;
+        if (vmDens > maxDensity) maxDensity = vmDens;
+    }
+
+    // Y軸の最大値を動的に決定
+    const yMax = Math.max(1.5, maxDensity * 1.05);
+
+    // X軸とY軸の描画
+    ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1; ctx.fillStyle = '#666'; ctx.font = '12px sans-serif';
+    ctx.beginPath(); ctx.moveTo(padding.left, canvas.height - padding.bottom); ctx.lineTo(canvas.width - padding.right, canvas.height - padding.bottom); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(padding.left, padding.top); ctx.lineTo(padding.left, canvas.height - padding.bottom); ctx.stroke();
+
+    // X軸目盛り
+    const ticks = [{ val: -Math.PI, label: '-π' }, { val: -Math.PI/2, label: '-π/2' }, { val: 0, label: '0' }, { val: Math.PI/2, label: 'π/2' }, { val: Math.PI, label: 'π' }];
+    ticks.forEach(tick => {
+        const x = padding.left + ((tick.val - (-Math.PI)) / (2 * Math.PI)) * graphWidth;
+        ctx.beginPath(); ctx.moveTo(x, canvas.height - padding.bottom); ctx.lineTo(x, canvas.height - padding.bottom + 5); ctx.stroke();
+        ctx.textAlign = 'center'; ctx.fillText(tick.label, x, canvas.height - padding.bottom + 20);
+    });
+
+    // Y軸目盛り
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (let i = 0; i <= 4; i++) {
+        const val = (yMax * (i / 4));
+        const y = canvas.height - padding.bottom - (i / 4) * graphHeight;
+        ctx.fillText(val.toFixed(1), padding.left - 8, y);
+        ctx.strokeStyle = '#eee'; ctx.beginPath(); ctx.moveTo(padding.left, y); ctx.lineTo(canvas.width - padding.right, y); ctx.stroke();
+    }
+
+    // 曲線の描画関数
+    const drawCurve = (points, color, fillColor) => {
+        ctx.beginPath(); ctx.lineWidth = 2.5; ctx.strokeStyle = color;
+        points.forEach((pt, idx) => {
+            const x = padding.left + ((pt.theta - (-Math.PI)) / (2 * Math.PI)) * graphWidth;
+            const y = canvas.height - padding.bottom - (pt.density / yMax) * graphHeight;
+            if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+        ctx.lineTo(padding.left + graphWidth, canvas.height - padding.bottom);
+        ctx.lineTo(padding.left, canvas.height - padding.bottom);
+        ctx.fillStyle = fillColor; ctx.fill();
+    };
+
+    drawCurve(vmPoints, '#ff3b30', 'rgba(255, 59, 48, 0.15)');
+    drawCurve(wcPoints, '#007aff', 'rgba(0, 122, 255, 0.15)');
+}
+
+rhoSlider.addEventListener('input', drawPlot);
+kappaSlider.addEventListener('input', drawPlot);
+drawPlot();
+</script>
+
+</body>
+</html>

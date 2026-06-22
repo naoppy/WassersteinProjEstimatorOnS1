@@ -26,29 +26,203 @@ q(\theta) = \frac{1 - \rho^2}{2\pi (1 + \rho^2 - 2\rho \cos(\theta - \mu_Q))}
 
 \section{Kullback-Leibler Divergence}
 
-\subsection{Divergence from von Mises to Wrapped Cauchy}
-The KL divergence $D_{\text{KL}}(P \parallel Q)$ is defined as:
+\subsection{Trigonometric Moments Preparation and Derivations}
+For circular probability distributions symmetric about their mean direction $\mu$, the trigonometric moments with respect to the centered angle $\theta - \mu$ are real-valued. Specifically, the sine moments vanish due to symmetry, while the cosine moments represent the characteristic function values.
+
+\subsubsection{Trigonometric Moments of the von Mises Distribution}
+For the von Mises distribution $P$ with mean direction $\mu_P$ and concentration parameter $\kappa > 0$, the moments are defined as:
+\begin{align}
+E_P[\cos(n(\theta - \mu_P))] &= \frac{1}{2\pi I_0(\kappa)} \int_{-\pi}^{\pi} \cos(n(\theta - \mu_P)) e^{\kappa \cos(\theta - \mu_P)} d\theta \\
+E_P[\sin(n(\theta - \mu_P))] &= \frac{1}{2\pi I_0(\kappa)} \int_{-\pi}^{\pi} \sin(n(\theta - \mu_P)) e^{\kappa \cos(\theta - \mu_P)} d\theta
+\end{align}
+Let $\phi = \theta - \mu_P$. Under this change of variables, the domain of integration remains $[-\pi, \pi]$ due to the periodicity of the integrand.
+For the sine moment, the integrand $\sin(n\phi) e^{\kappa \cos\phi}$ is an odd function of $\phi$, which implies:
 \begin{equation}
-D_{\text{KL}}(P \parallel Q) = \int_0^{2\pi} p(\theta) \log \left( \frac{p(\theta)}{q(\theta)} \right) d\theta
+E_P[\sin(n(\theta - \mu_P))] = 0
 \end{equation}
-Using the Fourier series expansion:
+For the cosine moment, we recall the standard integral representation of the modified Bessel function of the first kind of integer order $n$:
 \begin{equation}
-\log (1 + \rho^2 - 2\rho \cos x) = -2 \sum_{n=1}^\infty \frac{\rho^n}{n} \cos(nx)
+I_n(\kappa) = \frac{1}{2\pi} \int_{-\pi}^{\pi} e^{\kappa \cos\phi} \cos(n\phi) d\phi
 \end{equation}
-and the trigonometric moments of the von Mises distribution:
+Substituting this definition into the expression for the expectation yields:
 \begin{equation}
-E_P[\cos(n(\theta - \mu_Q))] = \frac{I_n(\kappa)}{I_0(\kappa)} \cos(n(\mu_P - \mu_Q))
-\end{equation}
-we obtain the fast-converging series representation:
-\begin{equation}
-D_{\text{KL}}(P \parallel Q) = \kappa \frac{I_1(\kappa)}{I_0(\kappa)} - \log I_0(\kappa) - \log(1 - \rho^2) - 2 \sum_{n=1}^\infty \frac{\rho^n I_n(\kappa)}{n I_0(\kappa)} \cos(n(\mu_P - \mu_Q))
+E_P[\cos(n(\theta - \mu_P))] = \frac{I_n(\kappa)}{I_0(\kappa)}
 \end{equation}
 
-\subsection{Divergence from Wrapped Cauchy to von Mises}
-The KL divergence $D_{\text{KL}}(Q \parallel P)$ can be calculated in closed-form. Using $E_Q[\cos(\theta - \mu_P)] = \rho \cos(\mu_Q - \mu_P)$ and $E_Q[\log(1 + \rho^2 - 2\rho \cos(\theta - \mu_Q))] = 2 \log(1 - \rho^2)$, we get:
+\subsubsection{Trigonometric Moments of the Wrapped Cauchy Distribution}
+For the wrapped Cauchy distribution $Q$ with mean direction $\mu_Q$ and concentration parameter $\rho \in [0, 1)$, we evaluate the complex trigonometric moments using contour integration. By definition:
 \begin{equation}
-D_{\text{KL}}(Q \parallel P) = \log I_0(\kappa) - \log(1 - \rho^2) - \kappa \rho \cos(\mu_Q - \mu_P)
+E_Q[e^{in(\theta - \mu_Q)}] = \int_{-\pi}^{\pi} e^{in(\theta - \mu_Q)} \frac{1 - \rho^2}{2\pi(1 + \rho^2 - 2\rho\cos(\theta - \mu_Q))} d\theta
 \end{equation}
+Letting $\phi = \theta - \mu_Q$, and using the Euler identity $2\cos\phi = e^{i\phi} + e^{-i\phi}$, we can factor the denominator as:
+\begin{equation}
+1 + \rho^2 - 2\rho\cos\phi = (1 - \rho e^{i\phi})(1 - \rho e^{-i\phi})
+\end{equation}
+This gives:
+\begin{equation}
+E_Q[e^{in(\theta - \mu_Q)}] = \frac{1 - \rho^2}{2\pi} \int_{-\pi}^{\pi} \frac{e^{in\phi}}{(1 - \rho e^{i\phi})(1 - \rho e^{-i\phi})} d\phi
+\end{equation}
+Let $z = e^{i\phi}$ be a complex variable on the unit circle $C$ in the complex plane, so $dz = i e^{i\phi} d\phi = i z d\phi$, which implies $d\phi = \frac{dz}{iz}$. Since $e^{-i\phi} = 1/z$, we rewrite the integral as a contour integral over the unit circle $C$ oriented counterclockwise:
+\begin{align}
+E_Q[e^{in(\theta - \mu_Q)}] &= \frac{1 - \rho^2}{2\pi} \oint_{C} \frac{z^n}{(1 - \rho z)(1 - \rho/z)} \frac{dz}{iz} \nonumber \\
+&= \frac{1 - \rho^2}{2\pi i} \oint_{C} \frac{z^n}{(z - \rho)(1 - \rho z)} dz
+\end{align}
+The integrand $f(z) = \frac{z^n}{(z - \rho)(1 - \rho z)}$ has poles at $z = \rho$ and $z = 1/\rho$. Since $\rho \in [0, 1)$, only the simple pole $z = \rho$ lies inside the unit circle $C$.
+By the Residue Theorem, for $n \ge 0$:
+\begin{equation}
+\oint_{C} f(z) dz = 2\pi i \cdot \text{Res}(f, \rho)
+\end{equation}
+Calculating the residue at $z = \rho$:
+\begin{equation}
+\text{Res}(f, \rho) = \lim_{z \to \rho} (z - \rho) \frac{z^n}{(z - \rho)(1 - \rho z)} = \frac{\rho^n}{1 - \rho^2}
+\end{equation}
+Substituting this back, we obtain:
+\begin{equation}
+E_Q[e^{in(\theta - \mu_Q)}] = \frac{1 - \rho^2}{2\pi i} \left( 2\pi i \frac{\rho^n}{1 - \rho^2} \right) = \rho^n
+\end{equation}
+Taking the real and imaginary parts of $E_Q[e^{in(\theta - \mu_Q)}] = \rho^n$, we get:
+\begin{align}
+E_Q[\cos(n(\theta - \mu_Q))] &= \rho^n \\
+E_Q[\sin(n(\theta - \mu_Q))] &= 0
+\end{align}
+
+\subsection{Fourier Expansion of the Log-Cosine Term}
+To evaluate expectations involving the log-denominator of the Wrapped Cauchy density, we require the Fourier series expansion of $\log(1 + \rho^2 - 2\rho\cos x)$.
+
+\subsubsection{Derivation of the Expansion}
+Let $z = \rho e^{ix}$ be a complex number. Since $\rho \in [0, 1)$, we have $|z| = \rho < 1$. We use the Taylor series expansion of the complex logarithm $\log(1 - z)$ for $|z| < 1$:
+\begin{equation}
+\log(1 - z) = -\sum_{n=1}^\infty \frac{z^n}{n} = -\sum_{n=1}^\infty \frac{\rho^n}{n} e^{inx}
+\end{equation}
+Taking the complex conjugate, we also have:
+\begin{equation}
+\log(1 - \bar{z}) = -\sum_{n=1}^\infty \frac{\bar{z}^n}{n} = -\sum_{n=1}^\infty \frac{\rho^n}{n} e^{-inx}
+\end{equation}
+Adding these two identities together yields:
+\begin{align}
+\log(1 - z) + \log(1 - \bar{z}) &= -\sum_{n=1}^\infty \frac{\rho^n}{n} \left( e^{inx} + e^{-inx} \right) \nonumber \\
+&= -2 \sum_{n=1}^\infty \frac{\rho^n}{n} \cos(nx)
+\end{align}
+Using the properties of the logarithm, the left-hand side can be combined as:
+\begin{align}
+\log(1 - z) + \log(1 - \bar{z}) &= \log((1 - z)(1 - \bar{z})) \nonumber \\
+&= \log(1 - z - \bar{z} + z\bar{z}) \nonumber \\
+&= \log(1 - \rho(e^{ix} + e^{-ix}) + \rho^2) \nonumber \\
+&= \log(1 + \rho^2 - 2\rho\cos x)
+\end{align}
+Equating the two expressions, we obtain the desired Fourier series representation:
+\begin{equation}
+\log(1 + \rho^2 - 2\rho\cos x) = -2 \sum_{n=1}^\infty \frac{\rho^n}{n} \cos(nx)
+\end{equation}
+
+
+\subsection{Divergence from von Mises to Wrapped Cauchy}
+The Kullback-Leibler (KL) divergence $D_{\text{KL}}(P \parallel Q)$ from $P$ to $Q$ is defined as:
+\begin{equation}
+D_{\text{KL}}(P \parallel Q) = E_P\left[ \log \frac{p(\theta)}{q(\theta)} \right] = E_P[\log p(\theta)] - E_P[\log q(\theta)]
+\end{equation}
+
+First, we evaluate $E_P[\log p(\theta)]$. Taking the logarithm of the density of the von Mises distribution:
+\begin{equation}
+\log p(\theta) = -\log(2\pi) - \log I_0(\kappa) + \kappa \cos(\theta - \mu_P)
+\end{equation}
+Taking the expectation with respect to $P$ and using the prepared moment $E_P[\cos(\theta - \mu_P)] = \frac{I_1(\kappa)}{I_0(\kappa)}$, we obtain:
+\begin{align}
+E_P[\log p(\theta)] &= -\log(2\pi) - \log I_0(\kappa) + \kappa E_P[\cos(\theta - \mu_P)] \nonumber \\
+&= -\log(2\pi) - \log I_0(\kappa) + \kappa \frac{I_1(\kappa)}{I_0(\kappa)}
+\end{align}
+
+Next, we evaluate $E_P[\log q(\theta)]$. The logarithm of the wrapped Cauchy density is:
+\begin{equation}
+\log q(\theta) = \log(1 - \rho^2) - \log(2\pi) - \log(1 + \rho^2 - 2\rho \cos(\theta - \mu_Q))
+\end{equation}
+To calculate the expectation of the last term, we use the Fourier series expansion of the logarithm:
+\begin{equation}
+\log(1 + \rho^2 - 2\rho \cos x) = -2 \sum_{n=1}^\infty \frac{\rho^n}{n} \cos(nx)
+\end{equation}
+Setting $x = \theta - \mu_Q$, we have:
+\begin{equation}
+E_P[\log(1 + \rho^2 - 2\rho \cos(\theta - \mu_Q))] = -2 \sum_{n=1}^\infty \frac{\rho^n}{n} E_P[\cos(n(\theta - \mu_Q))]
+\end{equation}
+To evaluate $E_P[\cos(n(\theta - \mu_Q))]$ when the mean directions are not aligned, we decompose the angle as $\theta - \mu_Q = (\theta - \mu_P) + (\mu_P - \mu_Q)$ and apply the trigonometric addition formula:
+\begin{align}
+\cos(n(\theta - \mu_Q)) &= \cos(n(\theta - \mu_P)) \cos(n(\mu_P - \mu_Q)) \nonumber \\
+&\quad - \sin(n(\theta - \mu_P)) \sin(n(\mu_P - \mu_Q))
+\end{align}
+Taking the expectation and substituting the prepared moments $E_P[\cos(n(\theta - \mu_P))] = \frac{I_n(\kappa)}{I_0(\kappa)}$ and $E_P[\sin(n(\theta - \mu_P))] = 0$, we get:
+\begin{align}
+E_P[\cos(n(\theta - \mu_Q))] &= E_P[\cos(n(\theta - \mu_P))] \cos(n(\mu_P - \mu_Q)) \nonumber \\
+&\quad - E_P[\sin(n(\theta - \mu_P))] \sin(n(\mu_P - \mu_Q)) \nonumber \\
+&= \frac{I_n(\kappa)}{I_0(\kappa)} \cos(n(\mu_P - \mu_Q))
+\end{align}
+Thus, the expectation of the log-denominator term is:
+\begin{equation}
+E_P[\log(1 + \rho^2 - 2\rho \cos(\theta - \mu_Q))] = -2 \sum_{n=1}^\infty \frac{\rho^n I_n(\kappa)}{n I_0(\kappa)} \cos(n(\mu_P - \mu_Q))
+\end{equation}
+Substituting this back, we obtain:
+\begin{equation}
+E_P[\log q(\theta)] = \log(1 - \rho^2) - \log(2\pi) + 2 \sum_{n=1}^\infty \frac{\rho^n I_n(\kappa)}{n I_0(\kappa)} \cos(n(\mu_P - \mu_Q))
+\end{equation}
+
+Combining the results, the KL divergence is:
+\begin{align}
+D_{\text{KL}}(P \parallel Q) &= E_P[\log p(\theta)] - E_P[\log q(\theta)] \nonumber \\
+&= \kappa \frac{I_1(\kappa)}{I_0(\kappa)} - \log I_0(\kappa) - \log(1 - \rho^2) \nonumber \\
+&\quad - 2 \sum_{n=1}^\infty \frac{\rho^n I_n(\kappa)}{n I_0(\kappa)} \cos(n(\mu_P - \mu_Q))
+\end{align}
+
+\subsection{Divergence from Wrapped Cauchy to von Mises}
+The KL divergence $D_{\text{KL}}(Q \parallel P)$ from $Q$ to $P$ is:
+\begin{equation}
+D_{\text{KL}}(Q \parallel P) = E_Q\left[ \log \frac{q(\theta)}{p(\theta)} \right] = E_Q[\log q(\theta)] - E_Q[\log p(\theta)]
+\end{equation}
+
+First, we evaluate $E_Q[\log q(\theta)]$. Using the logarithm of the wrapped Cauchy density:
+\begin{equation}
+\log q(\theta) = \log(1 - \rho^2) - \log(2\pi) - \log(1 + \rho^2 - 2\rho \cos(\theta - \mu_Q))
+\end{equation}
+Using the Fourier series expansion of the logarithm with $x = \theta - \mu_Q$:
+\begin{align}
+E_Q[\log(1 + \rho^2 - 2\rho \cos(\theta - \mu_Q))] &= -2 \sum_{n=1}^\infty \frac{\rho^n}{n} E_Q[\cos(n(\theta - \mu_Q))] \nonumber \\
+&= -2 \sum_{n=1}^\infty \frac{\rho^{2n}}{n}
+\end{align}
+where we have substituted the prepared moment $E_Q[\cos(n(\theta - \mu_Q))] = \rho^n$. Using the Taylor series expansion $-\log(1 - y) = \sum_{n=1}^\infty \frac{y^n}{n}$ with $y = \rho^2$, we obtain:
+\begin{equation}
+E_Q[\log(1 + \rho^2 - 2\rho \cos(\theta - \mu_Q))] = 2 \log(1 - \rho^2)
+\end{equation}
+Thus, the expectation of the log-density of $Q$ with respect to itself simplifies to:
+\begin{align}
+E_Q[\log q(\theta)] &= \log(1 - \rho^2) - \log(2\pi) - 2 \log(1 - \rho^2) \nonumber \\
+&= -\log(1 - \rho^2) - \log(2\pi)
+\end{align}
+
+Next, we evaluate $E_Q[\log p(\theta)]$. Taking the logarithm of the von Mises density:
+\begin{equation}
+\log p(\theta) = -\log(2\pi) - \log I_0(\kappa) + \kappa \cos(\theta - \mu_P)
+\end{equation}
+To calculate $E_Q[\cos(\theta - \mu_P)]$, we decompose the angle as $\theta - \mu_P = (\theta - \mu_Q) + (\mu_Q - \mu_P)$ and use the addition formula:
+\begin{align}
+\cos(\theta - \mu_P) &= \cos(\theta - \mu_Q) \cos(\mu_Q - \mu_P) \nonumber \\
+&\quad - \sin(\theta - \mu_Q) \sin(\mu_Q - \mu_P)
+\end{align}
+Taking the expectation and substituting the prepared moments $E_Q[\cos(\theta - \mu_Q)] = \rho$ and $E_Q[\sin(\theta - \mu_Q)] = 0$, we find:
+\begin{align}
+E_Q[\cos(\theta - \mu_P)] &= E_Q[\cos(\theta - \mu_Q)] \cos(\mu_Q - \mu_P) \nonumber \\
+&\quad - E_Q[\sin(\theta - \mu_Q)] \sin(\mu_Q - \mu_P) \nonumber \\
+&= \rho \cos(\mu_Q - \mu_P)
+\end{align}
+Therefore:
+\begin{equation}
+E_Q[\log p(\theta)] = -\log(2\pi) - \log I_0(\kappa) + \kappa \rho \cos(\mu_Q - \mu_P)
+\end{equation}
+
+Combining the results, the KL divergence is:
+\begin{align}
+D_{\text{KL}}(Q \parallel P) &= E_Q[\log q(\theta)] - E_Q[\log p(\theta)] \nonumber \\
+&= \left[ -\log(1 - \rho^2) - \log(2\pi) \right] \nonumber \\
+&\quad - \left[ -\log(2\pi) - \log I_0(\kappa) + \kappa \rho \cos(\mu_Q - \mu_P) \right] \nonumber \\
+&= \log I_0(\kappa) - \log(1 - \rho^2) - \kappa \rho \cos(\mu_Q - \mu_P)
+\end{align}
 
 \section{1-Wasserstein Distance (Aligned Means)}
 When the mean directions are aligned ($\mu_P = \mu_Q$) and one distribution is more concentrated than the other, the 1-Wasserstein distance $W_1(P, Q)$ on the circle reduces to the difference of their mean absolute deviations on $[-\pi, \pi]$:
