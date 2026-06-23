@@ -30,10 +30,10 @@ This file contains rules, constraints, architectural context, and execution guid
 ├── src/                   # Source code
 │   ├── distributions/     # von Mises, Wrapped Cauchy, Sine-Skewed von Mises
 │   ├── method/            # Wasserstein distance calculation routines
-│   ├── experiments/       # Simulation execution scripts (ex1 to ex11)
-│   ├── plots/             # converters, LaTeX TikZ compilation scripts, and visualizers
+│   ├── experiments/       # Simulation execution scripts (ex6 to ex11)
+│   ├── plots/             # LaTeX TikZ compilation scripts, and visualizers
 │   └── utils/             # Grid generation, quantile sampling, and distance helpers
-└── verification/          # Scripts verifying math calculations and algorithm correctness
+└── verification/          # Scripts verifying math, algorithms, and loss landscapes
 ```
 
 ---
