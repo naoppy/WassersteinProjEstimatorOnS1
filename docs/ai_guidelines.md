@@ -29,10 +29,7 @@ Implements the core algorithms to calculate semi-discrete Wasserstein distance o
 - `method2.py`: Second algorithm variant.
 
 #### `src/experiments/`
-Entry-point scripts for conducting simulations. All experiment scripts are numbered (e.g., `ex1` to `ex11`) and should be executed using Python's module format:
-- `ex1_vonmises_method1.py` & `ex2_vonmises_method2.py`: Validation scripts for Von Mises.
-- `ex3_wrapped_cauchy.py`: Validation script for Wrapped Cauchy.
-- `ex4_vonmises_plot.py` & `ex5_wrapcauchy_plot.py`: Plotting distribution shapes.
+Entry-point scripts for conducting simulations. All experiment scripts are numbered (e.g., `ex6` to `ex11`) and should be executed using Python's module format:
 - `ex6_vonmises_MSE.py` & `ex65_vonmises_MSE2.py`: Mean Squared Error (MSE) simulations for Von Mises.
 - `ex7_wrapcauchy_MSE.py` & `ex75_wrapcauchy_MSE2.py`: MSE simulations for Wrapped Cauchy.
 - `ex8_vonmises_mix_MSE.py` & `ex85_vonmises_mix_MSE2.py`: MSE simulations for mixtures of Von Mises.
@@ -41,7 +38,7 @@ Entry-point scripts for conducting simulations. All experiment scripts are numbe
 - `ex11_time.py`: Comparison of execution/computation times across methods.
 
 #### `src/plots/` & `src/misc/`
-- Plotting utilities, converters (`txt2csv.py`, `csv_visualizer.py`), and validation test scripts (e.g., `vonmises_cdf_test.py`).
+- Plotting utilities, visualizers (`csv_visualizer.py`), and validation test scripts (e.g., `vonmises_cdf_test.py`).
 
 ### `data/` (Experiment Artifacts)
 - **All simulation results** (CSV datasets, text reports) and **generated visualization figures** are saved in this directory.
