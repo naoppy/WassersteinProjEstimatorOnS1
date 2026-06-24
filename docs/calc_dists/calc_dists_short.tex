@@ -1,0 +1,88 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{bm}
+
+\title{Appendix: Analytical Kullback-Leibler Divergence between von Mises and Wrapped Cauchy Distributions}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+This appendix presents the analytical derivations of the Kullback-Leibler (KL) divergences between the von Mises distribution $P$ and the wrapped Cauchy distribution $Q$ on the circle $S^1$. The densities are defined as:
+\begin{align}
+p(\theta) &= \frac{1}{2\pi I_0(\kappa)} e^{\kappa \cos(\theta - \mu_P)}, \\
+q(\theta) &= \frac{1 - \rho^2}{2\pi (1 + \rho^2 - 2\rho \cos(\theta - \mu_Q))},
+\end{align}
+where $\mu_P, \mu_Q \in [-\pi, \pi)$ are the mean directions, $\kappa > 0$ and $\rho \in [0, 1)$ are the concentration parameters, and $I_n(\kappa)$ is the modified Bessel function of the first kind of order $n$.
+
+\section{Key Mathematical Preparations}
+
+\subsection{Trigonometric Moments}
+Using standard integrations, the trigonometric moments for $P$ and $Q$ with respect to their centered directions are given by:
+\begin{align}
+E_P[\cos(n(\theta - \mu_P))] &= \frac{I_n(\kappa)}{I_0(\kappa)}, \quad E_P[\sin(n(\theta - \mu_P))] = 0, \\
+E_Q[\cos(n(\theta - \mu_Q))] &= \rho^n, \quad E_Q[\sin(n(\theta - \mu_Q))] = 0,
+\end{align}
+for any integer $n \ge 1$.
+
+\subsection{Fourier Series Expansion of the Log-Denominator}
+To expand the log-denominator of $q(\theta)$, let $z = \rho e^{ix}$ be a complex number with $|z| = \rho < 1$. Using the Taylor series expansion of the complex logarithm $\log(1-z) = -\sum_{n=1}^\infty \frac{z^n}{n}$, we have:
+\begin{equation}
+\log(1 - \rho e^{ix}) = -\sum_{n=1}^\infty \frac{\rho^n}{n} e^{inx}.
+\end{equation}
+Adding this to its complex conjugate yields:
+\begin{equation}
+\log(1 - \rho e^{ix}) + \log(1 - \rho e^{-ix}) = -2 \sum_{n=1}^\infty \frac{\rho^n}{n} \cos(nx).
+\end{equation}
+Since the left-hand side can be combined using logarithmic properties as:
+\begin{equation}
+\log((1 - \rho e^{ix})(1 - \rho e^{-ix})) = \log(1 + \rho^2 - 2\rho\cos x),
+\end{equation}
+we obtain the desired Fourier series representation:
+\begin{equation}
+\log(1 + \rho^2 - 2\rho\cos x) = -2 \sum_{n=1}^\infty \frac{\rho^n}{n} \cos(nx).
+\end{equation}
+
+\section{Derivation of $D_{\text{KL}}(P \parallel Q)$}
+The KL divergence from $P$ to $Q$ is defined as $D_{\text{KL}}(P \parallel Q) = E_P[\log p(\theta)] - E_P[\log q(\theta)]$. First, the expectation of the log-density of $P$ is:
+\begin{equation}
+E_P[\log p(\theta)] = -\log(2\pi) - \log I_0(\kappa) + \kappa \frac{I_1(\kappa)}{I_0(\kappa)}.
+\end{equation}
+Next, for the log-density of $Q$, we apply the Fourier expansion of the denominator with $x = \theta - \mu_Q$. By the trigonometric addition formula and the prepared moments under $P$, we obtain:
+\begin{equation}
+E_P[\cos(n(\theta - \mu_Q))] = \frac{I_n(\kappa)}{I_0(\kappa)} \cos(n(\mu_P - \mu_Q)).
+\end{equation}
+Therefore, we have:
+\begin{equation}
+E_P[\log q(\theta)] = \log(1 - \rho^2) - \log(2\pi) + 2 \sum_{n=1}^\infty \frac{\rho^n I_n(\kappa)}{n I_0(\kappa)} \cos(n(\mu_P - \mu_Q)).
+\end{equation}
+Combining these terms yields:
+\begin{equation}
+D_{\text{KL}}(P \parallel Q) = \kappa \frac{I_1(\kappa)}{I_0(\kappa)} - \log I_0(\kappa) - \log(1 - \rho^2) - 2 \sum_{n=1}^\infty \frac{\rho^n I_n(\kappa)}{n I_0(\kappa)} \cos(n(\mu_P - \mu_Q)).
+\end{equation}
+
+\section{Derivation of $D_{\text{KL}}(Q \parallel P)$}
+The KL divergence from $Q$ to $P$ is $D_{\text{KL}}(Q \parallel P) = E_Q[\log q(\theta)] - E_Q[\log p(\theta)]$. Under $Q$, using $E_Q[\cos(n(\theta - \mu_Q))] = \rho^n$, we evaluate the expectation of the log-denominator of $Q$:
+\begin{equation}
+E_Q[\log(1 + \rho^2 - 2\rho\cos(\theta - \mu_Q))] = -2 \sum_{n=1}^\infty \frac{\rho^{2n}}{n} = 2 \log(1 - \rho^2).
+\end{equation}
+This simplifies the self-entropy term to:
+\begin{equation}
+E_Q[\log q(\theta)] = -\log(1 - \rho^2) - \log(2\pi).
+\end{equation}
+Next, for the expectation of the log-density of $P$, by the trigonometric addition formula and the prepared moments under $Q$, we obtain:
+\begin{equation}
+E_Q[\cos(\theta - \mu_P)] = \rho \cos(\mu_P - \mu_Q).
+\end{equation}
+Hence, the cross-entropy term is:
+\begin{equation}
+E_Q[\log p(\theta)] = -\log(2\pi) - \log I_0(\kappa) + \kappa \rho \cos(\mu_P - \mu_Q).
+\end{equation}
+Combining these results yields:
+\begin{equation}
+D_{\text{KL}}(Q \parallel P) = \log I_0(\kappa) - \log(1 - \rho^2) - \kappa \rho \cos(\mu_P - \mu_Q).
+\end{equation}
+
+\end{document}
